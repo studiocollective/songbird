@@ -39,8 +39,24 @@ p - pattern (w:1/1 q:1/4 x:1/16, _:rest of same length, _q:1/4 rest)
 sw - swing (-:straight <:drag >:rush, #:amount, x:1/16 , ~:humanize)
 m - modulation (sin:sinewave, tri:triangle, #:percent)
 v - velocity to loop
-n - notes to loop (#:midinote, -:repeat, +1:add to root, -2:subtract from root)
-cc - midi control change
+n - notes to loop, supports three formats:
+     MIDI numbers: n 60 63 67
+     Note names:   n C4 Eb4 G4
+     Chord names:  n @Cm7 @Fm7 @G7
+     Modifiers:    -:repeat, +1:add to root, -2:subtract from root
+cc - midi control change (cc <number> <values...>)
+var - named CC variation (var <name> <values...>)
+     Names: cutoff, resonance, attack, release, decay,
+            volume, pan, mod, sustain, expression,
+            macro1-macro8 (Arturia Analog Lab)
+mix - mix automation (Console 1 Core Mixing Suite params)
+     Input: gain, phase
+     Filters: low_cut/hpf, high_cut/lpf
+     Shape: gate, sustain, punch/transient, hard_gate
+     EQ: eq_low, lo_mid, hi_mid, eq_high (+_freq, +_q variants)
+     Comp: comp/threshold, ratio, comp_attack, comp_release, makeup, parallel, sidechain
+     Drive: drive/saturation, character
+     Output: volume, pan, width, send1/reverb, send2/delay, mute, solo
 sec - section 
 arr - arrangement (intro:name #:length in bars)
 ```
@@ -60,12 +76,14 @@ sec verse
     p w _ w _
       sw - ~
         v 70 90 100
-          n 60 - -
-          n +3 +5 +4
+          n C4 - -
+          n @Cm7 @Fm7 @G7
         v 60
           n +7 +7 +8
         v 30
           n +12
+      cc 74 80 60 90 70
+      var attack 20 40 +10 -5
 ```
 
 ## Roadmap
@@ -78,12 +96,15 @@ sec verse
 - Euclidean rythyms
 - Pre-saved patterns (pt)
 - Better humanize algo based on scientific research
-- Inputting notes with names
-- Inputting chords with words
 - Different update cycle lengths of diff sequencers
 - Syntax highlighting for .bird files
 - Arrangement implementation
 - Get song position info from MIDI to establish ticks
+
+### Implemented
+- ~~Inputting notes with names~~ (C4, Eb3, F#5)
+- ~~Inputting chords with words~~ (@Cm7, @G7, @Fmaj7)
+- ~~MIDI CC control~~ (cc and var tokens)
 
 ### Bugs
 - 3 chord loop repeats the first (or perhaps bc it's repeating on 8)

@@ -3,8 +3,15 @@
 
 #ifndef ARDUINO
 #include "../composer.h"
+#include "../../voices/cc_presets.h"
+#include "../../voices/mix_presets.h"
+#include "../../theory/note_parser.h"
 #include <ctime>
 #include <thread>
+#include <map>
+#include <utility>
+using std::map;
+using std::pair;
 
 class BirdComposer : public Composer {
     private:
@@ -15,10 +22,12 @@ class BirdComposer : public Composer {
 
         void construct_sequencers(vector<vector<string>> sequence);
         vector<int> construct_pattern(vector<string> data);
-        vector<int> construct_notes(vector<string> data);
+        vector<vector<int>> construct_notes(vector<string> data);
         vector<int> construct_velocities(vector<string> data);
         Swing construct_swing(vector<string> data);
         Modulator construct_modulator(vector<string> data);
+        vector<int> construct_cc_values(vector<string> data, int start_index);
+        void build_arrangement();
         
         std::thread file_thread;
         time_t last_opened;
@@ -28,6 +37,12 @@ class BirdComposer : public Composer {
         int last_note;
         int last_velocity;
         int last_dur;
+        int last_cc_value;
+
+        // Section/arrangement storage
+        map<string, vector<vector<string>>> sections;   // name → lines
+        vector<pair<string, int>> arrangement;          // (name, bars)
+        string current_section;                         // section being parsed
 
     public:
         BirdComposer();

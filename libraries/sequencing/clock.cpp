@@ -17,6 +17,10 @@
 Transport::Transport()
 {
     playing = false;
+    #ifndef ARDUINO
+    has_arrangement = false;
+    arr_index = 0;
+    #endif
 }
 
 void Transport::pulse() 
@@ -125,11 +129,69 @@ void Clock::cycle_update()
         for (Sequencer* s : transport.sequencers)
             s->start();
     }
-    // for (Sequencer *s : transport.sequencers) {
-    //     s->dump_to_console();
-    // }
 
+    // If arrangement mode, queue the next section
+    if (transport.has_arrangement) {
+        advance_arrangement();
+    }
 }
+
+void Clock::set_arrangement(vector<pair<vector<Sequencer*>, int>> arr)
+{
+    // Clear any existing arrangement
+    for (auto& entry : transport.arrangement) {
+        for (Sequencer* s : entry.first) {
+            delete s;
+        }
+    }
+    transport.arrangement.clear();
+
+    transport.arrangement = arr;
+    transport.arr_index = 0;
+    transport.has_arrangement = true;
+
+    if (transport.arrangement.size() > 0) {
+        // Load the first section as the pending update
+        auto& first = transport.arrangement[0];
+        transport.update_sequencers = first.first;
+        set_cycle_update(first.second);
+        transport.arr_index = 1; // Next section to load
+
+        string msg = "arrangement loaded: " + std::to_string(arr.size()) + " sections";
+        println_to_console(msg);
+    }
+}
+
+void Clock::advance_arrangement()
+{
+    if (!transport.has_arrangement || transport.arrangement.empty())
+        return;
+
+    if (transport.arr_index >= transport.arrangement.size()) {
+        // Loop back to start
+        transport.arr_index = 0;
+        println_to_console("arrangement looping");
+    }
+
+    auto& next = transport.arrangement[transport.arr_index];
+    
+    // Deep copy the sequencers for this section (originals stay in arrangement)
+    vector<Sequencer*> section_copy;
+    for (Sequencer* s : next.first) {
+        Sequencer* copy = new Sequencer(*s);
+        section_copy.push_back(copy);
+    }
+    
+    transport.update_sequencers = section_copy;
+    transport.cycle_refresh = true;
+    transport.cycle_pulses = next.second * PULSES_PER_BAR;
+
+    string msg = "section " + std::to_string(transport.arr_index + 1) + "/" + std::to_string(transport.arrangement.size()) + " queued (" + std::to_string(next.second) + " bars)";
+    println_to_console(msg);
+
+    transport.arr_index++;
+}
+
 #endif
 
 void Clock::pulse() 

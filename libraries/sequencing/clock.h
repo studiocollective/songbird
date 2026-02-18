@@ -11,7 +11,11 @@
 
 #include <thread>
 #include <vector>
+#include <string>
+#include <utility>
 using std::vector;
+using std::string;
+using std::pair;
 
 struct Transport {
         bool playing;
@@ -21,10 +25,12 @@ struct Transport {
         bool cycle_refresh;
         int cycle_pulses;
         vector<Sequencer*> update_sequencers;
-    #endif
 
-        // Not sure how to implement callbacks...
-        // std::function<void()> step_callback();
+        // Arrangement: ordered list of (section_sequencers, bar_count)
+        vector<pair<vector<Sequencer*>, int>> arrangement;
+        int arr_index; // current position in arrangement
+        bool has_arrangement;
+    #endif
 
         Transport();
         inline void pulse();
@@ -73,9 +79,13 @@ class Clock {
 
     #ifndef ARDUINO // no update sequencer on arduino
         void register_update_sequencer(Sequencer* sequencer);
-        void clear_update_sequencers(); //in case file is reloaded before an update cycle
+        void clear_update_sequencers();
         void set_cycle_update(int bars);
         void cycle_update();
+        
+        // Arrangement support
+        void set_arrangement(vector<pair<vector<Sequencer*>, int>> arr);
+        void advance_arrangement();
     #endif
 
         // void set_transport_callback(void func());

@@ -30,6 +30,16 @@ void Instrument::send_note(Note note)
     send_midi_note(note, midi_channel);
 }
 
+void Instrument::send_cc(int cc, int value) 
+{
+    send_midi_cc(cc, value, midi_channel);
+}
+
+void Instrument::send_cc(CCEvent cc_event) 
+{
+    send_midi_cc(cc_event.cc, cc_event.value, midi_channel);
+}
+
 // from .midi.midi_inst import Midi_instrument
 
 // class Instrument:

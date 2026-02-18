@@ -136,6 +136,7 @@ void send_midi_pulse()
 static const int NOTE_ON=0x90;
 static const int NOTE_OFF=0x80;
 static const int CHANNEL_MESSAGE=0xEF;
+static const int SONG_POINTER_POSITION=0xF2;
 static const int CLOCK_PULSE=0xF8;
 static const int MIDI_START=0xFA;
 static const int MIDI_CONTINUE=0xFB;
@@ -169,6 +170,9 @@ void handle_start(){
 
 void handle_continue(){
     //Send to clock if clock internal
+    //Eventually this should take into account song pointer position!
+    if (!midiclock->internal)
+        midiclock->start();
 }
 
 void handle_stop(){
@@ -185,6 +189,7 @@ void midi_callback(double deltatime, std::vector< unsigned char > *message, void
         int channel;
         int note;
         int velocity;
+        int song_position;
         if (message_type <= CHANNEL_MESSAGE) {
             channel = message_type % 0x10;
             message_type = message_type - channel;
@@ -194,24 +199,38 @@ void midi_callback(double deltatime, std::vector< unsigned char > *message, void
                 handle_clock();
                 break;
             case NOTE_OFF:
+                print_to_console("Note on");
                 note = (int)message->at(1);
                 velocity = (int)message->at(2);
                 handle_note_off(note, velocity, channel);
                 break;
             case NOTE_ON:
+                print_to_console("Note off");
                 note = (int)message->at(1);
                 velocity = (int)message->at(2);
                 handle_note_on(note, velocity, channel);
                 break;
             case MIDI_START:
+                println_to_console("Start");
                 handle_start();
                 break;
             case MIDI_CONTINUE:
+                println_to_console("Continue");
                 handle_continue();
                 break;
             case MIDI_STOP:
+                println_to_console("Stop");
                 handle_stop(); 
                 break; 
+            case SONG_POINTER_POSITION:
+                song_position = (int)(((message->at(1) & 0x7F) << 7) | (message->at(2) & 0x7F));
+                println_to_console("SONG_POINTER_POSITION");
+                println_to_console(song_position);
+                break; 
+            default:
+                print_to_console("Unhandled midi message: ");
+                println_to_console(message_type);
+                break;
         }
     }
 }
@@ -260,11 +279,11 @@ void send_midi_note(bool on, int note, int velocity, int channel)
 
 void send_midi_cc(int cc, int value, int channel) 
 {
-    // Control Change: 176, 7, 100 (volume)
-//   message[0] = 176;
-//   message[1] = 7;
-//   message.push_back( 100 );
-//   midiout->sendMessage( &message );
+    std::vector<unsigned char> message;
+    message.push_back(0xB0 + channel);  // Control Change status byte
+    message.push_back(cc & 0x7F);
+    message.push_back(value & 0x7F);
+    midi_out->sendMessage( &message );
 }
 
 void send_midi_pulse() 

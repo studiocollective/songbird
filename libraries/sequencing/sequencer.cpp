@@ -1,10 +1,12 @@
 #include "sequencer.h"
+#include <cstdlib>
 
 Sequencer::Sequencer(int sequence_length, int channel) :
     instrument(Instrument(channel)), sequence_length(sequence_length)
 {
     ticks = 0;
     itr = notes.begin();
+    cc_itr = cc_events.begin();
 }
 
 int Sequencer::adjusted_time(int ticks) {
@@ -16,10 +18,21 @@ int Sequencer::adjusted_time(int ticks) {
 
 int Sequencer::adjusted_velocity(int velocity, int ticks, int step) 
 {
+    int v;
     if (mod.step_based)
-        return mod.mod_for_step(step)*velocity;
+        v = mod.mod_for_step(step) * velocity / 100;
     else
-        return mod.mod_for_tick(ticks)*velocity;
+        v = mod.mod_for_tick(ticks) * velocity / 100;
+    
+    // Humanize: add small random velocity variation (±3)
+    if (swing.human) {
+        v += (rand() % 7) - 3; // -3 to +3
+    }
+    
+    // Clamp to valid MIDI velocity range
+    if (v < 1) v = 1;
+    if (v > 127) v = 127;
+    return v;
 }
 
 void Sequencer::append_note(int note, int length, int velocity, int ticks, int step) {
@@ -60,25 +73,25 @@ void Sequencer::gen_drum_sequence(int note, int velocity, vector<int> p, Modulat
     gen_sequence(note, velocity);
 }
 
-void Sequencer::gen_notes_sequence(vector<int> seq_notes, vector<int> velocity) 
+void Sequencer::gen_notes_sequence(vector<vector<int>> note_groups, vector<int> velocity) 
 {
     int ticks = 0;
     int step = 0;
     vector<int>::iterator pitr = pattern.begin();
-    vector<int>::iterator nitr = seq_notes.begin();
+    vector<vector<int>>::iterator nitr = note_groups.begin();
     vector<int>::iterator vitr = velocity.begin();
 
     while (ticks < sequence_length) {
-        /*
-        It generates a note and appends it to the note list.
-        */
         if (*pitr > 0) {
-            append_note(*nitr, *pitr, *vitr, ticks, step);
+            // Append all notes in the current group at the same tick
+            for (int note : *nitr) {
+                append_note(note, *pitr, *vitr, ticks, step);
+            }
             step++;
             nitr++;
             vitr++;
-            if (nitr == seq_notes.end())
-                nitr = seq_notes.begin();
+            if (nitr == note_groups.end())
+                nitr = note_groups.begin();
             if (vitr == velocity.end())
                 vitr = velocity.begin();
         }
@@ -90,6 +103,34 @@ void Sequencer::gen_notes_sequence(vector<int> seq_notes, vector<int> velocity)
     }
 
     sort(notes.begin(), notes.end());
+}
+
+void Sequencer::gen_cc_sequence(int cc, vector<int> values) 
+{
+    int ticks = 0;
+    vector<int>::iterator pitr = pattern.begin();
+    vector<int>::iterator vitr = values.begin();
+
+    while (ticks < sequence_length) {
+        if (*pitr > 0) {
+            // Clamp CC value to 0-127
+            int val = *vitr;
+            if (val < 0) val = 0;
+            if (val > 127) val = 127;
+            cc_events.push_back(CCEvent(cc, val, adjusted_time(ticks)));
+            vitr++;
+            if (vitr == values.end())
+                vitr = values.begin();
+        }
+        
+        ticks += abs(*pitr);
+        pitr++;
+        if (pitr == pattern.end())
+            pitr = pattern.begin();
+    }
+
+    sort(cc_events.begin(), cc_events.end());
+    cc_itr = cc_events.begin();
 }
 
 void Sequencer::set_channel(int channel)
@@ -187,13 +228,22 @@ void Sequencer::tick()
         instrument.send_note(*itr);
         itr++;
     }
+    while (cc_itr != cc_events.end() && cc_itr->tick <= ticks) {
+        instrument.send_cc(*cc_itr);
+        cc_itr++;
+    }
 
     if (ticks == sequence_length) { // Handle wrapping. Need to fire notes for both tick_length and 0
         ticks = 0;
         itr = notes.begin(); //reset to start of sequence
+        cc_itr = cc_events.begin();
         while (itr != notes.end() && itr->tick <= ticks) {
             instrument.send_note(*itr);
             itr++;
+        }
+        while (cc_itr != cc_events.end() && cc_itr->tick <= ticks) {
+            instrument.send_cc(*cc_itr);
+            cc_itr++;
         }
     }
     
@@ -205,6 +255,7 @@ void Sequencer::start()
 {
     ticks = 0;
     itr = notes.begin();
+    cc_itr = cc_events.begin();
 }
 
 void Sequencer::stop() 

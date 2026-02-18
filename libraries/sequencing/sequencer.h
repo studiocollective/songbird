@@ -2,6 +2,7 @@
 #define SEQUENCING_SEQUENCER
 
 #include "note.h"
+#include "cc_event.h"
 
 #ifdef ARDUINO
 #include <scale.h>
@@ -35,6 +36,8 @@ class Sequencer {
     protected:
         vector<Note> notes;
         vector<Note>::iterator itr;
+        vector<CCEvent> cc_events;
+        vector<CCEvent>::iterator cc_itr;
         int sequence_length;
         int ticks;
         void append_note(int note, int length, int velocity, int ticks, int step);
@@ -55,7 +58,8 @@ class Sequencer {
         Modulator mod;
         Swing swing;
         Instrument instrument;
-        void gen_notes_sequence(vector<int> notes, vector<int> velocity);
+        void gen_notes_sequence(vector<vector<int>> note_groups, vector<int> velocity);
+        void gen_cc_sequence(int cc, vector<int> values);
         void set_channel(int channel);
         virtual void pulse(); //Pulse is only called if using an external clock
         virtual void tick();

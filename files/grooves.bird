@@ -1,0 +1,124 @@
+# syntax guide
+# ch - midi channel
+# p - pattern (w:1/1 q:1/4 xx:1/8 x:1/16 xxd:3/16 _:rest), all patterns loop
+# sw - swing (-:straight <:drag >:rush, #:amount, x:1/16 , ~:humanize)
+# m - modulation (sin:sinewave, tri:triangle, #:percent)
+# v - velocity to loop
+# n - notes
+# d - drum name (mapped to midi note number), _d - no pattern
+    bd - bass drum
+    sd - snare drum
+    lt - low tom
+    mt - mid tom
+    ht - high tom
+    rs - ride snare
+    hc - hand clap
+    ch - closed hat
+    oh - open hat
+    cc - crash cymbal
+    rc - ride cymbal
+    cc - control change
+    sec - section (intro:name #:length in bars)
+    arr - arrangement
+
+#pattern 1
+ch 1 drums
+  sw > 5 x ~
+  d bd
+    p xx _xx
+      v 100
+  _d sd
+  d lt 
+    p _x x _xx _qqd
+      v 100
+  d mt
+    p _qd _x xx _q _x x _qq _xxd xx _q
+      v 100
+  _d ht
+  d rs
+    p _q x _q x _xx x _xxd _q x _q x _xx x _xxd
+      v 100
+  _d hc
+  d ch
+    p _xx x
+      v 80   
+  _d oh
+  _d cc
+  d rc
+    p x
+      v 20
+    
+#pattern 2
+ch 1 drums
+sw > 5 x ~
+  d bd
+    p x _xxd x _x x _q x _q _x _xxd 
+      v 100
+  _d sd
+  _d lt
+  _d mt
+  _d ht
+  _d rs
+  _d hc
+  d ch
+    p _q _x x _xx _qq
+      v 50
+  d oh
+    p _xx x _x
+      v 100
+  _d cc
+  d rc
+    p _xx x _x _qqd
+      v 55
+
+#pattern 3
+ch 1 drums
+sw > 5 x ~
+  d bd
+    p xx _xx
+      v 100
+  _d sd
+  d lt
+    p _qq _x x _qd
+      v 100
+  d mt
+    p _qq _xx x _x _q
+      v 100
+  _d ht
+  d rs
+    p _xx x _xx x _q x _xx x _xx
+      v 100
+  d hc
+    p _q x _xxd
+      v 100
+  _d ch  
+  _d oh
+  _d cc
+  _d rc
+
+#pattern 4
+ch 1 drums
+sw > 5 x ~
+  d bd
+    p xx _xx
+      v 100
+  _d sd
+  d lt
+    p _qqd _xx x _x
+      v 100
+  d mt
+    p _qq _xx _x _x _q
+      v 100
+  d ht
+    p _xx x _xxd _x _x _qq
+      v 100
+  _d rs
+  d hc
+    p _q x _xxd
+      v 5
+  d ch
+    p x _xx x _x x _xx x _x x _xx x _xx
+      v 50
+  _d oh
+  _d cc
+  _d rc
