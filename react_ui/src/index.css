@@ -1,3 +1,7 @@
 @import "tailwindcss";
 @import "./lib/theme/light.css";
 @import "./lib/theme/dark.css";
+
+html, body {
+  overflow: hidden;
+}

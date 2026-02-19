@@ -45,6 +45,13 @@ if [ -f "$APP_PLIST" ]; then
     echo "  ✓ App Transport Security configured for localhost"
 fi
 
+# Step 3c: Ad-hoc sign with entitlements to prevent repeated microphone prompts
+if [ -f "app/Entitlements.plist" ]; then
+    echo -e "${GREEN}Signing app with entitlements...${NC}"
+    codesign -s - --force --deep --entitlements "app/Entitlements.plist" "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app"
+    echo "  ✓ App signed with microphone entitlements"
+fi
+
 # Step 4: Start Vite dev server in background
 echo -e "${GREEN}Starting React UI dev server...${NC}"
 # Kill any lingering Songbird Player and Vite servers from previous runs

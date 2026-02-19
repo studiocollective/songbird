@@ -6,6 +6,7 @@
 #include <tracktion_engine/tracktion_engine.h>
 #include <map>
 #include "libraries/magenta/LyriaPlugin.h"
+#include "BirdLoader.h"
 
 namespace te = tracktion;
 
@@ -33,9 +34,9 @@ private:
     void applyTransportState(const juce::var& state);
     void applyMixerState(const juce::var& state);
 
-    // Audio helpers
-    void createTestEdit();
-    void addTestMidiClip(te::AudioTrack& track, int trackIndex);
+    // Bird file loading
+    void loadBirdFile(const juce::File& birdFile);
+    juce::String getTrackNotesJSON();
 
     // Lyria generated track management
     std::map<int, magenta::LyriaPlugin*> lyriaPlugins;
@@ -46,9 +47,10 @@ private:
     // Plugin window management
     void openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId);
 
-    // WebView inspector (debug only)
+    // WebView zoom & inspector
+    double zoomLevel = 1.0;
     bool inspectorEnabled = false;
-    bool zoomEnabled = false;
+    void setWebViewPageZoom(double zoom);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SongbirdEditor)
 };

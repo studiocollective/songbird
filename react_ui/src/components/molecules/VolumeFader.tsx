@@ -9,7 +9,7 @@ interface VolumeFaderProps {
   height?: string;
 }
 
-const DEFAULT_VOLUME = 100;
+const DEFAULT_VOLUME = 80;
 
 export function VolumeFader({ trackId, value, color, height = 'h-24' }: VolumeFaderProps) {
   return (

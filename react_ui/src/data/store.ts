@@ -105,11 +105,63 @@ addStateListener('transportPosition', (data: { position: number; bar: number }) 
   });
 });
 
-// --- Lyria status updates (from LyriaPlugin's onStatusChange callback) ---
-if (typeof window !== 'undefined') {
-  window.addEventListener('lyria-status', ((e: CustomEvent) => {
-    const { connected, buffering } = e.detail;
-    useLyriaStore.setState({ connected, buffering });
-  }) as EventListener);
+// --- Track notes updates (from BirdLoader after .bird file load) ---
+addStateListener('trackNotes', (jsonStr: string) => {
+  try {
+    const trackData = JSON.parse(jsonStr) as Array<{ id: number; name: string; notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }> }>;
+    const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
+    const tracks = trackData.map((t, i) => ({
+      id: t.id,
+      name: t.name,
+      type: 'midi' as const,
+      color: TRACK_COLORS[i % TRACK_COLORS.length],
+      muted: false,
+      solo: false,
+      volume: 80,
+      pan: 0,
+      instrument: emptySlot,
+      channelStrip: emptySlot,
+      notes: t.notes,
+    }));
+    useMixerStore.setState({ tracks });
+  } catch (e) {
+    console.error('[trackNotes] Failed to parse:', e);
+  }
+});
+
+// --- Fetch initial track notes on startup ---
+if (typeof window !== 'undefined' && window.__JUCE__) {
+  import('@/lib').then(({ Juce }) => {
+    const getTrackNotes = Juce.getNativeFunction('getTrackNotes');
+    // Small delay to let the Edit finish loading
+    setTimeout(async () => {
+      try {
+        const jsonStr = await getTrackNotes();
+        if (jsonStr && jsonStr !== '[]') {
+          const trackData = JSON.parse(jsonStr) as Array<{ id: number; name: string; notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }> }>;
+          const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+          const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
+          const tracks = trackData.map((t, i) => ({
+            id: t.id,
+            name: t.name,
+            type: 'midi' as const,
+            color: TRACK_COLORS[i % TRACK_COLORS.length],
+            muted: false,
+            solo: false,
+            volume: 80,
+            pan: 0,
+            instrument: emptySlot,
+            channelStrip: emptySlot,
+            notes: t.notes,
+          }));
+          useMixerStore.setState({ tracks });
+          console.log('[trackNotes] Loaded', tracks.length, 'tracks from C++');
+        }
+      } catch (e) {
+        console.error('[trackNotes] Initial fetch failed:', e);
+      }
+    }, 500);
+  });
 }
 

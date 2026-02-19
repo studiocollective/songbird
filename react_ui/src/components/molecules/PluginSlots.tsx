@@ -83,7 +83,7 @@ interface PluginSlotsProps {
 export function PluginSlots({ trackId, trackType, instrument, channelStrip }: PluginSlotsProps) {
   return (
     <div className={slotsContainer}>
-      {trackType === 'midi' && (
+      {trackType === 'midi' ? (
         <PluginSlotButton
           slot={instrument}
           label="+ Instrument"
@@ -99,6 +99,8 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
             useMixerStore.getState().openPlugin(trackId, 'instrument')
           }
         />
+      ) : (
+        <div className="h-4" />
       )}
       <PluginSlotButton
         slot={channelStrip}
@@ -121,7 +123,7 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
 
 // --- Style constants ---
 
-const slotsContainer = `w-full px-1.5 space-y-0.5 mb-1.5`;
+const slotsContainer = `w-full px-1.5 space-y-0.5 mb-1.5 h-12 overflow-visible`;
 
 const slotWrapper = `relative w-full`;
 const slotRow = `flex items-center gap-0.5`;
@@ -145,7 +147,7 @@ const openPluginBtn = `
   hover:bg-[hsl(var(--muted))] transition-colors`;
 
 const dropdown = `
-  absolute top-5 left-0 z-50 w-36 max-h-40
+  absolute top-5 left-0 z-[100] w-36 max-h-40
   overflow-y-auto bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded shadow-xl`;
 
 const dropdownItemNone = `

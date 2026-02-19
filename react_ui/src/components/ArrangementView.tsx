@@ -1,14 +1,15 @@
 import { useMixerStore } from '@/data/store';
+import type { NoteData } from '@/data/slices/mixer';
 
 export function ArrangementView() {
   const { tracks } = useMixerStore();
-  const totalBars = 32;
-  const sections = [
-    { name: 'Verse', start: 0, length: 8, color: 'bg-indigo-900/40 dark:bg-indigo-900/40 bg-indigo-200/40' },
-    { name: 'Chorus', start: 8, length: 8, color: 'bg-rose-900/40 dark:bg-rose-900/40 bg-rose-200/40' },
-    { name: 'Verse', start: 16, length: 8, color: 'bg-indigo-900/40 dark:bg-indigo-900/40 bg-indigo-200/40' },
-    { name: 'Chorus', start: 24, length: 8, color: 'bg-rose-900/40 dark:bg-rose-900/40 bg-rose-200/40' },
-  ];
+
+  // Compute total bars from the maximum note beat position across all tracks
+  const maxBeat = tracks.reduce((max, track) => {
+    const trackMax = track.notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
+    return Math.max(max, trackMax);
+  }, 4); // minimum 4 beats = 1 bar
+  const totalBars = Math.max(1, Math.ceil(maxBeat / 4));
 
   return (
     <div className={container}>
@@ -16,18 +17,6 @@ export function ArrangementView() {
       <div className={rulerRow}>
         <div className={rulerSpacer} />
         <div className={rulerTrack}>
-          {sections.map((sec, i) => (
-            <div
-              key={i}
-              className={sectionLabel}
-              style={{
-                '--label-left': `${(sec.start / totalBars) * 100}%`,
-                '--label-width': `${(sec.length / totalBars) * 100}%`,
-              } as React.CSSProperties}
-            >
-              {sec.name}
-            </div>
-          ))}
           {Array.from({ length: totalBars }, (_, i) => (
             <div
               key={i}
@@ -74,38 +63,25 @@ export function ArrangementView() {
             </div>
 
             <div className={laneContent}>
-              {sections.map((sec, i) => (
+              {/* Grid lines for each bar */}
+              {Array.from({ length: totalBars }, (_, i) => (
                 <div
                   key={i}
-                  className={`${sectionBg} ${sec.color}`}
+                  className={gridLine}
                   style={{
-                    '--sec-left': `${(sec.start / totalBars) * 100}%`,
-                    '--sec-width': `${(sec.length / totalBars) * 100}%`,
+                    '--grid-left': `${(i / totalBars) * 100}%`,
                   } as React.CSSProperties}
                 />
               ))}
-              <div
-                className={clip}
-                style={{
-                  '--clip-left': `${((track.id % 3) * 2 / totalBars) * 100}%`,
-                  '--clip-width': `${((8 - (track.id % 3)) / totalBars) * 100}%`,
-                  '--clip-color': track.color,
-                } as React.CSSProperties}
-              >
-                <div className={clipLabel}>{track.name}</div>
-                <div className={notesContainer}>
-                  {Array.from({ length: 6 + (track.id % 4) }, (_, j) => (
-                    <div
-                      key={j}
-                      className={noteLine}
-                      style={{
-                        '--note-w': `${4 + (j % 3) * 3}px`,
-                        '--note-mt': `${(j * 2) % 5}px`,
-                      } as React.CSSProperties}
-                    />
-                  ))}
-                </div>
-              </div>
+
+              {/* MIDI notes mini piano-roll */}
+              {track.notes.length > 0 && (
+                <NoteClip
+                  notes={track.notes}
+                  color={track.color}
+                  totalBars={totalBars}
+                />
+              )}
             </div>
           </div>
         ))}
@@ -114,6 +90,72 @@ export function ArrangementView() {
   );
 }
 
+// --- Mini piano-roll clip ---
+
+function NoteClip({
+  notes,
+  color,
+  totalBars,
+}: {
+  notes: NoteData[];
+  color: string;
+  totalBars: number;
+}) {
+  if (notes.length === 0) return null;
+
+  // Find pitch range for vertical positioning
+  const minPitch = notes.reduce((m, n) => Math.min(m, n.pitch), 127);
+  const maxPitch = notes.reduce((m, n) => Math.max(m, n.pitch), 0);
+  const pitchRange = Math.max(maxPitch - minPitch, 1);
+
+  // Find time range
+  const minBeat = notes.reduce((m, n) => Math.min(m, n.beat), Infinity);
+  const maxBeatEnd = notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
+  const totalBeats = totalBars * 4;
+
+  // Clip region
+  const clipLeft = (minBeat / totalBeats) * 100;
+  const clipWidth = ((maxBeatEnd - minBeat) / totalBeats) * 100;
+
+  return (
+    <div
+      className={clip}
+      style={{
+        '--clip-left': `${clipLeft}%`,
+        '--clip-width': `${clipWidth}%`,
+        '--clip-color': color,
+      } as React.CSSProperties}
+    >
+      <svg
+        className={notesSvg}
+        viewBox={`0 0 ${maxBeatEnd - minBeat} ${pitchRange + 1}`}
+        preserveAspectRatio="none"
+      >
+        {notes.map((note, i) => {
+          const x = note.beat - minBeat;
+          const y = maxPitch - note.pitch; // high notes at top
+          const w = note.duration;
+          const opacity = 0.4 + (note.velocity / 127) * 0.6;
+          return (
+            <rect
+              key={i}
+              x={x}
+              y={y}
+              width={w}
+              height={0.7}
+              rx={0.1}
+              fill="white"
+              opacity={opacity}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// --- Styles ---
+
 const container = `flex-1 flex flex-col overflow-hidden bg-[hsl(var(--arrangement))]`;
 
 const rulerRow = `flex shrink-0`;
@@ -121,12 +163,6 @@ const rulerSpacer = `w-44 shrink-0 bg-[hsl(var(--background))] border-b border-r
 const rulerTrack = `
   flex-1 h-10 bg-[hsl(var(--background))] border-b border-[hsl(var(--border))]
   flex items-end relative overflow-hidden`;
-
-const sectionLabel = `
-  absolute top-0 h-5 flex items-center justify-center
-  text-[10px] font-medium text-[hsl(var(--muted-foreground))]
-  border-x border-[hsl(var(--border))]/50
-  left-[var(--label-left)] w-[var(--label-width)]`;
 
 const barNumber = `
   absolute bottom-0 h-5 flex items-center justify-center
@@ -150,14 +186,14 @@ const soloBtnActive = `bg-yellow-500 text-black`;
 const muteSoloBtnInactive = `text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]`;
 
 const laneContent = `flex-1 relative`;
-const sectionBg = `
-  absolute inset-y-0 border-r border-[hsl(var(--border))]/30
-  left-[var(--sec-left)] w-[var(--sec-width)]`;
+
+const gridLine = `
+  absolute inset-y-0 w-px bg-[hsl(var(--border))]/30
+  left-[var(--grid-left)]`;
 
 const clip = `
-  absolute top-1.5 bottom-1.5 rounded-sm opacity-60
+  absolute top-1.5 bottom-1.5 rounded-sm overflow-hidden
   left-[var(--clip-left)] w-[var(--clip-width)]
-  bg-[var(--clip-color)]`;
-const clipLabel = `px-1.5 py-0.5 text-[9px] font-medium text-white/80 truncate`;
-const notesContainer = `px-1.5 flex gap-px flex-wrap`;
-const noteLine = `h-0.5 rounded-full bg-white/40 w-[var(--note-w)] mt-[var(--note-mt)]`;
+  bg-[var(--clip-color)]/30 border border-[var(--clip-color)]/50`;
+
+const notesSvg = `w-full h-full`;

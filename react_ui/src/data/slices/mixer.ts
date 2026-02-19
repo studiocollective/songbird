@@ -1,6 +1,14 @@
 import type { StateCreator } from 'zustand';
 import { nativeFunction } from '@/data/bridge';
 
+// --- Note data from C++ ---
+export interface NoteData {
+  pitch: number;
+  beat: number;
+  duration: number;
+  velocity: number;
+}
+
 // --- Track Types ---
 export type TrackType = 'midi' | 'audio' | 'generated';
 
@@ -23,6 +31,7 @@ export interface Track {
   pan: number;
   instrument: PluginSlot;   // only used for midi tracks
   channelStrip: PluginSlot;
+  notes: NoteData[];
 }
 
 const TRACK_COLORS = [
@@ -34,29 +43,29 @@ const defaultTracks: Track[] = [
   // MIDI tracks (1–4) — pre-populated with Arturia instruments + Console 1
   { id: 1, name: 'Keys',    type: 'midi',  color: TRACK_COLORS[0], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { pluginId: 'arturia.analog-lab-v', pluginName: 'Analog Lab V', bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 2, name: 'Synth',   type: 'midi',  color: TRACK_COLORS[1], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { pluginId: 'arturia.pigments',     pluginName: 'Pigments',     bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 3, name: 'Bass',    type: 'midi',  color: TRACK_COLORS[2], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { pluginId: 'arturia.mini-v',       pluginName: 'Mini V',       bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 4, name: 'Pad',     type: 'midi',  color: TRACK_COLORS[3], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { pluginId: 'arturia.cs-80-v',      pluginName: 'CS-80 V',      bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   // Audio tracks (5–8) — Console 1 only
   { id: 5, name: 'Drums',   type: 'audio', color: TRACK_COLORS[4], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 6, name: 'Guitar',  type: 'audio', color: TRACK_COLORS[5], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 7, name: 'Vocals',  type: 'audio', color: TRACK_COLORS[6], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
   { id: 8, name: 'FX',      type: 'audio', color: TRACK_COLORS[7], muted: false, solo: false, volume: 80, pan: 0,
     instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false } },
+    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
 ];
 
 // --- Mixer State Slice ---
@@ -80,6 +89,10 @@ export interface MixerState {
   toggleInstrumentBypass: (id: number) => void;
   toggleChannelStripBypass: (id: number) => void;
   openPlugin: (trackId: number, slotType: 'instrument' | 'channelStrip') => void;
+
+  // Track data from bird file
+  setTracks: (tracks: Track[]) => void;
+  setTrackNotes: (trackId: number, notes: NoteData[]) => void;
 }
 
 export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
@@ -144,6 +157,11 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       nativeFunction('openPlugin')(trackId, slotType, slot.pluginId);
     }
   },
+  setTracks: (tracks) => set({ tracks }),
+  setTrackNotes: (trackId, notes) =>
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === trackId ? { ...t, notes } : t)),
+    })),
 });
 
 export const MixerStateID = 'songbird-mixer';

@@ -55,29 +55,25 @@
   }
   #endif
 
-  static void enableWebViewZoom(juce::Component* webViewComponent)
+  static id findWKWebView(juce::Component* webViewComponent)
   {
       auto* peer = webViewComponent->getPeer();
-      if (!peer) return;
+      if (!peer) return nil;
 
       auto nsView = (id) peer->getNativeHandle();
       id subviews = msg<id>(nsView, sel_registerName("subviews"));
-      if (!subviews) return;
+      if (!subviews) return nil;
 
       auto count = msg<unsigned long>(subviews, sel_registerName("count"));
-      SEL magSel = sel_registerName("setAllowsMagnification:");
+      SEL pageSel = sel_registerName("setPageZoom:");
 
       for (unsigned long i = 0; i < count; i++)
       {
           id child = msg<id>(subviews, sel_registerName("objectAtIndex:"), i);
           if (!child) continue;
 
-          if (msg<BOOL>(child, sel_registerName("respondsToSelector:"), magSel))
-          {
-              msg<void>(child, magSel, (BOOL)YES);
-              DBG("WebView zoom enabled");
-              return;
-          }
+          if (msg<BOOL>(child, sel_registerName("respondsToSelector:"), pageSel))
+              return child;
 
           id childSubs = msg<id>(child, sel_registerName("subviews"));
           if (!childSubs) continue;
@@ -85,22 +81,40 @@
           for (unsigned long j = 0; j < childCount; j++)
           {
               id gc = msg<id>(childSubs, sel_registerName("objectAtIndex:"), j);
-              if (gc && msg<BOOL>(gc, sel_registerName("respondsToSelector:"), magSel))
-              {
-                  msg<void>(gc, magSel, (BOOL)YES);
-                  DBG("WebView zoom enabled");
-                  return;
-              }
+              if (gc && msg<BOOL>(gc, sel_registerName("respondsToSelector:"), pageSel))
+                  return gc;
           }
       }
+      return nil;
   }
 #endif
+
 
 //==============================================================================
 SongbirdEditor::SongbirdEditor()
 {
-    // Create the Edit with test content
-    createTestEdit();
+    // Load the default .bird file into the Edit
+    // Search upward from the app bundle for the files/ directory
+    auto appFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+    juce::File birdFile;
+    auto searchDir = appFile.getParentDirectory();
+    for (int i = 0; i < 8; i++) {
+        auto candidate = searchDir.getChildFile("files/live.bird");
+        if (candidate.existsAsFile()) {
+            birdFile = candidate;
+            break;
+        }
+        searchDir = searchDir.getParentDirectory();
+    }
+
+    // Fallback: try relative to CWD
+    if (!birdFile.existsAsFile())
+        birdFile = juce::File::getCurrentWorkingDirectory().getChildFile("files/live.bird");
+
+    DBG("BirdLoader: App location: " + appFile.getFullPathName());
+    DBG("BirdLoader: Bird file path: " + birdFile.getFullPathName());
+
+    loadBirdFile(birdFile);
 
     // Create WebView with native function bridge
     auto options = createWebViewOptions();
@@ -145,13 +159,6 @@ void SongbirdEditor::resized()
         webView->setBounds(getLocalBounds());
 
     #if JUCE_MAC
-    // Enable zoom (Cmd+/Cmd-) once the native peer is available
-    if (!zoomEnabled && webView)
-    {
-        enableWebViewZoom(webView.get());
-        zoomEnabled = true;
-    }
-
     // Enable inspector (debug only) once the native peer is available
     #if JUCE_DEBUG
     if (!inspectorEnabled && webView)
@@ -162,6 +169,21 @@ void SongbirdEditor::resized()
     #endif
     #endif
 }
+
+void SongbirdEditor::setWebViewPageZoom(double zoom)
+{
+    #if JUCE_MAC
+    if (!webView) return;
+    id wkView = findWKWebView(webView.get());
+    if (wkView)
+    {
+        msg<void>(wkView, sel_registerName("setPageZoom:"), zoom);
+        DBG("WebView page zoom set to " + juce::String(zoom));
+    }
+    #endif
+}
+
+
 
 //==============================================================================
 // State management — stores state as JSON keyed by store name
@@ -348,75 +370,80 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("getSystemTheme", [](auto&, auto complete) {
             bool isDark = juce::Desktop::getInstance().isDarkModeActive();
             complete(isDark ? "dark" : "light");
+        })
+        // Set WebView page zoom (called from JS on Cmd+/Cmd-/Cmd+0)
+        .withNativeFunction("setZoom", [this](auto& args, auto complete) {
+            if (args.size() > 0) {
+                double zoom = static_cast<double>(args[0]);
+                zoomLevel = zoom;
+                juce::MessageManager::callAsync([this, zoom]() {
+                    setWebViewPageZoom(zoom);
+                });
+            }
+            complete("ok");
+        })
+        // Get track notes JSON for the UI
+        .withNativeFunction("getTrackNotes", [this](auto&, auto complete) {
+            complete(getTrackNotesJSON());
+        })
+        // Load a .bird file
+        .withNativeFunction("loadBird", [this](auto& args, auto complete) {
+            if (args.size() > 0) {
+                juce::String path = args[0].toString();
+                juce::MessageManager::callAsync([this, path]() {
+                    loadBirdFile(juce::File(path));
+                    // Push updated track notes to the UI
+                    if (webView) {
+                        auto json = getTrackNotesJSON();
+                        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+                    }
+                });
+            }
+            complete("ok");
         });
 }
 
 //==============================================================================
-void SongbirdEditor::createTestEdit()
+// Bird file loading
+//==============================================================================
+
+void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
 {
+    if (!birdFile.existsAsFile()) {
+        DBG("BirdLoader: File not found: " + birdFile.getFullPathName());
+        // Create a minimal empty edit as fallback
+        edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
+        edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+        return;
+    }
+
+    DBG("BirdLoader: Loading " + birdFile.getFullPathName());
+    auto result = BirdLoader::parse(birdFile.getFullPathName().toStdString());
+
+    if (!result.error.empty()) {
+        DBG("BirdLoader: Parse error: " + juce::String(result.error));
+        edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
+        edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+        return;
+    }
+
+    // Create or reset the edit
     edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
     edit->tempoSequence.getTempos()[0]->setBpm(120.0);
 
-    for (int i = 0; i < 4; i++)
-    {
-        edit->ensureNumberOfAudioTracks(i + 1);
-        auto* track = te::getAudioTracks(*edit)[i];
-        if (track)
-            addTestMidiClip(*track, i);
+    BirdLoader::populateEdit(*edit, result);
+
+    // Push track notes to UI if webview is up
+    if (webView) {
+        auto json = getTrackNotesJSON();
+        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
     }
-
-    auto fourBars = edit->tempoSequence.toTime(te::tempo::BarsAndBeats{ 4, te::BeatDuration() });
-    auto& transport = edit->getTransport();
-    transport.setLoopRange(te::TimeRange(te::TimePosition(), fourBars));
-    transport.looping = true;
-
-    DBG("Test edit created with 4 tracks, looping 4 bars");
 }
 
-void SongbirdEditor::addTestMidiClip(te::AudioTrack& track, int trackIndex)
+juce::String SongbirdEditor::getTrackNotesJSON()
 {
-    auto fourBars = edit->tempoSequence.toTime(te::tempo::BarsAndBeats{ 4, te::BeatDuration() });
-    te::TimeRange clipRange(te::TimePosition(), fourBars);
-
-    auto* clipBase = track.insertNewClip(te::TrackItem::Type::midi, "Track " + juce::String(trackIndex + 1), clipRange, nullptr);
-    auto* midiClip = dynamic_cast<te::MidiClip*>(clipBase);
-    if (!midiClip)
-        return;
-
-    // Add the built-in 4-oscillator synth plugin
-    if (auto synth = edit->getPluginCache().createNewPlugin(te::FourOscPlugin::xmlTypeName, {}))
-    {
-        track.pluginList.insertPlugin(*synth, 0, nullptr);
-        DBG("Added 4OSC synth to track " + juce::String(trackIndex + 1));
-    }
-
-    auto& seq = midiClip->getSequence();
-
-    // C minor progression patterns per track
-    struct NotePattern { int notes[4]; double durations[4]; };
-    NotePattern patterns[] = {
-        {{ 36, 39, 43, 41 }, { 4.0, 4.0, 4.0, 4.0 }},  // Bass — whole notes
-        {{ 48, 51, 55, 53 }, { 2.0, 2.0, 2.0, 2.0 }},  // Chords — half notes
-        {{ 60, 63, 67, 65 }, { 1.0, 1.0, 1.0, 1.0 }},  // Melody — quarter notes
-        {{ 72, 75, 79, 77 }, { 0.5, 0.5, 0.5, 0.5 }},  // High — eighth notes
-    };
-
-    auto& pattern = patterns[trackIndex % 4];
-    double beatPos = 0.0;
-
-    while (beatPos < 16.0)
-    {
-        for (int n = 0; n < 4 && beatPos < 16.0; n++)
-        {
-            auto startBeat = te::BeatPosition::fromBeats(beatPos);
-            auto lengthBeats = te::BeatDuration::fromBeats(pattern.durations[n] * 0.9);
-            int velocity = 80 + (trackIndex * 5);
-            seq.addNote(pattern.notes[n], startBeat, lengthBeats, velocity, 0, nullptr);
-            beatPos += pattern.durations[n];
-        }
-    }
-
-    DBG("Added MIDI to track " + juce::String(trackIndex + 1) + " (" + juce::String(seq.getNumNotes()) + " notes)");
+    if (!edit) return "[]";
+    return BirdLoader::getTrackNotesJSON(*edit);
 }
 
 //==============================================================================

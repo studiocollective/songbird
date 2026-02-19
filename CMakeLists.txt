@@ -41,6 +41,9 @@ target_compile_features(SongbirdPlayer PRIVATE cxx_std_20)
 target_sources(SongbirdPlayer PRIVATE
     app/Main.cpp
     app/SongbirdEditor.cpp
+    app/BirdLoader.cpp
+    libraries/theory/note_parser.cpp
+    libraries/sequencing/note.cpp
     libraries/magenta/WebSocket.cc
     libraries/magenta/Gemini.cc
     libraries/magenta/CircularBuffer.cc
