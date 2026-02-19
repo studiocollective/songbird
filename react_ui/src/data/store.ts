@@ -1,101 +1,115 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { juceBridge, addStateListener } from './bridge';
+import type { TransportState, MixerState, ChatState, LyriaState } from '@/data/slices';
+import {
+  useTransportSlice,
+  TransportStateID,
+  useMixerSlice,
+  MixerStateID,
+  useChatSlice,
+  ChatStateID,
+  useLyriaSlice,
+  LyriaStateID,
+} from '@/data/slices';
 
-interface Track {
-  id: number;
-  name: string;
-  color: string;
-  muted: boolean;
-  solo: boolean;
-  volume: number;
-  pan: number;
+// --- Persisted stores (auto-sync with C++ via juceBridge) ---
+
+export const useTransportStore = create<TransportState>()(
+  persist(
+    (...a) => ({
+      ...useTransportSlice(...a),
+    }),
+    {
+      name: TransportStateID,
+      storage: createJSONStorage(() => juceBridge),
+      version: 1,
+    },
+  ),
+);
+
+export const useMixerStore = create<MixerState>()(
+  persist(
+    (...a) => ({
+      ...useMixerSlice(...a),
+    }),
+    {
+      name: MixerStateID,
+      storage: createJSONStorage(() => juceBridge),
+      version: 1,
+    },
+  ),
+);
+
+export const useChatStore = create<ChatState>()(
+  persist(
+    (...a) => ({
+      ...useChatSlice(...a),
+    }),
+    {
+      name: ChatStateID,
+      storage: createJSONStorage(() => juceBridge),
+      version: 1,
+    },
+  ),
+);
+
+export const useLyriaStore = create<LyriaState>()(
+  persist(
+    (...a) => ({
+      ...useLyriaSlice(...a),
+    }),
+    {
+      name: LyriaStateID,
+      storage: createJSONStorage(() => juceBridge),
+      version: 1,
+    },
+  ),
+);
+
+// --- C++ → JS state listeners (partial updates from engine) ---
+
+addStateListener(TransportStateID, (partialState: Partial<TransportState>) => {
+  useTransportStore.setState((prev) => ({
+    ...prev,
+    ...partialState,
+  }));
+});
+
+addStateListener(MixerStateID, (partialState: Partial<MixerState>) => {
+  useMixerStore.setState((prev) => ({
+    ...prev,
+    ...partialState,
+  }));
+});
+
+addStateListener(ChatStateID, (partialState: Partial<ChatState>) => {
+  useChatStore.setState((prev) => ({
+    ...prev,
+    ...partialState,
+  }));
+});
+
+addStateListener(LyriaStateID, (partialState: Partial<LyriaState>) => {
+  useLyriaStore.setState((prev) => ({
+    ...prev,
+    ...partialState,
+  }));
+});
+
+// --- Transport position updates (high-frequency from C++ audio thread) ---
+addStateListener('transportPosition', (data: { position: number; bar: number }) => {
+  useTransportStore.setState({
+    position: data.position,
+    currentBar: data.bar,
+  });
+});
+
+// --- Lyria status updates (from LyriaPlugin's onStatusChange callback) ---
+if (typeof window !== 'undefined') {
+  window.addEventListener('lyria-status', ((e: CustomEvent) => {
+    const { connected, buffering } = e.detail;
+    useLyriaStore.setState({ connected, buffering });
+  }) as EventListener);
 }
 
-interface AppState {
-  // Panels
-  mixerOpen: boolean;
-  chatOpen: boolean;
-  toggleMixer: () => void;
-  toggleChat: () => void;
-
-  // Transport
-  playing: boolean;
-  bpm: number;
-  currentBar: number;
-  currentSection: string;
-  setPlaying: (playing: boolean) => void;
-  setBpm: (bpm: number) => void;
-
-  // Tracks
-  tracks: Track[];
-  toggleMute: (id: number) => void;
-  toggleSolo: (id: number) => void;
-  setVolume: (id: number, volume: number) => void;
-  setPan: (id: number, pan: number) => void;
-
-  // Chat
-  chatMessages: { role: 'user' | 'assistant'; content: string }[];
-  chatInput: string;
-  setChatInput: (input: string) => void;
-  addMessage: (role: 'user' | 'assistant', content: string) => void;
-}
-
-const TRACK_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
-];
-
-const defaultTracks: Track[] = Array.from({ length: 8 }, (_, i) => ({
-  id: i + 1,
-  name: `Track ${i + 1}`,
-  color: TRACK_COLORS[i],
-  muted: false,
-  solo: false,
-  volume: 80,
-  pan: 0,
-}));
-
-export const useAppStore = create<AppState>((set) => ({
-  mixerOpen: false,
-  chatOpen: false,
-  toggleMixer: () => set((s) => ({ mixerOpen: !s.mixerOpen })),
-  toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
-
-  playing: false,
-  bpm: 120,
-  currentBar: 1,
-  currentSection: 'verse',
-  setPlaying: (playing) => set({ playing }),
-  setBpm: (bpm) => set({ bpm }),
-
-  tracks: defaultTracks,
-  toggleMute: (id) =>
-    set((s) => ({
-      tracks: s.tracks.map((t) =>
-        t.id === id ? { ...t, muted: !t.muted } : t
-      ),
-    })),
-  toggleSolo: (id) =>
-    set((s) => ({
-      tracks: s.tracks.map((t) =>
-        t.id === id ? { ...t, solo: !t.solo } : t
-      ),
-    })),
-  setVolume: (id, volume) =>
-    set((s) => ({
-      tracks: s.tracks.map((t) =>
-        t.id === id ? { ...t, volume } : t
-      ),
-    })),
-  setPan: (id, pan) =>
-    set((s) => ({
-      tracks: s.tracks.map((t) => (t.id === id ? { ...t, pan } : t)),
-    })),
-
-  chatMessages: [],
-  chatInput: '',
-  setChatInput: (chatInput) => set({ chatInput }),
-  addMessage: (role, content) =>
-    set((s) => ({
-      chatMessages: [...s.chatMessages, { role, content }],
-    })),
-}));

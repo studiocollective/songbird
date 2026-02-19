@@ -1,3 +1,12 @@
 [submodule "tracktion"]
-	path = tracktion
+	path = libraries/tracktion
 	url = https://github.com/desaiashu/tracktion.git
+[submodule "libraries/json"]
+	path = libraries/json
+	url = https://github.com/nlohmann/json.git
+[submodule "libraries/websocketpp"]
+	path = libraries/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "libraries/asio"]
+	path = libraries/asio
+	url = https://github.com/chriskohlhoff/asio.git

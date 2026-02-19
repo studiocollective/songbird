@@ -36,8 +36,21 @@ if [ "$SKIP_BUILD" = false ]; then
     cmake --build build --target SongbirdPlayer -j$(sysctl -n hw.ncpu)
 fi
 
+# Step 3b: Inject NSAppTransportSecurity so WebView can load http://localhost
+APP_PLIST="build/SongbirdPlayer_artefacts/Songbird Player.app/Contents/Info.plist"
+if [ -f "$APP_PLIST" ]; then
+    /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" "$APP_PLIST" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$APP_PLIST" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$APP_PLIST" 2>/dev/null || true
+    echo "  ✓ App Transport Security configured for localhost"
+fi
+
 # Step 4: Start Vite dev server in background
 echo -e "${GREEN}Starting React UI dev server...${NC}"
+# Kill any lingering Songbird Player and Vite servers from previous runs
+pkill -f "Songbird Player" 2>/dev/null || true
+pkill -f "node.*vite" 2>/dev/null || true
+sleep 0.3
 cd react_ui
 npm run dev &
 VITE_PID=$!

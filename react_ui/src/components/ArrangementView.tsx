@@ -1,43 +1,41 @@
-import { useAppStore } from '@/data/store';
+import { useMixerStore } from '@/data/store';
 
 export function ArrangementView() {
-  const { tracks } = useAppStore();
+  const { tracks } = useMixerStore();
   const totalBars = 32;
   const sections = [
-    { name: 'Verse', start: 0, length: 8, color: 'bg-indigo-900/40' },
-    { name: 'Chorus', start: 8, length: 8, color: 'bg-rose-900/40' },
-    { name: 'Verse', start: 16, length: 8, color: 'bg-indigo-900/40' },
-    { name: 'Chorus', start: 24, length: 8, color: 'bg-rose-900/40' },
+    { name: 'Verse', start: 0, length: 8, color: 'bg-indigo-900/40 dark:bg-indigo-900/40 bg-indigo-200/40' },
+    { name: 'Chorus', start: 8, length: 8, color: 'bg-rose-900/40 dark:bg-rose-900/40 bg-rose-200/40' },
+    { name: 'Verse', start: 16, length: 8, color: 'bg-indigo-900/40 dark:bg-indigo-900/40 bg-indigo-200/40' },
+    { name: 'Chorus', start: 24, length: 8, color: 'bg-rose-900/40 dark:bg-rose-900/40 bg-rose-200/40' },
   ];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
+    <div className={container}>
       {/* Timeline ruler */}
-      <div className="flex shrink-0">
-        <div className="w-44 shrink-0 bg-zinc-900 border-b border-r border-zinc-800" />
-        <div className="flex-1 h-10 bg-zinc-900 border-b border-zinc-800 flex items-end relative overflow-hidden">
-          {/* Section labels */}
+      <div className={rulerRow}>
+        <div className={rulerSpacer} />
+        <div className={rulerTrack}>
           {sections.map((sec, i) => (
             <div
               key={i}
-              className="absolute top-0 h-5 flex items-center justify-center text-[10px] font-medium text-zinc-400 border-x border-zinc-700/50"
+              className={sectionLabel}
               style={{
-                left: `${(sec.start / totalBars) * 100}%`,
-                width: `${(sec.length / totalBars) * 100}%`,
-              }}
+                '--label-left': `${(sec.start / totalBars) * 100}%`,
+                '--label-width': `${(sec.length / totalBars) * 100}%`,
+              } as React.CSSProperties}
             >
               {sec.name}
             </div>
           ))}
-          {/* Bar numbers */}
           {Array.from({ length: totalBars }, (_, i) => (
             <div
               key={i}
-              className="absolute bottom-0 h-5 flex items-center justify-center text-[9px] font-mono text-zinc-600 border-r border-zinc-800/50"
+              className={barNumber}
               style={{
-                left: `${(i / totalBars) * 100}%`,
-                width: `${(1 / totalBars) * 100}%`,
-              }}
+                '--bar-left': `${(i / totalBars) * 100}%`,
+                '--bar-width': `${(1 / totalBars) * 100}%`,
+              } as React.CSSProperties}
             >
               {i + 1}
             </div>
@@ -46,31 +44,28 @@ export function ArrangementView() {
       </div>
 
       {/* Track lanes */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={lanesScroll}>
         {tracks.map((track) => (
-          <div key={track.id} className="flex h-16 border-b border-zinc-800/50 group">
-            {/* Track header */}
-            <div className="w-44 shrink-0 bg-zinc-900/80 border-r border-zinc-800 flex items-center px-3 gap-2">
+          <div key={track.id} className={laneRow}>
+            <div className={laneHeader}>
               <div
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: track.color }}
+                className={colorDot}
+                style={{ '--dot-color': track.color } as React.CSSProperties}
               />
-              <span className="text-xs text-zinc-300 font-medium truncate flex-1">
-                {track.name}
-              </span>
-              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className={trackName}>{track.name}</span>
+              <div className={muteSoloGroup}>
                 <button
-                  onClick={() => useAppStore.getState().toggleMute(track.id)}
-                  className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center transition-colors ${
-                    track.muted ? 'bg-amber-600 text-white' : 'text-zinc-600 hover:text-zinc-400'
+                  onClick={() => useMixerStore.getState().toggleMute(track.id)}
+                  className={`${muteSoloBtn} ${
+                    track.muted ? muteBtnActive : muteSoloBtnInactive
                   }`}
                 >
                   M
                 </button>
                 <button
-                  onClick={() => useAppStore.getState().toggleSolo(track.id)}
-                  className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center transition-colors ${
-                    track.solo ? 'bg-yellow-500 text-black' : 'text-zinc-600 hover:text-zinc-400'
+                  onClick={() => useMixerStore.getState().toggleSolo(track.id)}
+                  className={`${muteSoloBtn} ${
+                    track.solo ? soloBtnActive : muteSoloBtnInactive
                   }`}
                 >
                   S
@@ -78,38 +73,35 @@ export function ArrangementView() {
               </div>
             </div>
 
-            {/* Track content area */}
-            <div className="flex-1 relative">
-              {/* Section backgrounds */}
+            <div className={laneContent}>
               {sections.map((sec, i) => (
                 <div
                   key={i}
-                  className={`absolute inset-y-0 ${sec.color} border-r border-zinc-800/30`}
+                  className={`${sectionBg} ${sec.color}`}
                   style={{
-                    left: `${(sec.start / totalBars) * 100}%`,
-                    width: `${(sec.length / totalBars) * 100}%`,
-                  }}
+                    '--sec-left': `${(sec.start / totalBars) * 100}%`,
+                    '--sec-width': `${(sec.length / totalBars) * 100}%`,
+                  } as React.CSSProperties}
                 />
               ))}
-              {/* MIDI clip placeholder */}
               <div
-                className="absolute top-1.5 bottom-1.5 rounded-sm opacity-60"
+                className={clip}
                 style={{
-                  left: `${((track.id % 3) * 2 / totalBars) * 100}%`,
-                  width: `${((8 - (track.id % 3)) / totalBars) * 100}%`,
-                  backgroundColor: track.color,
-                }}
+                  '--clip-left': `${((track.id % 3) * 2 / totalBars) * 100}%`,
+                  '--clip-width': `${((8 - (track.id % 3)) / totalBars) * 100}%`,
+                  '--clip-color': track.color,
+                } as React.CSSProperties}
               >
-                <div className="px-1.5 py-0.5 text-[9px] font-medium text-white/80 truncate">
-                  {track.name}
-                </div>
-                {/* Mini note representation */}
-                <div className="px-1.5 flex gap-px flex-wrap">
+                <div className={clipLabel}>{track.name}</div>
+                <div className={notesContainer}>
                   {Array.from({ length: 6 + (track.id % 4) }, (_, j) => (
                     <div
                       key={j}
-                      className="h-0.5 rounded-full bg-white/40"
-                      style={{ width: `${4 + (j % 3) * 3}px`, marginTop: `${(j * 2) % 5}px` }}
+                      className={noteLine}
+                      style={{
+                        '--note-w': `${4 + (j % 3) * 3}px`,
+                        '--note-mt': `${(j * 2) % 5}px`,
+                      } as React.CSSProperties}
                     />
                   ))}
                 </div>
@@ -121,3 +113,51 @@ export function ArrangementView() {
     </div>
   );
 }
+
+const container = `flex-1 flex flex-col overflow-hidden bg-[hsl(var(--arrangement))]`;
+
+const rulerRow = `flex shrink-0`;
+const rulerSpacer = `w-44 shrink-0 bg-[hsl(var(--background))] border-b border-r border-[hsl(var(--border))]`;
+const rulerTrack = `
+  flex-1 h-10 bg-[hsl(var(--background))] border-b border-[hsl(var(--border))]
+  flex items-end relative overflow-hidden`;
+
+const sectionLabel = `
+  absolute top-0 h-5 flex items-center justify-center
+  text-[10px] font-medium text-[hsl(var(--muted-foreground))]
+  border-x border-[hsl(var(--border))]/50
+  left-[var(--label-left)] w-[var(--label-width)]`;
+
+const barNumber = `
+  absolute bottom-0 h-5 flex items-center justify-center
+  text-[9px] font-mono text-[hsl(var(--muted-foreground))]
+  border-r border-[hsl(var(--border))]/50
+  left-[var(--bar-left)] w-[var(--bar-width)]`;
+
+const lanesScroll = `flex-1 overflow-y-auto`;
+
+const laneRow = `flex h-16 border-b border-[hsl(var(--border))]/50 group`;
+const laneHeader = `
+  w-44 shrink-0 bg-[hsl(var(--background))]/80 border-r border-[hsl(var(--border))]
+  flex items-center px-3 gap-2`;
+const colorDot = `w-2.5 h-2.5 rounded-full shrink-0 bg-[var(--dot-color)]`;
+const trackName = `text-xs text-[hsl(var(--foreground))] font-medium truncate flex-1`;
+
+const muteSoloGroup = `flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity`;
+const muteSoloBtn = `w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center transition-colors`;
+const muteBtnActive = `bg-[hsl(var(--plugin-bypassed))] text-[hsl(var(--primary-foreground))]`;
+const soloBtnActive = `bg-yellow-500 text-black`;
+const muteSoloBtnInactive = `text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]`;
+
+const laneContent = `flex-1 relative`;
+const sectionBg = `
+  absolute inset-y-0 border-r border-[hsl(var(--border))]/30
+  left-[var(--sec-left)] w-[var(--sec-width)]`;
+
+const clip = `
+  absolute top-1.5 bottom-1.5 rounded-sm opacity-60
+  left-[var(--clip-left)] w-[var(--clip-width)]
+  bg-[var(--clip-color)]`;
+const clipLabel = `px-1.5 py-0.5 text-[9px] font-medium text-white/80 truncate`;
+const notesContainer = `px-1.5 flex gap-px flex-wrap`;
+const noteLine = `h-0.5 rounded-full bg-white/40 w-[var(--note-w)] mt-[var(--note-mt)]`;

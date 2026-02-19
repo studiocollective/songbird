@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useAppStore } from '@/data/store';
+import { cn } from '@/lib/utils';
+import { useChatStore } from '@/data/store';
 
 export function ChatPanel() {
-  const { chatOpen, chatMessages, chatInput, setChatInput, addMessage } = useAppStore();
+  const { chatOpen, chatMessages, chatInput, setChatInput, addMessage } = useChatStore();
   const [isTyping, setIsTyping] = useState(false);
 
   const handleSend = () => {
@@ -10,7 +11,6 @@ export function ChatPanel() {
     addMessage('user', chatInput);
     setChatInput('');
 
-    // Simulate LLM response
     setIsTyping(true);
     setTimeout(() => {
       addMessage(
@@ -22,42 +22,31 @@ export function ChatPanel() {
   };
 
   return (
-    <div
-      className={`bg-zinc-900 border-l border-zinc-700 transition-all duration-300 ease-in-out overflow-hidden flex flex-col ${
-        chatOpen ? 'w-80' : 'w-0'
-      }`}
-    >
-      <div className="w-80 h-full flex flex-col">
+    <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+      <div className={panelInner}>
         {/* Header */}
-        <div className="h-10 shrink-0 border-b border-zinc-800 flex items-center px-3">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
-          <span className="text-xs font-medium text-zinc-300">Songbird Copilot</span>
-          <span className="text-[10px] text-zinc-600 ml-auto">bird notation</span>
+        <div className={header}>
+          <div className={statusDot} />
+          <span className={headerTitle}>Songbird Copilot</span>
+          <span className={headerSubtitle}>bird notation</span>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {/* Welcome message */}
+        <div className={messagesScroll}>
           {chatMessages.length === 0 && (
-            <div className="text-center py-8">
-              <div className="text-2xl mb-2">🐦</div>
-              <p className="text-xs text-zinc-500 leading-relaxed">
+            <div className={welcomeWrapper}>
+              <div className={welcomeEmoji}>🐦</div>
+              <p className={welcomeText}>
                 Describe the music you want to create.
                 <br />
                 I'll generate bird notation for you.
               </p>
-              <div className="mt-4 space-y-1.5">
-                {[
-                  'moody lo-fi jazz beat',
-                  'driving techno bassline',
-                  'ambient pad with reverb',
-                ].map((suggestion) => (
+              <div className={suggestionsWrapper}>
+                {SUGGESTIONS.map((suggestion) => (
                   <button
                     key={suggestion}
-                    onClick={() => {
-                      setChatInput(suggestion);
-                    }}
-                    className="block w-full text-left px-3 py-1.5 rounded bg-zinc-800/50 hover:bg-zinc-800 text-[11px] text-zinc-400 hover:text-zinc-300 transition-colors"
+                    onClick={() => setChatInput(suggestion)}
+                    className={suggestionBtn}
                   >
                     "{suggestion}"
                   </button>
@@ -66,53 +55,37 @@ export function ChatPanel() {
             </div>
           )}
 
-          {/* Chat messages */}
           {chatMessages.map((msg, i) => (
-            <div
-              key={i}
-              className={`${
-                msg.role === 'user' ? 'ml-6' : 'mr-2'
-              }`}
-            >
-              <div
-                className={`rounded-lg px-3 py-2 text-xs leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-emerald-900/40 text-emerald-200 border border-emerald-800/30'
-                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700/50'
-                }`}
-              >
-                <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
+            <div key={i} className={msg.role === 'user' ? userOuter : assistantOuter}>
+              <div className={cn(bubble, msg.role === 'user' ? userBubble : assistantBubble)}>
+                <pre className={messageBody}>{msg.content}</pre>
               </div>
             </div>
           ))}
 
-          {/* Typing indicator */}
           {isTyping && (
-            <div className="mr-2">
-              <div className="bg-zinc-800 border border-zinc-700/50 rounded-lg px-3 py-2 inline-flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className={assistantOuter}>
+              <div className={typingContainer}>
+                <div className={typingDot} />
+                <div className={typingDot1} />
+                <div className={typingDot2} />
               </div>
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div className="shrink-0 border-t border-zinc-800 p-2">
-          <div className="flex gap-2">
+        <div className={inputWrapper}>
+          <div className={inputRow}>
             <input
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Describe your music..."
-              className="flex-1 h-8 bg-zinc-800 border border-zinc-700 rounded-md px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+              className={inputField}
             />
-            <button
-              onClick={handleSend}
-              className="h-8 px-3 rounded-md bg-emerald-700 hover:bg-emerald-600 text-xs text-white font-medium transition-colors"
-            >
+            <button onClick={handleSend} className={sendBtn}>
               Send
             </button>
           </div>
@@ -121,3 +94,66 @@ export function ChatPanel() {
     </div>
   );
 }
+
+const SUGGESTIONS = [
+  'moody lo-fi jazz beat',
+  'driving techno bassline',
+  'ambient pad with reverb',
+];
+
+// --- Panel ---
+const panel = `
+  bg-[hsl(var(--background))] border-l border-[hsl(var(--border))]
+  transition-all duration-300 ease-in-out overflow-hidden flex flex-col`;
+const panelInner = `w-80 h-full flex flex-col`;
+
+// --- Header ---
+const header = `h-10 shrink-0 border-b border-[hsl(var(--border))] flex items-center px-3`;
+const statusDot = `w-2 h-2 rounded-full bg-[hsl(var(--progress))] mr-2`;
+const headerTitle = `text-xs font-medium text-[hsl(var(--foreground))]`;
+const headerSubtitle = `text-[10px] text-[hsl(var(--muted-foreground))] ml-auto`;
+
+// --- Messages ---
+const messagesScroll = `flex-1 overflow-y-auto p-3 space-y-3`;
+
+const welcomeWrapper = `text-center py-8`;
+const welcomeEmoji = `text-2xl mb-2`;
+const welcomeText = `text-xs text-[hsl(var(--muted-foreground))] leading-relaxed`;
+const suggestionsWrapper = `mt-4 space-y-1.5`;
+const suggestionBtn = `
+  block w-full text-left px-3 py-1.5 rounded
+  bg-[hsl(var(--card))]/50 hover:bg-[hsl(var(--card))]
+  text-[11px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors`;
+
+const userOuter = `ml-6`;
+const assistantOuter = `mr-2`;
+const bubble = `rounded-lg px-3 py-2 text-xs leading-relaxed`;
+const userBubble = `
+  bg-[hsl(var(--chat-user))] text-[hsl(var(--foreground))]
+  border border-[hsl(var(--chat-user-border))]`;
+const assistantBubble = `
+  bg-[hsl(var(--chat-assistant))] text-[hsl(var(--foreground))]
+  border border-[hsl(var(--chat-assistant-border))]`;
+const messageBody = `whitespace-pre-wrap font-sans`;
+
+// --- Typing ---
+const typingContainer = `
+  bg-[hsl(var(--chat-assistant))] border border-[hsl(var(--chat-assistant-border))]
+  rounded-lg px-3 py-2 inline-flex gap-1`;
+const typingDotBase = `w-1.5 h-1.5 rounded-full bg-[hsl(var(--muted-foreground))] animate-bounce`;
+const typingDot = typingDotBase;
+const typingDot1 = `${typingDotBase} [animation-delay:150ms]`;
+const typingDot2 = `${typingDotBase} [animation-delay:300ms]`;
+
+// --- Input ---
+const inputWrapper = `shrink-0 border-t border-[hsl(var(--border))] p-2`;
+const inputRow = `flex gap-2`;
+const inputField = `
+  flex-1 h-8 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
+  rounded-md px-3 text-xs text-[hsl(var(--foreground))]
+  placeholder-[hsl(var(--muted-foreground))]
+  focus:outline-none focus:border-[hsl(var(--ring))]`;
+const sendBtn = `
+  h-8 px-3 rounded-md bg-[hsl(var(--progress))] hover:bg-[hsl(var(--progress))]/80
+  text-xs text-[hsl(var(--primary-foreground))] font-medium transition-colors`;

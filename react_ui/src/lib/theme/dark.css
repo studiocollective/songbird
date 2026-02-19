@@ -1,0 +1,66 @@
+@layer theme {
+  .dark {
+    --radius: 0.5rem;
+
+    /* Core — Tailwind Zinc */
+    --background: 240 6% 10%;       /* zinc-900 */
+    --foreground: 0 0% 98%;         /* zinc-50 */
+    --card: 240 4% 16%;             /* zinc-800 */
+    --card-foreground: 0 0% 98%;    /* zinc-50 */
+    --popover: 240 10% 4%;          /* zinc-950 */
+    --popover-foreground: 0 0% 98%; /* zinc-50 */
+    --primary: 0 0% 98%;            /* zinc-50 */
+    --primary-foreground: 240 6% 10%; /* zinc-900 */
+    --secondary: 240 4% 16%;        /* zinc-800 */
+    --secondary-foreground: 0 0% 98%; /* zinc-50 */
+    --muted: 240 5% 26%;            /* zinc-700 */
+    --muted-foreground: 240 4% 65%; /* zinc-400 */
+    --accent: 240 4% 16%;           /* zinc-800 */
+    --accent-foreground: 0 0% 98%;  /* zinc-50 */
+    --destructive: 0 63% 31%;       /* red-900 */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 26%;           /* zinc-700 */
+    --input: 240 5% 26%;            /* zinc-700 */
+    --ring: 240 5% 84%;             /* zinc-300 */
+
+    /* DAW — Tailwind Zinc */
+    --transport: 240 10% 4%;        /* zinc-950 */
+    --transport-foreground: 240 4% 65%; /* zinc-400 */
+    --mixer: 240 6% 10%;            /* zinc-900 */
+    --mixer-channel: 240 4% 16%;    /* zinc-800 */
+    --mixer-channel-hover: 240 5% 26%; /* zinc-700 */
+    --arrangement: 240 6% 10%;      /* zinc-900 */
+    --arrangement-lane: 240 4% 16%; /* zinc-800 */
+    --timeline: 240 6% 10%;         /* zinc-900 */
+
+    /* Accents — Tailwind Emerald / Amber / Indigo */
+    --playhead: 160 84% 39%;        /* emerald-500 */
+    --progress: 158 64% 52%;        /* emerald-400 */
+    --selection: 217 91% 60%;       /* blue-500 */
+    --plugin-active: 158 64% 52%;   /* emerald-400 */
+    --plugin-bypassed: 38 92% 50%;  /* amber-500 */
+    --plugin-empty: 240 5% 26%;     /* zinc-700 */
+
+    /* Track Type Badges */
+    --badge-midi-bg: 234 89% 74%;   /* indigo-400 */
+    --badge-midi-fg: 226 70% 15%;   /* indigo-950 */
+    --badge-audio-bg: 158 64% 52%;  /* emerald-400 */
+    --badge-audio-fg: 164 86% 10%;  /* emerald-950 */
+
+    /* Chat */
+    --chat-user: 163 94% 24%;       /* emerald-700 */
+    --chat-user-border: 160 84% 39%; /* emerald-500 */
+    --chat-assistant: 240 4% 16%;   /* zinc-800 */
+    --chat-assistant-border: 240 5% 26%; /* zinc-700 */
+
+    /* Track Colors — Tailwind palette */
+    --track-0: 0 72% 51%;           /* red-500 */
+    --track-1: 174 58% 39%;         /* teal-500 */
+    --track-2: 199 89% 48%;         /* sky-500 */
+    --track-3: 142 71% 45%;         /* green-500 */
+    --track-4: 48 96% 53%;          /* yellow-400 */
+    --track-5: 293 69% 49%;         /* purple-500 */
+    --track-6: 158 64% 52%;         /* emerald-400 */
+    --track-7: 38 92% 50%;          /* amber-500 */
+  }
+}
