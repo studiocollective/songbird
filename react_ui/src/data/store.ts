@@ -99,18 +99,28 @@ addStateListener(LyriaStateID, (partialState: Partial<LyriaState>) => {
   }));
 });
 
-// --- Transport position updates (high-frequency from C++ audio thread) ---
-addStateListener('transportPosition', (data: { position: number; bar: number }) => {
+// --- Transport position updates (high-frequency from C++ timer) ---
+addStateListener('transportPosition', (data: unknown) => {
+  const d = data as { position: number; bar: number; looping?: boolean; loopLength?: number; loopBars?: number };
   useTransportStore.setState({
-    position: data.position,
-    currentBar: data.bar,
+    position: d.position,
+    currentBar: d.bar,
+    ...(d.looping !== undefined && { looping: d.looping }),
+    ...(d.loopLength !== undefined && { loopLength: d.loopLength }),
+    ...(d.loopBars !== undefined && { loopBars: d.loopBars }),
+    lastPositionUpdate: performance.now(),
   });
 });
 
 // --- Track notes updates (from BirdLoader after .bird file load) ---
 addStateListener('trackNotes', (jsonStr: string) => {
   try {
-    const trackData = JSON.parse(jsonStr) as Array<{ id: number; name: string; notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }> }>;
+    const trackData = JSON.parse(jsonStr) as Array<{
+      id: number; name: string;
+      plugin?: { pluginId: string; pluginName: string };
+      channelStrip?: { pluginId: string; pluginName: string };
+      notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }>;
+    }>;
     const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
     const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
     const tracks = trackData.map((t, i) => ({
@@ -122,8 +132,12 @@ addStateListener('trackNotes', (jsonStr: string) => {
       solo: false,
       volume: 80,
       pan: 0,
-      instrument: emptySlot,
-      channelStrip: emptySlot,
+      instrument: t.plugin
+        ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
+        : emptySlot,
+      channelStrip: t.channelStrip
+        ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
+        : emptySlot,
       notes: t.notes,
     }));
     useMixerStore.setState({ tracks });
@@ -141,7 +155,12 @@ if (typeof window !== 'undefined' && window.__JUCE__) {
       try {
         const jsonStr = await getTrackNotes();
         if (jsonStr && jsonStr !== '[]') {
-          const trackData = JSON.parse(jsonStr) as Array<{ id: number; name: string; notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }> }>;
+          const trackData = JSON.parse(jsonStr) as Array<{
+            id: number; name: string;
+            plugin?: { pluginId: string; pluginName: string };
+            channelStrip?: { pluginId: string; pluginName: string };
+            notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }>;
+          }>;
           const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
           const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
           const tracks = trackData.map((t, i) => ({
@@ -153,8 +172,12 @@ if (typeof window !== 'undefined' && window.__JUCE__) {
             solo: false,
             volume: 80,
             pan: 0,
-            instrument: emptySlot,
-            channelStrip: emptySlot,
+            instrument: t.plugin
+              ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
+              : emptySlot,
+            channelStrip: t.channelStrip
+              ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
+              : emptySlot,
             notes: t.notes,
           }));
           useMixerStore.setState({ tracks });

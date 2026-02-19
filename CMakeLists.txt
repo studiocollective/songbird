@@ -46,7 +46,7 @@ target_sources(SongbirdPlayer PRIVATE
     app/WebViewBridge.cpp
     app/LyriaManager.cpp
     app/PluginManager.cpp
-    app/LevelMeterBridge.cpp
+    app/PlaybackInfo.cpp
     app/BirdLoader.cpp
     libraries/theory/note_parser.cpp
     libraries/sequencing/note.cpp

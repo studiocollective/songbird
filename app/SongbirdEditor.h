@@ -7,7 +7,7 @@
 #include <map>
 #include "libraries/magenta/LyriaPlugin.h"
 #include "BirdLoader.h"
-#include "LevelMeterBridge.h"
+#include "PlaybackInfo.h"
 
 namespace te = tracktion;
 
@@ -36,8 +36,10 @@ private:
     void applyMixerState(const juce::var& state);
 
     // Bird file loading
+    void scanForPlugins();
     void loadBirdFile(const juce::File& birdFile);
     juce::String getTrackNotesJSON();
+    BirdParseResult lastParseResult;  // stored for JSON serialization with plugin info
 
     // Lyria generated track management
     std::map<int, magenta::LyriaPlugin*> lyriaPlugins;
@@ -48,8 +50,8 @@ private:
     // Plugin window management
     void openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId);
 
-    // Audio level metering
-    LevelMeterBridge levelMeterBridge;
+    // Playback info (levels, transport position, stereo analysis)
+    PlaybackInfo playbackInfo;
 
     // WebView zoom & inspector
     double zoomLevel = 1.0;

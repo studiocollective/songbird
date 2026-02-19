@@ -27,7 +27,7 @@ BirdComposer::BirdComposer() : Composer()
 
 void copy_file()
 {
-    std::ifstream src("files/live.bird", std::ios::binary);
+    std::ifstream src("files/daw.bird", std::ios::binary);
     std::ofstream dst("files/live.temp", std::ios::binary);
 
     dst << src.rdbuf();
@@ -41,7 +41,7 @@ void destroy_file()
 time_t updated_time()
 {
     struct stat fileInfo;
-    stat("files/live.bird", &fileInfo);
+    stat("files/daw.bird", &fileInfo);
     time_t last_updated = fileInfo.st_mtime;
     return last_updated;
 }

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
 import { MasterChannel, MixerChannel } from '@/components/organisms';
+import { StereoWidthMeter, PhaseCorrelationMeter } from '@/components/molecules/StereoMeters';
 
 export function MixerPanel() {
   const { tracks, mixerOpen } = useMixerStore();
@@ -28,6 +29,12 @@ export function MixerPanel() {
             />
           ))}
         </div>
+
+        {/* Stereo analysis meters — far right */}
+        <div className={stereoSection}>
+          <StereoWidthMeter />
+          <PhaseCorrelationMeter />
+        </div>
       </div>
     </div>
   );
@@ -39,3 +46,6 @@ const panel = `
   transition-all duration-300 ease-in-out overflow-hidden`;
 const panelInner = `h-72 flex`;
 const channelsScroll = `flex-1 flex overflow-x-auto`;
+const stereoSection = `
+  flex items-center gap-4 px-4
+  border-l border-[hsl(var(--border))]`;

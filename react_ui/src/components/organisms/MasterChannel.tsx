@@ -1,8 +1,31 @@
+import { useRef, useEffect } from 'react';
 import { useMeterStore } from '@/data/meters';
 
+/**
+ * MasterChannel — direct DOM manipulation for zero-overhead metering.
+ *
+ * Renders once, then imperatively updates meter fills and readout
+ * via a store subscription + DOM refs. No React re-renders for level changes.
+ */
 export function MasterChannel() {
-  const { master } = useMeterStore();
-  const avgLevel = Math.max(master.left, master.right);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const readoutRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = useMeterStore.subscribe((state) => {
+      const { master } = state;
+      if (leftRef.current) leftRef.current.style.height = `${master.left}%`;
+      if (rightRef.current) rightRef.current.style.height = `${master.right}%`;
+      if (readoutRef.current) {
+        const avg = Math.max(master.left, master.right);
+        readoutRef.current.textContent = avg > 0
+          ? `-${(60 - avg * 0.6).toFixed(1)}`
+          : '-∞';
+      }
+    });
+    return unsub;
+  }, []);
 
   return (
     <div className={channel}>
@@ -10,10 +33,7 @@ export function MasterChannel() {
       <div className={meterWrapper}>
         {/* Left channel */}
         <div className={meterTrack}>
-          <div
-            className={meterFill}
-            style={{ '--meter-h': `${master.left}%` } as React.CSSProperties}
-          />
+          <div ref={leftRef} className={meterFill} />
           {Array.from({ length: 12 }, (_, i) => (
             <div
               key={i}
@@ -24,10 +44,7 @@ export function MasterChannel() {
         </div>
         {/* Right channel */}
         <div className={meterTrack}>
-          <div
-            className={meterFill}
-            style={{ '--meter-h': `${master.right}%` } as React.CSSProperties}
-          />
+          <div ref={rightRef} className={meterFill} />
           {Array.from({ length: 12 }, (_, i) => (
             <div
               key={i}
@@ -37,7 +54,7 @@ export function MasterChannel() {
           ))}
         </div>
       </div>
-      <div className={readout}>{avgLevel > 0 ? `-${(60 - avgLevel * 0.6).toFixed(1)}` : '-∞'}</div>
+      <div ref={readoutRef} className={readout}>-∞</div>
     </div>
   );
 }
@@ -50,7 +67,6 @@ const meterWrapper = `flex-1 flex items-center justify-center gap-0.5`;
 const meterTrack = `relative w-1.5 h-28 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
 const meterFill = `
   absolute bottom-0 w-full rounded-full
-  h-[var(--meter-h)]
   bg-gradient-to-t from-emerald-500/80 via-emerald-400 to-amber-400`;
 const segment = `absolute w-full h-px bg-[hsl(var(--mixer))] bottom-[var(--seg-bottom)]`;
 const readout = `text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-1`;

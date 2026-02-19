@@ -2,7 +2,7 @@ import { useTransportStore, useMixerStore, useChatStore } from '@/data/store';
 import { cn } from '@/lib/utils';
 
 export function Transport() {
-  const { playing, togglePlaying, play, stop, bpm, setBpm, currentBar, currentSection, looping, toggleLooping } = useTransportStore();
+  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping } = useTransportStore();
   const { toggleMixer, mixerOpen } = useMixerStore();
   const { toggleChat, chatOpen } = useChatStore();
 
@@ -61,14 +61,11 @@ export function Transport() {
 
       <div className={divider} />
 
-      {/* Position */}
+      {/* Position display */}
       <div className={positionGroup}>
         <div className={positionText}>
           <span className={dimText}>Bar </span>
           <span className={accentText}>{currentBar}</span>
-        </div>
-        <div className={sectionBadge}>
-          <span className={sectionText}>{currentSection}</span>
         </div>
       </div>
 
@@ -121,8 +118,6 @@ const positionText = `text-sm font-mono text-[hsl(var(--foreground))]`;
 const dimText = `text-[hsl(var(--muted-foreground))]`;
 const accentText = `text-[hsl(var(--progress))]`;
 
-const sectionBadge = `px-2 py-0.5 rounded bg-[hsl(var(--card))] border border-[hsl(var(--border))]`;
-const sectionText = `text-xs text-[hsl(var(--muted-foreground))]`;
 
 const title = `text-sm font-medium text-[hsl(var(--muted-foreground))] tracking-wide`;
 

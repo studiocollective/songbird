@@ -1,17 +1,18 @@
-#include "LevelMeterBridge.h"
+#include "PlaybackInfo.h"
+#include <cmath>
 #include <memory>
 
-LevelMeterBridge::LevelMeterBridge()
+PlaybackInfo::PlaybackInfo()
 {
 }
 
-LevelMeterBridge::~LevelMeterBridge()
+PlaybackInfo::~PlaybackInfo()
 {
     stopTimer();
     detachClients();
 }
 
-void LevelMeterBridge::setEdit(te::Edit* edit)
+void PlaybackInfo::setEdit(te::Edit* edit)
 {
     detachClients();
     currentEdit = edit;
@@ -19,17 +20,17 @@ void LevelMeterBridge::setEdit(te::Edit* edit)
         attachClients();
 }
 
-void LevelMeterBridge::setWebView(juce::WebBrowserComponent* wv)
+void PlaybackInfo::setWebView(juce::WebBrowserComponent* wv)
 {
     webView = wv;
     if (webView && currentEdit && !isTimerRunning())
     {
         startTimerHz(30);
-        DBG("LevelMeterBridge: Timer started (30Hz)");
+        DBG("PlaybackInfo: Timer started (30Hz)");
     }
 }
 
-void LevelMeterBridge::attachClients()
+void PlaybackInfo::attachClients()
 {
     if (!currentEdit) return;
 
@@ -44,26 +45,18 @@ void LevelMeterBridge::attachClients()
             meter->measurer.addClient(*trackClients.back());
     }
 
-    // Master output
-    if (auto master = currentEdit->getMasterVolumePlugin())
-    {
-        // The master volume plugin's output goes through the edit's
-        // master level measurer, but we can use the edit's output device
-        // level instead. For now, use the aggregate of track meters.
-    }
-
     if (webView)
     {
         startTimerHz(30);
-        DBG("LevelMeterBridge: Attached " + juce::String((int)trackClients.size()) + " clients, timer started");
+        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " clients, timer started");
     }
     else
     {
-        DBG("LevelMeterBridge: Attached " + juce::String((int)trackClients.size()) + " clients (no webview yet)");
+        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " clients (no webview yet)");
     }
 }
 
-void LevelMeterBridge::detachClients()
+void PlaybackInfo::detachClients()
 {
     stopTimer();
 
@@ -80,14 +73,13 @@ void LevelMeterBridge::detachClients()
     trackClients.clear();
 }
 
-void LevelMeterBridge::timerCallback()
+void PlaybackInfo::timerCallback()
 {
     if (!webView || !currentEdit) return;
 
     auto tracks = te::getAudioTracks(*currentEdit);
 
-    // Build a compact JSON array: [[leftDb, rightDb], ...]
-    // Plus a master entry at the end
+    // ── Audio levels ──────────────────────────────────────────────
     juce::String json = "[";
     float masterL = -100.0f, masterR = -100.0f;
 
@@ -99,7 +91,6 @@ void LevelMeterBridge::timerCallback()
         float dbL = levelL.dB;
         float dbR = levelR.dB;
 
-        // Track the max for master
         if (dbL > masterL) masterL = dbL;
         if (dbR > masterR) masterR = dbR;
 
@@ -107,18 +98,15 @@ void LevelMeterBridge::timerCallback()
         json += "[" + juce::String(dbL, 1) + "," + juce::String(dbR, 1) + "]";
     }
 
-    // Append master as the last entry
     json += ",[" + juce::String(masterL, 1) + "," + juce::String(masterR, 1) + "]]";
-
     webView->emitEventIfBrowserIsVisible("audioLevels", juce::var(json));
 
-    // Also push transport position at the same 30Hz rate
+    // ── Transport position ────────────────────────────────────────
     auto& transport = currentEdit->getTransport();
     double posSeconds = transport.getPosition().inSeconds();
 
-    // Compute current bar from the tempo sequence
     auto barsBeats = currentEdit->tempoSequence.toBarsAndBeats(transport.getPosition());
-    int bar = barsBeats.bars + 1; // 1-based
+    int bar = barsBeats.bars + 1;
 
     bool looping = transport.looping.get();
     double loopLenSeconds = 0.0;
@@ -137,4 +125,27 @@ void LevelMeterBridge::timerCallback()
         + ",\"loopLength\":" + juce::String(loopLenSeconds, 2)
         + ",\"loopBars\":" + juce::String(loopBars) + "}";
     webView->emitEventIfBrowserIsVisible("transportPosition", juce::var(posJson));
+
+    // ── Stereo analysis (from master L/R levels) ──────────────────
+    // Convert dB back to linear amplitude for stereo analysis
+    float linL = std::pow(10.0f, masterL / 20.0f);
+    float linR = std::pow(10.0f, masterR / 20.0f);
+
+    // Stereo width: how different L and R are (0 = mono, 1 = fully wide)
+    float sum = linL + linR;
+    float diff = std::abs(linL - linR);
+    float width = (sum > 0.0001f) ? (diff / sum) : 0.0f;
+
+    // Phase correlation: +1 = perfectly correlated (mono), 0 = unrelated, -1 = out of phase
+    // Using simplified estimation from level difference
+    float correlation = (sum > 0.0001f) ? (1.0f - diff / sum) : 1.0f;
+
+    // Smooth with exponential moving average
+    const float smoothing = 0.85f;
+    stereoWidth = stereoWidth * smoothing + width * (1.0f - smoothing);
+    phaseCorrelation = phaseCorrelation * smoothing + correlation * (1.0f - smoothing);
+
+    juce::String stereoJson = "{\"width\":" + juce::String(stereoWidth, 3)
+        + ",\"correlation\":" + juce::String(phaseCorrelation, 3) + "}";
+    webView->emitEventIfBrowserIsVisible("stereoAnalysis", juce::var(stereoJson));
 }

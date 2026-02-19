@@ -1,8 +1,10 @@
-import { useMixerStore } from '@/data/store';
+import { useRef, useEffect } from 'react';
+import { useMixerStore, useTransportStore } from '@/data/store';
 import type { NoteData } from '@/data/slices/mixer';
 
 export function ArrangementView() {
   const { tracks } = useMixerStore();
+  const { looping, loopBars } = useTransportStore();
 
   // Compute total bars from the maximum note beat position across all tracks
   const maxBeat = tracks.reduce((max, track) => {
@@ -11,12 +13,24 @@ export function ArrangementView() {
   }, 4); // minimum 4 beats = 1 bar
   const totalBars = Math.max(1, Math.ceil(maxBeat / 4));
 
+  // Loop region (0 to loopBars)
+  const loopEndPct = looping && loopBars > 0
+    ? Math.min((loopBars / totalBars) * 100, 100)
+    : 0;
+
   return (
     <div className={container}>
       {/* Timeline ruler */}
       <div className={rulerRow}>
         <div className={rulerSpacer} />
         <div className={rulerTrack}>
+          {/* Loop region overlay on ruler */}
+          {looping && loopEndPct > 0 && (
+            <div
+              className={loopRegionRuler}
+              style={{ width: `${loopEndPct}%` }}
+            />
+          )}
           {Array.from({ length: totalBars }, (_, i) => (
             <div
               key={i}
@@ -29,6 +43,7 @@ export function ArrangementView() {
               {i + 1}
             </div>
           ))}
+          {/* Playhead removed from ruler as per request */}
         </div>
       </div>
 
@@ -63,6 +78,8 @@ export function ArrangementView() {
             </div>
 
             <div className={laneContent}>
+              {/* Loop region removed from lane as per request */}
+
               {/* Grid lines for each bar */}
               {Array.from({ length: totalBars }, (_, i) => (
                 <div
@@ -82,12 +99,76 @@ export function ArrangementView() {
                   totalBars={totalBars}
                 />
               )}
+
+              {/* Playhead line on lane */}
+              <Playhead totalBars={totalBars} className={playheadLane} />
             </div>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+// --- Animated Playhead Component (direct DOM for max smoothness) ---
+
+function Playhead({
+  totalBars,
+  className,
+}: {
+  totalBars: number;
+  className: string;
+}) {
+  const elRef = useRef<HTMLDivElement>(null);
+  const rAF = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const state = useTransportStore.getState();
+      let currentPos = state.position;
+
+      if (state.playing) {
+        const elapsed = (performance.now() - state.lastPositionUpdate) / 1000;
+        currentPos += elapsed;
+      }
+
+      const currentBeat = currentPos * (state.bpm / 60);
+      const pct = Math.min((currentBeat / (totalBars * 4)) * 100, 100);
+
+      // Direct DOM write — no React re-render
+      el.style.transform = `translateX(0) translateZ(0)`;
+      el.style.left = `${pct}%`;
+
+      if (state.playing) {
+        rAF.current = requestAnimationFrame(update);
+      }
+    };
+
+    // Subscribe to store changes to restart loop when position/playing changes
+    const unsub = useTransportStore.subscribe((state, prev) => {
+      if (
+        state.position !== prev.position ||
+        state.playing !== prev.playing ||
+        state.bpm !== prev.bpm
+      ) {
+        if (rAF.current !== null) cancelAnimationFrame(rAF.current);
+        rAF.current = requestAnimationFrame(update);
+      }
+    });
+
+    // Kick off initial frame
+    rAF.current = requestAnimationFrame(update);
+
+    return () => {
+      unsub();
+      if (rAF.current !== null) cancelAnimationFrame(rAF.current);
+    };
+  }, [totalBars]);
+
+  return <div ref={elRef} className={className} />;
 }
 
 // --- Mini piano-roll clip ---
@@ -103,17 +184,14 @@ function NoteClip({
 }) {
   if (notes.length === 0) return null;
 
-  // Find pitch range for vertical positioning
   const minPitch = notes.reduce((m, n) => Math.min(m, n.pitch), 127);
   const maxPitch = notes.reduce((m, n) => Math.max(m, n.pitch), 0);
   const pitchRange = Math.max(maxPitch - minPitch, 1);
 
-  // Find time range
   const minBeat = notes.reduce((m, n) => Math.min(m, n.beat), Infinity);
   const maxBeatEnd = notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
   const totalBeats = totalBars * 4;
 
-  // Clip region
   const clipLeft = (minBeat / totalBeats) * 100;
   const clipWidth = ((maxBeatEnd - minBeat) / totalBeats) * 100;
 
@@ -133,7 +211,7 @@ function NoteClip({
       >
         {notes.map((note, i) => {
           const x = note.beat - minBeat;
-          const y = maxPitch - note.pitch; // high notes at top
+          const y = maxPitch - note.pitch;
           const w = note.duration;
           const opacity = 0.4 + (note.velocity / 127) * 0.6;
           return (
@@ -169,6 +247,17 @@ const barNumber = `
   text-[9px] font-mono text-[hsl(var(--muted-foreground))]
   border-r border-[hsl(var(--border))]/50
   left-[var(--bar-left)] w-[var(--bar-width)]`;
+
+// Loop region overlays
+const loopRegionRuler = `
+  absolute inset-y-0 left-0
+  bg-[hsl(var(--selection))]/10 border-r-2 border-[hsl(var(--selection))]/40`;
+
+// Playhead
+const playheadLane = `
+  absolute inset-y-0 w-px
+  bg-[hsl(var(--foreground))]/60 z-0
+  pointer-events-none`;
 
 const lanesScroll = `flex-1 overflow-y-auto`;
 

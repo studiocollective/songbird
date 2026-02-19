@@ -18,8 +18,6 @@ export interface PluginSlot {
   bypassed: boolean;
 }
 
-const emptySlot: PluginSlot = { pluginId: null, pluginName: null, bypassed: false };
-
 export interface Track {
   id: number;
   name: string;
@@ -34,39 +32,8 @@ export interface Track {
   notes: NoteData[];
 }
 
-const TRACK_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
-];
-
-const defaultTracks: Track[] = [
-  // MIDI tracks (1–4) — pre-populated with Arturia instruments + Console 1
-  { id: 1, name: 'Keys',    type: 'midi',  color: TRACK_COLORS[0], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { pluginId: 'arturia.analog-lab-v', pluginName: 'Analog Lab V', bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 2, name: 'Synth',   type: 'midi',  color: TRACK_COLORS[1], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { pluginId: 'arturia.pigments',     pluginName: 'Pigments',     bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 3, name: 'Bass',    type: 'midi',  color: TRACK_COLORS[2], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { pluginId: 'arturia.mini-v',       pluginName: 'Mini V',       bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 4, name: 'Pad',     type: 'midi',  color: TRACK_COLORS[3], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { pluginId: 'arturia.cs-80-v',      pluginName: 'CS-80 V',      bypassed: false },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  // Audio tracks (5–8) — Console 1 only
-  { id: 5, name: 'Drums',   type: 'audio', color: TRACK_COLORS[4], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 6, name: 'Guitar',  type: 'audio', color: TRACK_COLORS[5], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 7, name: 'Vocals',  type: 'audio', color: TRACK_COLORS[6], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-  { id: 8, name: 'FX',      type: 'audio', color: TRACK_COLORS[7], muted: false, solo: false, volume: 80, pan: 0,
-    instrument:   { ...emptySlot },
-    channelStrip: { pluginId: 'softube.console-1',    pluginName: 'Console 1',    bypassed: false }, notes: [] },
-];
+const defaultTracks: Track[] = [];
+// Tracks are loaded dynamically from the .bird file via trackNotes events
 
 // --- Mixer State Slice ---
 export interface MixerState {

@@ -10,7 +10,10 @@ export interface TransportState {
   currentBar: number;
   currentSection: string;
   looping: boolean;
+  loopLength: number;   // loop length in seconds
+  loopBars: number;     // loop length in bars
   position: number;
+  lastPositionUpdate: number; // timestamp of last position update (for smooth animation)
 
   play: () => void;
   stop: () => void;
@@ -31,13 +34,16 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
   currentBar: 1,
   currentSection: 'verse',
   looping: true,
+  loopLength: 0,
+  loopBars: 0,
   position: 0,
+  lastPositionUpdate: 0,
 
-  play: () => set({ playing: true }),
-  stop: () => set({ playing: false, position: 0, currentBar: 1 }),
-  togglePlaying: () => set((s) => ({ playing: !s.playing })),
+  play: () => set({ playing: true, lastPositionUpdate: performance.now() }),
+  stop: () => set({ playing: false, position: 0, currentBar: 1, lastPositionUpdate: performance.now() }),
+  togglePlaying: () => set((s) => ({ playing: !s.playing, lastPositionUpdate: performance.now() })),
   setBpm: (bpm) => set({ bpm }),
-  setPosition: (position) => set({ position }),
+  setPosition: (position) => set({ position, lastPositionUpdate: performance.now() }),
   setCurrentBar: (bar) => set({ currentBar: bar }),
   setCurrentSection: (section) => set({ currentSection: section }),
   toggleLooping: () => set((s) => ({ looping: !s.looping })),

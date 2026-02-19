@@ -19,6 +19,7 @@ struct BirdNote {
 struct BirdChannel {
     int channel;                 // MIDI channel (0-based)
     std::string name;            // channel name (e.g. "bass", "drums")
+    std::string plugin;          // plugin keyword (e.g. "synths", "kick", "drums", "bass")
     std::vector<BirdNote> notes; // resolved notes
 };
 
@@ -36,11 +37,11 @@ public:
 
     // Populate a te::Edit from parsed bird data
     // Clears existing tracks and creates new ones from the parse result
-    static void populateEdit(te::Edit& edit, const BirdParseResult& result);
+    static void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine);
 
     // Serialize all track note data from an Edit as a JSON string
     // Format: [ { "id": 0, "name": "bass", "notes": [ { "pitch": 36, "beat": 0, "duration": 1, "velocity": 80 }, ... ] }, ... ]
-    static juce::String getTrackNotesJSON(te::Edit& edit);
+    static juce::String getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);
 
 private:
     // Internal parsing helpers

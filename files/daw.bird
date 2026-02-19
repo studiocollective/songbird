@@ -1,0 +1,60 @@
+# daw.bird — main project file
+# plugin keywords: mini, cs80, prophet, jup8, dx7, buchla, kick, drums, bass
+
+b 1
+
+ch 1 kick
+  plugin kick
+  p xx _
+    v 80
+      n 36
+
+ch 2 sub
+  plugin bass
+  p xx _
+    v 80
+      n 36
+
+ch 3 bass
+  plugin mini
+  p _xx xx _ x x _ x _ x
+    v 60 
+      n 30 - +3 - - - +3 -
+
+ch 4 drums
+  plugin drums
+  p _q q
+    v 70
+      n 61
+  p _xx xx
+    sw < 20 x ~
+      v 70
+        n 51
+  p _q xx _xx
+    sw - ~
+      v 60
+        n 42
+  p x
+    sw < 20 x
+      v 40
+        n 43
+  p _ _ _ x _ _ x _ _ x _ _
+    v 30
+      n 44
+
+ch 5 lead 
+  plugin cs80
+  p x   
+    sw - ~
+      v 60 - -10
+        n 78 +3 +10 - +3 +10 - +3 +10 - +3 +12 
+
+ch 6 chords
+  plugin prophet
+  p ww 
+    sw - ~
+      v 30 20 20
+        n 66 +2 +5 -
+        n +3 +5 +8 +3
+      v 20
+        n +7 +9 -30 +7
