@@ -3,15 +3,16 @@ import { useMixerStore, useTransportStore } from '@/data/store';
 import type { NoteData } from '@/data/slices/mixer';
 
 export function ArrangementView() {
-  const { tracks } = useMixerStore();
+  const { tracks, sections, totalBars: storeTotalBars } = useMixerStore();
   const { looping, loopBars } = useTransportStore();
 
-  // Compute total bars from the maximum note beat position across all tracks
+  // Compute total bars: use store value (from arrangement) if available,
+  // otherwise fall back to max note beat position
   const maxBeat = tracks.reduce((max, track) => {
     const trackMax = track.notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
     return Math.max(max, trackMax);
   }, 4); // minimum 4 beats = 1 bar
-  const totalBars = Math.max(1, Math.ceil(maxBeat / 4));
+  const totalBars = storeTotalBars > 1 ? storeTotalBars : Math.max(1, Math.ceil(maxBeat / 4));
 
   // Loop region (0 to loopBars)
   const loopEndPct = looping && loopBars > 0
@@ -31,6 +32,20 @@ export function ArrangementView() {
               style={{ width: `${loopEndPct}%` }}
             />
           )}
+          {/* Section labels in top half */}
+          {sections.map((sec, i) => (
+            <div
+              key={i}
+              className={sectionLabel}
+              style={{
+                '--label-left': `${(sec.start / totalBars) * 100}%`,
+                '--label-width': `${(sec.length / totalBars) * 100}%`,
+              } as React.CSSProperties}
+            >
+              {sec.name}
+            </div>
+          ))}
+          {/* Bar numbers in bottom half */}
           {Array.from({ length: totalBars }, (_, i) => (
             <div
               key={i}
@@ -78,7 +93,17 @@ export function ArrangementView() {
             </div>
 
             <div className={laneContent}>
-              {/* Loop region removed from lane as per request */}
+              {/* Section background bands */}
+              {sections.map((sec, i) => (
+                <div
+                  key={`sec-${i}`}
+                  className={`${sectionBg} ${sec.color}`}
+                  style={{
+                    '--sec-left': `${(sec.start / totalBars) * 100}%`,
+                    '--sec-width': `${(sec.length / totalBars) * 100}%`,
+                  } as React.CSSProperties}
+                />
+              ))}
 
               {/* Grid lines for each bar */}
               {Array.from({ length: totalBars }, (_, i) => (
@@ -248,15 +273,21 @@ const barNumber = `
   border-r border-[hsl(var(--border))]/50
   left-[var(--bar-left)] w-[var(--bar-width)]`;
 
+const sectionLabel = `
+  absolute top-0 h-5 flex items-center justify-center
+  text-[10px] font-medium text-[hsl(var(--muted-foreground))]
+  border-x border-[hsl(var(--border))]/50
+  left-[var(--label-left)] w-[var(--label-width)]`;
+
 // Loop region overlays
 const loopRegionRuler = `
   absolute inset-y-0 left-0
-  bg-[hsl(var(--selection))]/10 border-r-2 border-[hsl(var(--selection))]/40`;
+  bg-[hsl(var(--selection))]/5 border-r-2 border-[hsl(var(--selection))]/20`;
 
 // Playhead
 const playheadLane = `
   absolute inset-y-0 w-px
-  bg-[hsl(var(--foreground))]/60 z-0
+  bg-[hsl(var(--foreground))]/60 z-30
   pointer-events-none`;
 
 const lanesScroll = `flex-1 overflow-y-auto`;
@@ -276,13 +307,20 @@ const muteSoloBtnInactive = `text-[hsl(var(--muted-foreground))] hover:text-[hsl
 
 const laneContent = `flex-1 relative`;
 
+const sectionBg = `
+  absolute inset-y-0 border-r border-[hsl(var(--border))]/30
+  left-[var(--sec-left)] w-[var(--sec-width)]
+  z-0 pointer-events-none`;
+
 const gridLine = `
   absolute inset-y-0 w-px bg-[hsl(var(--border))]/30
-  left-[var(--grid-left)]`;
+  left-[var(--grid-left)]
+  z-10 pointer-events-none`;
 
 const clip = `
   absolute top-1.5 bottom-1.5 rounded-sm overflow-hidden
   left-[var(--clip-left)] w-[var(--clip-width)]
-  bg-[var(--clip-color)]/30 border border-[var(--clip-color)]/50`;
+  bg-[var(--clip-color)] border border-[var(--clip-color)]
+  z-20`;
 
 const notesSvg = `w-full h-full`;

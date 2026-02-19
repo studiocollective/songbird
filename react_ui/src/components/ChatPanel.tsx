@@ -1,25 +1,149 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/data/store';
+import { SONGBIRD_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { GeminiService } from '@/lib/ai/gemini';
+import { Juce } from '@/lib';
 
 export function ChatPanel() {
-  const { chatOpen, chatMessages, chatInput, setChatInput, addMessage } = useChatStore();
+  const { chatOpen, chatMessages, chatInput, apiKey, selectedModel, setChatInput, setApiKey, setSelectedModel, addMessage, updateLastMessage } = useChatStore();
   const [isTyping, setIsTyping] = useState(false);
+  const [tempKey, setTempKey] = useState('');
+  const [loadingKey, setLoadingKey] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
-    if (!chatInput.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, isTyping]);
+
+  // Load API key from C++ ApplicationProperties on mount
+  useEffect(() => {
+    const loadKey = async () => {
+      try {
+        console.log('[Chat] Calling getApiKey()...');
+        const key = await Juce.getNativeFunction('getApiKey')();
+        console.log('[Chat] getApiKey returned:', key ? `String(length=${key.length})` : 'empty/null');
+        
+        if (key && typeof key === 'string' && key.length > 0) {
+          setApiKey(key);
+          console.log('[Chat] API key loaded from application settings');
+        } else {
+          console.log('[Chat] No API key found, should prompt user.');
+        }
+      } catch (e) {
+        console.warn('[Chat] Failed to load API key:', e);
+      } finally {
+        setLoadingKey(false);
+      }
+    };
+    loadKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSetKey = async () => {
+    if (tempKey.trim()) {
+      const key = tempKey.trim();
+      setApiKey(key);
+      // Persist to C++ ApplicationProperties
+      try {
+        await Juce.getNativeFunction('setApiKey')(key);
+        console.log('[Chat] API key saved to application settings');
+      } catch (e) {
+        console.warn('[Chat] Failed to save API key:', e);
+      }
+    }
+  };
+
+  const saveBirdFile = async (content: string) => {
+    const match = content.match(/```bird([\s\S]*?)```/);
+    if (match && match[1]) {
+      const code = match[1].trim();
+      console.log('[Chat] Saving generated bird code...');
+      await Juce.getNativeFunction('saveBird')('files/daw.bird', code);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!chatInput.trim() || !apiKey) return;
+    
     addMessage('user', chatInput);
     setChatInput('');
-
     setIsTyping(true);
-    setTimeout(() => {
-      addMessage(
-        'assistant',
-        `Here's a bird notation for that:\n\n\`\`\`\nb 4\n\nch 1 keys\n  p q q q q\n    sw < ~\n      v 80 60 90 70\n        n @Cm7 @Fm7 @Ab @G7\n  mix volume 85\n  mix comp 40\n\`\`\``
+
+    // Add empty assistant message that will be streamed into
+    addMessage('assistant', '');
+
+    try {
+      const result = await GeminiService.streamMessage(
+        apiKey,
+        // Pass history without the empty assistant message we just added
+        useChatStore.getState().chatMessages.slice(0, -1),
+        SONGBIRD_SYSTEM_PROMPT,
+        (_delta, accumulated) => {
+          updateLastMessage(accumulated);
+        },
+        selectedModel
       );
+      
+      if (result.error) {
+        updateLastMessage(`⚠️ Error: ${result.error}`);
+      } else {
+        await saveBirdFile(result.content);
+      }
+    } catch (e) {
+      console.error(e);
+      updateLastMessage('⚠️ Failed to connect to Gemini.');
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
+
+  if (loadingKey) {
+    return (
+      <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (!apiKey) {
+    return (
+      <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+        <div className={panelInner}>
+          <div className={header}>
+             <div className={statusDot} />
+             <span className={headerTitle}>Songbird Copilot</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
+             <div className="text-4xl">🔑</div>
+             <h3 className="text-sm font-medium text-[hsl(var(--foreground))]">Enter Gemini API Key</h3>
+             <p className="text-xs text-[hsl(var(--muted-foreground))]">
+               To use the AI features, please provide a valid Google Gemini API key.
+             </p>
+             <input 
+               type="password" 
+               className={inputField + " w-full"} 
+               placeholder="AIzaSy..." 
+               value={tempKey}
+               onChange={(e) => setTempKey(e.target.value)}
+             />
+             <button onClick={handleSetKey} className={sendBtn + " w-full"}>
+               Save Key
+             </button>
+             <p className="text-[10px] text-[hsl(var(--muted-foreground))] opacity-50">
+               Stored locally in your browser.
+             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
@@ -28,7 +152,14 @@ export function ChatPanel() {
         <div className={header}>
           <div className={statusDot} />
           <span className={headerTitle}>Songbird Copilot</span>
-          <span className={headerSubtitle}>bird notation</span>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className={modelSelect}
+          >
+            <option value="gemini-3-flash-preview">Flash</option>
+            <option value="gemini-3-pro-preview">Pro</option>
+          </select>
         </div>
 
         {/* Messages */}
@@ -72,6 +203,7 @@ export function ChatPanel() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -84,8 +216,9 @@ export function ChatPanel() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Describe your music..."
               className={inputField}
+              disabled={isTyping}
             />
-            <button onClick={handleSend} className={sendBtn}>
+            <button onClick={handleSend} className={sendBtn} disabled={isTyping}>
               Send
             </button>
           </div>
@@ -111,7 +244,12 @@ const panelInner = `w-80 h-full flex flex-col`;
 const header = `h-10 shrink-0 border-b border-[hsl(var(--border))] flex items-center px-3`;
 const statusDot = `w-2 h-2 rounded-full bg-[hsl(var(--progress))] mr-2`;
 const headerTitle = `text-xs font-medium text-[hsl(var(--foreground))]`;
-const headerSubtitle = `text-[10px] text-[hsl(var(--muted-foreground))] ml-auto`;
+const modelSelect = `
+  ml-auto text-[10px] bg-transparent text-[hsl(var(--muted-foreground))]
+  border border-[hsl(var(--border))] rounded px-1.5 py-0.5
+  cursor-pointer outline-none
+  hover:text-[hsl(var(--foreground))] hover:border-[hsl(var(--muted-foreground))]
+  transition-colors`;
 
 // --- Messages ---
 const messagesScroll = `flex-1 overflow-y-auto p-3 space-y-3`;
@@ -153,7 +291,9 @@ const inputField = `
   flex-1 h-8 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
   rounded-md px-3 text-xs text-[hsl(var(--foreground))]
   placeholder-[hsl(var(--muted-foreground))]
-  focus:outline-none focus:border-[hsl(var(--ring))]`;
+  focus:outline-none focus:border-[hsl(var(--ring))]
+  disabled:opacity-50`;
 const sendBtn = `
   h-8 px-3 rounded-md bg-[hsl(var(--progress))] hover:bg-[hsl(var(--progress))]/80
-  text-xs text-[hsl(var(--primary-foreground))] font-medium transition-colors`;
+  text-xs text-[hsl(var(--primary-foreground))] font-medium transition-colors
+  disabled:opacity-50 disabled:cursor-not-allowed`;

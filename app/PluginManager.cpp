@@ -75,58 +75,38 @@ void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType,
     if (targetPlugin)
     {
         auto name = targetPlugin->getName();
-        bool missing = targetPlugin->isMissing();
-        bool disabled = targetPlugin->isDisabled();
-
-        logToJS("[C++]   Target: " + name
-                + " missing=" + juce::String(missing ? "YES" : "no")
-                + " disabled=" + juce::String(disabled ? "YES" : "no"));
+        logToJS("[C++]   Target: " + name);
 
         targetPlugin->showWindowExplicitly();
 
-        // Check for window immediately
-        logToJS("[C++]   Checking visual status immediately...");
-        auto& desktop = juce::Desktop::getInstance();
-        bool foundImmediate = false;
-        for (int i = 0; i < desktop.getNumComponents(); ++i)
-        {
-            auto* c = desktop.getComponent(i);
-            if (c->getName().containsIgnoreCase(name))
-            {
-                c->toFront(true);
-                c->setAlwaysOnTop(true);
-                foundImmediate = true;
-                logToJS("[C++]   ✓ Found and forced to front (immediate): " + c->getName());
-                break;
-            }
-        }
-
-        if (!foundImmediate)
-        {
-            logToJS("[C++]   Not found immediately. Scheduling delayed check (200ms)...");
-            
-            // Capture name by value, safe checking
-            juce::Timer::callAfterDelay(200, [this, name]() {
-                logToJS("[C++]   Delayed check for '" + name + "' window:");
-                auto& d = juce::Desktop::getInstance();
-                bool found = false;
-                for (int i = 0; i < d.getNumComponents(); ++i)
-                {
-                    auto* c = d.getComponent(i);
-                    logToJS("[C++]     - " + c->getName() + " (visible=" + juce::String((int)c->isVisible()) + ")");
-                    
-                    if (c->getName().containsIgnoreCase(name))
-                    {
-                        c->toFront(true);
-                        c->setAlwaysOnTop(true);
-                        found = true;
-                        logToJS("[C++]   ✓ Found and forced to front (delayed): " + c->getName());
-                        break;
-                    }
+        // Helper to find and pop window
+        auto popWindow = [this, name](const juce::String& prefix) {
+            auto& d = juce::Desktop::getInstance();
+            bool found = false;
+            for (int i = 0; i < d.getNumComponents(); ++i) {
+                auto* c = d.getComponent(i);
+                auto wName = c->getName();
+                
+                // Bidirectional check: "Kick 2" in "Kick 2 - VST3" OR "Buchla Easel" in "Buchla Easel V"
+                if (wName.isNotEmpty() && (wName.containsIgnoreCase(name) || name.containsIgnoreCase(wName))) {
+                    c->setVisible(true);
+                    c->toFront(true);
+                    c->setAlwaysOnTop(true);
+                    found = true;
+                    logToJS("[C++]   " + prefix + " Found & Popped: " + wName);
                 }
-                if (!found) logToJS("[C++]   ✗ Still not found after delay.");
-            });
-        }
+            }
+            if (!found) logToJS("[C++]   " + prefix + " No matching window found yet.");
+        };
+
+        // 1. Immediate check
+        popWindow("(Immediate)");
+
+        // 2. Delayed check (100ms)
+        juce::Timer::callAfterDelay(100, [popWindow] { popWindow("(100ms)"); });
+
+        // 3. Final check (500ms) - catch slow plugins
+        juce::Timer::callAfterDelay(500, [popWindow] { popWindow("(500ms)"); });
     }
     else
     {

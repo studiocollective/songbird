@@ -51,7 +51,12 @@ export const useChatStore = create<ChatState>()(
     {
       name: ChatStateID,
       storage: createJSONStorage(() => juceBridge),
-      version: 1,
+      version: 2,
+      partialize: (state) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { apiKey: _apiKey, ...rest } = state;
+        return rest;
+      },
     },
   ),
 );
@@ -113,34 +118,57 @@ addStateListener('transportPosition', (data: unknown) => {
 });
 
 // --- Track notes updates (from BirdLoader after .bird file load) ---
+const SECTION_COLORS = [
+  'bg-blue-500/5', 'bg-purple-500/5', 'bg-emerald-500/5', 'bg-amber-500/5',
+  'bg-rose-500/5', 'bg-cyan-500/5', 'bg-indigo-500/5', 'bg-teal-500/5',
+];
+
+function processTrackNotes(jsonStr: string) {
+  const raw = JSON.parse(jsonStr);
+
+  // Support both old array format and new object format
+  const trackData = Array.isArray(raw) ? raw : raw.tracks;
+  const sectionsData = Array.isArray(raw) ? [] : (raw.sections ?? []);
+  const totalBars = Array.isArray(raw) ? 1 : (raw.totalBars ?? 1);
+
+  const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+  const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
+  const tracks = trackData.map((t: any, i: number) => ({
+    id: t.id,
+    name: t.name,
+    type: 'midi' as const,
+    color: TRACK_COLORS[i % TRACK_COLORS.length],
+    muted: false,
+    solo: false,
+    volume: 80,
+    pan: 0,
+    instrument: t.plugin
+      ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
+      : emptySlot,
+    channelStrip: t.channelStrip
+      ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
+      : emptySlot,
+    notes: t.notes,
+  }));
+
+  const sections = sectionsData.map((s: any, i: number) => ({
+    name: s.name,
+    start: s.start,
+    length: s.length,
+    color: SECTION_COLORS[i % SECTION_COLORS.length],
+  }));
+
+  useMixerStore.setState({ tracks });
+  if (sections.length > 0) {
+    useMixerStore.getState().setSections(sections, totalBars);
+  }
+
+  return tracks;
+}
+
 addStateListener('trackNotes', (jsonStr: string) => {
   try {
-    const trackData = JSON.parse(jsonStr) as Array<{
-      id: number; name: string;
-      plugin?: { pluginId: string; pluginName: string };
-      channelStrip?: { pluginId: string; pluginName: string };
-      notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }>;
-    }>;
-    const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-    const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
-    const tracks = trackData.map((t, i) => ({
-      id: t.id,
-      name: t.name,
-      type: 'midi' as const,
-      color: TRACK_COLORS[i % TRACK_COLORS.length],
-      muted: false,
-      solo: false,
-      volume: 80,
-      pan: 0,
-      instrument: t.plugin
-        ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
-        : emptySlot,
-      channelStrip: t.channelStrip
-        ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
-        : emptySlot,
-      notes: t.notes,
-    }));
-    useMixerStore.setState({ tracks });
+    processTrackNotes(jsonStr);
   } catch (e) {
     console.error('[trackNotes] Failed to parse:', e);
   }
@@ -163,33 +191,8 @@ if (typeof window !== 'undefined' && window.__JUCE__) {
 
       try {
         const jsonStr = await getTrackNotes();
-        if (jsonStr && jsonStr !== '[]') {
-          const trackData = JSON.parse(jsonStr) as Array<{
-            id: number; name: string;
-            plugin?: { pluginId: string; pluginName: string };
-            channelStrip?: { pluginId: string; pluginName: string };
-            notes: Array<{ pitch: number; beat: number; duration: number; velocity: number }>;
-          }>;
-          const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-          const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
-          const tracks = trackData.map((t, i) => ({
-            id: t.id,
-            name: t.name,
-            type: 'midi' as const,
-            color: TRACK_COLORS[i % TRACK_COLORS.length],
-            muted: false,
-            solo: false,
-            volume: 80,
-            pan: 0,
-            instrument: t.plugin
-              ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
-              : emptySlot,
-            channelStrip: t.channelStrip
-              ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
-              : emptySlot,
-            notes: t.notes,
-          }));
-          useMixerStore.setState({ tracks });
+        if (jsonStr && jsonStr !== '[]' && jsonStr !== '{}') {
+          const tracks = processTrackNotes(jsonStr);
           console.log('[trackNotes] Loaded', tracks.length, 'tracks from C++');
         }
       } catch (e) {
@@ -198,4 +201,5 @@ if (typeof window !== 'undefined' && window.__JUCE__) {
     }, 500);
   });
 }
+
 

@@ -9,8 +9,14 @@ export interface NoteData {
   velocity: number;
 }
 
-// --- Track Types ---
 export type TrackType = 'midi' | 'audio' | 'generated';
+
+export interface Section {
+  name: string;
+  start: number;   // bar offset
+  length: number;  // bars
+  color: string;
+}
 
 export interface PluginSlot {
   pluginId: string | null;
@@ -41,6 +47,8 @@ export interface MixerState {
   initialize: () => void;
 
   tracks: Track[];
+  sections: Section[];
+  totalBars: number;
   mixerOpen: boolean;
 
   toggleMixer: () => void;
@@ -65,6 +73,7 @@ export interface MixerState {
   // Track data from bird file
   setTracks: (tracks: Track[]) => void;
   setTrackNotes: (trackId: number, notes: NoteData[]) => void;
+  setSections: (sections: Section[], totalBars: number) => void;
 }
 
 export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
@@ -72,6 +81,8 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   initialize: () => set({ initialized: true }),
 
   tracks: defaultTracks,
+  sections: [],
+  totalBars: 1,
   mixerOpen: true,
 
   availableInstruments: [],
@@ -156,6 +167,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === trackId ? { ...t, notes } : t)),
     })),
+  setSections: (sections, totalBars) => set({ sections, totalBars }),
 });
 
 

@@ -198,6 +198,38 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
     return result;
 }
 
+// --- Internal: parse a channel block (lines within a ch...until next ch/sec/arr/end) ---
+// Returns a BirdChannel with UNRESOLVED notes — just the raw pattern/velocity/note data.
+// We can't resolve yet because bar count comes from the arrangement.
+
+struct UnresolvedLayer {
+    std::vector<int> pattern;
+    std::vector<std::vector<int>> noteGroups;
+    std::vector<int> velocities;
+};
+
+struct UnresolvedChannel {
+    int channel = 0;
+    std::string name;
+    std::string plugin;
+    std::vector<UnresolvedLayer> layers;
+};
+
+// Resolve an unresolved channel into a BirdChannel given a bar count
+static BirdChannel resolveChannel(const UnresolvedChannel& uch, int bars) {
+    BirdChannel ch;
+    ch.channel = uch.channel;
+    ch.name = uch.name;
+    ch.plugin = uch.plugin;
+
+    int seqLen = bars * TICKS_PER_BAR;
+    for (auto& layer : uch.layers) {
+        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, seqLen);
+        ch.notes.insert(ch.notes.end(), resolved.begin(), resolved.end());
+    }
+    return ch;
+}
+
 // --- Main parser ---
 
 BirdParseResult BirdLoader::parse(const std::string& filePath) {
@@ -209,126 +241,267 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         return result;
     }
 
-    // Read entire file into chunks (separated by blank lines)
-    std::vector<std::vector<std::string>> chunks;
+    // Read all non-empty, non-comment lines
+    std::vector<std::string> allLines;
     {
-        std::vector<std::string> currentChunk;
         std::string line;
         while (std::getline(file, line)) {
-            std::string trimmed = ltrim(line);
-            if (trimmed.empty() || trimmed == ",") {
-                if (!currentChunk.empty()) {
-                    chunks.push_back(std::move(currentChunk));
-                    currentChunk.clear();
-                }
-            } else {
-                currentChunk.push_back(line);
-            }
+            allLines.push_back(line);
         }
-        if (!currentChunk.empty())
-            chunks.push_back(std::move(currentChunk));
     }
-
-    // Process each chunk
-    // State for building channels
-    int currentChannel = -1;
-    std::string currentName;
-    std::string currentPlugin;
-
-    // Per-channel accumulators
-    std::vector<int> currentPattern;
-    std::vector<std::vector<int>> currentNoteGroups;
-    std::vector<int> currentVelocities;
 
     // Parser state
     int lastDur = dur::q;
     int lastNote = 60;
     int lastVel = 80;
 
-    auto flushNotes = [&](bool clearPattern = true) {
-        if (!currentPattern.empty() && !currentNoteGroups.empty() && !currentVelocities.empty()) {
-            int seqLen = result.bars * TICKS_PER_BAR;
-            auto resolved = resolveNotes(currentPattern, currentNoteGroups, currentVelocities, seqLen);
+    // Current channel being built
+    bool inChannel = false;
+    UnresolvedChannel currentUCh;
+    std::vector<int> currentPattern;
+    std::vector<std::vector<int>> currentNoteGroups;
+    std::vector<int> currentVelocities;
 
-            // Find or create channel
-            BirdChannel* ch = nullptr;
-            for (auto& c : result.channels) {
-                if (c.channel == currentChannel) {
-                    ch = &c;
-                    break;
-                }
-            }
-            if (!ch) {
-                result.channels.push_back({currentChannel, currentName, currentPlugin, {}});
-                ch = &result.channels.back();
-            }
-            ch->notes.insert(ch->notes.end(), resolved.begin(), resolved.end());
+    // Section state
+    std::string currentSectionName;  // empty = top-level
+    std::vector<UnresolvedChannel> currentSectionChannels;
+
+    // Top-level unresolved channels (for files without sections)
+    std::vector<UnresolvedChannel> topLevelChannels;
+
+    // Sections map: name → list of unresolved channels
+    struct SectionDef {
+        std::string name;
+        std::vector<UnresolvedChannel> channels;
+    };
+    std::vector<SectionDef> sectionDefs;
+
+    bool inArrangement = false;
+
+    // Flush current velocity/note layer into current channel
+    auto flushLayer = [&](bool clearPattern = true) {
+        if (!currentPattern.empty() && !currentNoteGroups.empty() && !currentVelocities.empty()) {
+            UnresolvedLayer layer;
+            layer.pattern = currentPattern;
+            layer.noteGroups = currentNoteGroups;
+            layer.velocities = currentVelocities;
+            currentUCh.layers.push_back(std::move(layer));
         }
-        // Reset note groups and velocities for next v/n block
         currentNoteGroups.clear();
         currentVelocities.clear();
         if (clearPattern)
             currentPattern.clear();
     };
 
-    for (auto& chunk : chunks) {
-        for (auto& rawLine : chunk) {
-            std::string trimmed = ltrim(rawLine);
-            auto tokens = splitLine(trimmed);
-
-            if (tokens.empty() || tokens[0] == "#" || tokens[0][0] == '#')
-                continue;
-
-            if (tokens[0] == "b" && tokens.size() > 1) {
-                try { result.bars = std::stoi(tokens[1]); } catch (...) {}
-            }
-            else if (tokens[0] == "ch") {
-                // Flush previous channel's pending notes (clear everything)
-                flushNotes(true);
-
-                // Start new channel
-                if (tokens.size() > 1) {
-                    try { currentChannel = std::stoi(tokens[1]) - 1; } catch (...) {}
-                }
-                currentName = (tokens.size() > 2) ? tokens[2] : ("Track " + std::to_string(currentChannel + 1));
-                currentPlugin = ""; // reset for new channel
-            }
-            else if (tokens[0] == "plugin" && tokens.size() > 1) {
-                currentPlugin = tokens[1];
-                // Also update existing channel if already created
-                for (auto& c : result.channels) {
-                    if (c.channel == currentChannel)
-                        c.plugin = currentPlugin;
-                }
-            }
-            else if (tokens[0] == "p") {
-                // New pattern = flush previous pattern's notes
-                flushNotes(true);
-                currentPattern = parsePattern(tokens, lastDur);
-            }
-            else if (tokens[0] == "v") {
-                // If we already have note groups, flush the current v/n block
-                // but KEEP the pattern for the next v/n block
-                if (!currentNoteGroups.empty()) {
-                    flushNotes(false);  // don't clear pattern
-                }
-                currentVelocities = parseVelocities(tokens, lastVel);
-            }
-            else if (tokens[0] == "n") {
-                auto groups = parseNotes(tokens, lastNote);
-                currentNoteGroups.insert(currentNoteGroups.end(), groups.begin(), groups.end());
-            }
-            // Skip: sw, m, cc, var, mix, sec, arr (future work)
+    // Flush current channel into appropriate container
+    auto flushChannel = [&]() {
+        flushLayer(true);
+        if (inChannel && !currentUCh.layers.empty()) {
+            if (currentSectionName.empty())
+                topLevelChannels.push_back(currentUCh);
+            else
+                currentSectionChannels.push_back(currentUCh);
         }
+        inChannel = false;
+        currentUCh = UnresolvedChannel();
+        currentPattern.clear();
+        currentNoteGroups.clear();
+        currentVelocities.clear();
+    };
+
+    // Flush current section
+    auto flushSection = [&]() {
+        flushChannel();
+        if (!currentSectionName.empty() && !currentSectionChannels.empty()) {
+            sectionDefs.push_back({currentSectionName, currentSectionChannels});
+        }
+        currentSectionName.clear();
+        currentSectionChannels.clear();
+    };
+
+    for (size_t lineIdx = 0; lineIdx < allLines.size(); lineIdx++) {
+        auto& rawLine = allLines[lineIdx];
+        std::string trimmed = ltrim(rawLine);
+
+        // Skip empty lines and commas (chunk separators)
+        if (trimmed.empty() || trimmed == ",")
+            continue;
+
+        auto tokens = splitLine(trimmed);
+        if (tokens.empty() || tokens[0][0] == '#')
+            continue;
+
+        // --- Arrangement block ---
+        if (tokens[0] == "arr") {
+            flushSection();
+            inArrangement = true;
+            continue;
+        }
+
+        // If we're inside an arrangement block, read indented entries
+        if (inArrangement) {
+            // Arrangement entries are indented (rawLine starts with whitespace)
+            if (rawLine.size() > 0 && (rawLine[0] == ' ' || rawLine[0] == '\t')) {
+                if (tokens.size() >= 2) {
+                    try {
+                        int bars = std::stoi(tokens[1]);
+                        result.arrangement.push_back({tokens[0], bars});
+                    } catch (...) {}
+                }
+                continue;
+            } else {
+                // Not indented — arrangement block is over
+                inArrangement = false;
+                // Fall through to process this line normally
+            }
+        }
+
+        // --- Section definition ---
+        if (tokens[0] == "sec") {
+            flushSection();
+            currentSectionName = (tokens.size() > 1) ? tokens[1] : "unnamed";
+            continue;
+        }
+
+        // --- Global bars ---
+        if (tokens[0] == "b" && tokens.size() > 1) {
+            try { result.bars = std::stoi(tokens[1]); } catch (...) {}
+            continue;
+        }
+
+        // --- Channel ---
+        if (tokens[0] == "ch") {
+            flushChannel();
+            inChannel = true;
+            if (tokens.size() > 1) {
+                try { currentUCh.channel = std::stoi(tokens[1]) - 1; } catch (...) {}
+            }
+            currentUCh.name = (tokens.size() > 2) ? tokens[2] : ("Track " + std::to_string(currentUCh.channel + 1));
+            continue;
+        }
+
+        // --- Plugin ---
+        if (tokens[0] == "plugin" && tokens.size() > 1) {
+            currentUCh.plugin = tokens[1];
+            continue;
+        }
+
+        // --- Pattern ---
+        if (tokens[0] == "p") {
+            flushLayer(true);
+            currentPattern = parsePattern(tokens, lastDur);
+            continue;
+        }
+
+        // --- Velocity ---
+        if (tokens[0] == "v") {
+            if (!currentNoteGroups.empty()) {
+                flushLayer(false);  // keep pattern
+            }
+            currentVelocities = parseVelocities(tokens, lastVel);
+            continue;
+        }
+
+        // --- Notes ---
+        if (tokens[0] == "n") {
+            auto groups = parseNotes(tokens, lastNote);
+            currentNoteGroups.insert(currentNoteGroups.end(), groups.begin(), groups.end());
+            continue;
+        }
+
+        // Skip: sw, m, cc, d, _d, etc. (not yet implemented)
     }
 
-    // Flush last channel
-    flushNotes(true);
+    // Flush anything remaining
+    flushSection();  // also flushes channel
+
+    // --- Resolve notes ---
+    if (!sectionDefs.empty() && !result.arrangement.empty()) {
+        // Section-based file: resolve per arrangement entry
+        // Build sections from sectionDefs
+        // First, compute total bars
+        int totalBars = 0;
+        for (auto& entry : result.arrangement)
+            totalBars += entry.bars;
+        result.bars = totalBars;
+
+        // Build a map of section name → section def
+        std::map<std::string, SectionDef*> sectionMap;
+        for (auto& sd : sectionDefs)
+            sectionMap[sd.name] = &sd;
+
+        // Collect unique channel names across all sections to create tracks
+        std::map<std::string, int> channelOrder; // name → track index
+        for (auto& sd : sectionDefs) {
+            for (auto& uch : sd.channels) {
+                if (channelOrder.find(uch.name) == channelOrder.end()) {
+                    int idx = static_cast<int>(channelOrder.size());
+                    channelOrder[uch.name] = idx;
+                }
+            }
+        }
+
+        // Initialize result channels (one per unique channel name)
+        result.channels.resize(channelOrder.size());
+        for (auto& [name, idx] : channelOrder) {
+            result.channels[idx].name = name;
+            result.channels[idx].channel = idx;
+        }
+
+        // Walk arrangement entries and resolve notes at correct beat offsets
+        double beatOffset = 0.0;
+        for (auto& entry : result.arrangement) {
+            auto it = sectionMap.find(entry.sectionName);
+            if (it == sectionMap.end()) continue;
+
+            auto& sd = *it->second;
+            for (auto& uch : sd.channels) {
+                auto resolved = resolveChannel(uch, entry.bars);
+
+                // Find the target channel by name
+                auto orderIt = channelOrder.find(uch.name);
+                if (orderIt == channelOrder.end()) continue;
+                auto& targetCh = result.channels[orderIt->second];
+
+                // Copy plugin if not yet set
+                if (targetCh.plugin.empty())
+                    targetCh.plugin = resolved.plugin;
+
+                // Offset all resolved notes by current beat position
+                for (auto note : resolved.notes) {
+                    note.beatPos += beatOffset;
+                    targetCh.notes.push_back(note);
+                }
+            }
+
+            beatOffset += entry.bars * 4.0; // 4 beats per bar
+        }
+
+        // Build sections list for JSON/UI
+        double sectionStart = 0.0;
+        for (auto& entry : result.arrangement) {
+            BirdSection sec;
+            sec.name = entry.sectionName;
+            // Channels are merged into result.channels; sec.channels left empty
+            result.sections.push_back(sec);
+            sectionStart += entry.bars;
+        }
+
+    } else if (!topLevelChannels.empty()) {
+        // Legacy file (no sections): resolve with result.bars
+        for (auto& uch : topLevelChannels) {
+            result.channels.push_back(resolveChannel(uch, result.bars));
+        }
+    }
 
     // Debug output
     for (auto& ch : result.channels) {
         DBG("BirdLoader: Parsed channel " + std::to_string(ch.channel) +
             " '" + ch.name + "' with " + std::to_string(ch.notes.size()) + " notes");
+    }
+    if (!result.arrangement.empty()) {
+        DBG("BirdLoader: Arrangement with " + std::to_string(result.arrangement.size()) +
+            " entries, " + std::to_string(result.bars) + " total bars");
     }
 
     return result;
@@ -439,7 +612,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
 juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult) {
     auto tracks = te::getAudioTracks(edit);
-    juce::String json = "[";
+    juce::String json = "{\"tracks\":[";
 
     for (int t = 0; t < tracks.size(); t++) {
         auto* track = tracks[t];
@@ -485,6 +658,21 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
         json += "]}";
     }
 
-    json += "]";
+    json += "],\"sections\":[";
+
+    // Add sections from arrangement
+    if (parseResult && !parseResult->arrangement.empty()) {
+        int barOffset = 0;
+        for (size_t i = 0; i < parseResult->arrangement.size(); i++) {
+            auto& entry = parseResult->arrangement[i];
+            if (i > 0) json += ",";
+            json += "{\"name\":" + juce::JSON::toString(juce::String(entry.sectionName)) +
+                    ",\"start\":" + juce::String(barOffset) +
+                    ",\"length\":" + juce::String(entry.bars) + "}";
+            barOffset += entry.bars;
+        }
+    }
+
+    json += "],\"totalBars\":" + juce::String(parseResult ? parseResult->bars : 1) + "}";
     return json;
 }

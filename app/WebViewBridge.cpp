@@ -126,6 +126,52 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             }
             complete("ok");
         })
+        // Save a .bird file (from AI generation)
+        .withNativeFunction("saveBird", [this](auto& args, auto complete) {
+            if (args.size() > 1) {
+                juce::String relPath = args[0].toString();
+                juce::String content = args[1].toString();
+                
+                // Resolve path relative to app location similar to constructor
+                auto appFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+                auto searchDir = appFile.getParentDirectory();
+                juce::File targetFile;
+                
+                // Try to find the "files" directory
+                juce::File filesDir;
+                for (int i = 0; i < 8; i++) {
+                    auto candidate = searchDir.getChildFile("files");
+                    if (candidate.isDirectory()) {
+                        filesDir = candidate;
+                        break;
+                    }
+                    searchDir = searchDir.getParentDirectory();
+                }
+                
+                if (filesDir.isDirectory()) {
+                    targetFile = filesDir.getChildFile(relPath);
+                } else {
+                    // Fallback to CWD
+                    targetFile = juce::File::getCurrentWorkingDirectory().getChildFile(relPath);
+                }
+
+                juce::MessageManager::callAsync([this, targetFile, content]() {
+                    if (targetFile.existsAsFile()) {
+                        targetFile.replaceWithText(content);
+                        DBG("BirdSave: Updated " + targetFile.getFullPathName());
+                    } else {
+                        // Create if not exists (including parent dirs if needed)
+                        targetFile.create();
+                        targetFile.replaceWithText(content);
+                        DBG("BirdSave: Created " + targetFile.getFullPathName());
+                    }
+                    
+                    // Hot-reload: immediately load the updated file into the engine
+                    loadBirdFile(targetFile);
+                });
+            }
+            complete("ok");
+        })
         // Get list of available plugins — instruments from filesystem, effects curated
         .withNativeFunction("getAvailablePlugins", [this](const juce::Array<juce::var>&, std::function<void(juce::var)> complete) {
             juce::Array<juce::var> instruments;
@@ -197,5 +243,50 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             result->setProperty("instruments", instruments);
             result->setProperty("effects", effects);
             complete(juce::JSON::toString(juce::var(result)));
+        })
+        // Get Gemini API key from application settings
+        .withNativeFunction("getApiKey", [](auto&, auto complete) {
+            // Helper to create Songbird-specific PropertiesFile options
+            juce::PropertiesFile::Options opts;
+            opts.applicationName = "Songbird Player";
+            opts.filenameSuffix = ".settings";
+            opts.osxLibrarySubFolder = "Application Support";
+            opts.folderName = juce::String("Songbird") +
+                              juce::File::getSeparatorString() +
+                              juce::String("Songbird Player");
+            opts.storageFormat = juce::PropertiesFile::storeAsXML;
+
+            juce::ApplicationProperties appProps;
+            appProps.setStorageParameters(opts);
+            
+            auto* settings = appProps.getUserSettings();
+            DBG("ApiKey: Loading from " + settings->getFile().getFullPathName());
+            
+            juce::String key = settings->getValue("gemini-api-key", juce::String());
+            DBG("ApiKey: Found key? " + juce::String(key.isNotEmpty() ? "Yes" : "No"));
+
+            complete(key);
+        })
+        // Save Gemini API key to application settings
+        .withNativeFunction("setApiKey", [](auto& args, auto complete) {
+            if (args.size() > 0) {
+                juce::String key = args[0].toString();
+
+                juce::PropertiesFile::Options opts;
+                opts.applicationName = "Songbird Player";
+                opts.filenameSuffix = ".settings";
+                opts.osxLibrarySubFolder = "Application Support";
+                opts.folderName = juce::String("Songbird") +
+                                  juce::File::getSeparatorString() +
+                                  juce::String("Songbird Player");
+                opts.storageFormat = juce::PropertiesFile::storeAsXML;
+
+                juce::ApplicationProperties appProps;
+                appProps.setStorageParameters(opts);
+                appProps.getUserSettings()->setValue("gemini-api-key", key);
+                appProps.saveIfNeeded();
+                DBG("ApiKey: saved to Songbird Player settings");
+            }
+            complete("ok");
         });
 }

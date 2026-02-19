@@ -142,9 +142,62 @@ void SongbirdEditor::scanForPlugins()
 {
     auto& pm = engine.getPluginManager();
     auto& list = pm.knownPluginList;
-    
-    // Scan only the curated shortlist at startup to ensure they are available for playback
-    // (avoids scanning random crash-prone plugins)
+
+    // Cache file location: ~/Library/Application Support/Songbird/Songbird Player/plugin-cache.xml
+    juce::File cacheDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                              .getChildFile("Songbird")
+                              .getChildFile("Songbird Player");
+    cacheDir.createDirectory();
+    juce::File cacheFile = cacheDir.getChildFile("plugin-cache.xml");
+
+    // Try to load from cache
+    if (cacheFile.existsAsFile())
+    {
+        if (auto xml = juce::parseXML(cacheFile))
+        {
+            list.recreateFromXml(*xml);
+            DBG("PluginScan: Loaded " + juce::String(list.getNumTypes()) + " plugins from cache.");
+
+            // Verify all curated plugins are present
+            bool allFound = true;
+            juce::StringArray required = {
+                "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
+                "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
+                "Heartbeat", "Kick 2",
+                "Console 1", "American Class A", "British Class A",
+                "Weiss DS1-MK3", "Summit Audio Grand Channel"
+            };
+            for (auto& name : required)
+            {
+                bool found = false;
+                for (auto& type : list.getTypes())
+                {
+                    if (type.name == name) { found = true; break; }
+                }
+                if (!found)
+                {
+                    // Only invalidate if the plugin file actually exists on disk
+                    juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
+                    juce::File au("/Library/Audio/Plug-Ins/Components/" + name + ".component");
+                    if (vst3.exists() || au.exists())
+                    {
+                        DBG("PluginScan: Cache missing installed plugin: " + name + ", re-scanning...");
+                        allFound = false;
+                        break;
+                    }
+                }
+            }
+
+            if (allFound)
+            {
+                DBG("PluginScan: Cache valid, skipping scan.");
+                return;
+            }
+        }
+    }
+
+    // Full scan
+    list.clear();
     
     auto scanFile = [&](const juce::String& path, const juce::String& formatName) {
         juce::File file(path);
@@ -191,4 +244,11 @@ void SongbirdEditor::scanForPlugins()
     }
 
     DBG("PluginScan: Complete. " + juce::String(list.getNumTypes()) + " plugins ready.");
+
+    // Save to cache
+    if (auto xml = list.createXml())
+    {
+        xml->writeTo(cacheFile);
+        DBG("PluginScan: Cache saved to " + cacheFile.getFullPathName());
+    }
 }

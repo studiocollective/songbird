@@ -23,11 +23,25 @@ struct BirdChannel {
     std::vector<BirdNote> notes; // resolved notes
 };
 
+// --- A named section containing its own channels ---
+struct BirdSection {
+    std::string name;
+    std::vector<BirdChannel> channels;
+};
+
+// --- An arrangement entry referencing a section by name ---
+struct BirdArrangementEntry {
+    std::string sectionName;
+    int bars;
+};
+
 // --- Parse result ---
 struct BirdParseResult {
-    int bars = 1;                        // cycle length in bars
-    std::vector<BirdChannel> channels;   // parsed channels
-    std::string error;                   // non-empty if parse failed
+    int bars = 1;                                    // cycle length in bars (total if arrangement exists)
+    std::vector<BirdChannel> channels;               // top-level channels (no sections)
+    std::vector<BirdSection> sections;               // named sections
+    std::vector<BirdArrangementEntry> arrangement;   // arrangement order
+    std::string error;                               // non-empty if parse failed
 };
 
 class BirdLoader {
@@ -40,8 +54,14 @@ public:
     static void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine);
 
     // Serialize all track note data from an Edit as a JSON string
-    // Format: [ { "id": 0, "name": "bass", "notes": [ { "pitch": 36, "beat": 0, "duration": 1, "velocity": 80 }, ... ] }, ... ]
     static juce::String getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);
+
+    // Resolve pattern + note groups + velocities into concrete BirdNote events
+    static std::vector<BirdNote> resolveNotes(
+        const std::vector<int>& pattern,
+        const std::vector<std::vector<int>>& noteGroups,
+        const std::vector<int>& velocities,
+        int sequenceLength);
 
 private:
     // Internal parsing helpers
@@ -49,9 +69,4 @@ private:
     static std::vector<int> parsePattern(const std::vector<std::string>& tokens, int& lastDur);
     static std::vector<int> parseVelocities(const std::vector<std::string>& tokens, int& lastVel);
     static std::vector<std::vector<int>> parseNotes(const std::vector<std::string>& tokens, int& lastNote);
-    static std::vector<BirdNote> resolveNotes(
-        const std::vector<int>& pattern,
-        const std::vector<std::vector<int>>& noteGroups,
-        const std::vector<int>& velocities,
-        int sequenceLength);
 };
