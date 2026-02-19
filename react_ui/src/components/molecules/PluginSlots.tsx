@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
-import { ALL_INSTRUMENTS, ALL_CHANNEL_STRIPS } from '@/data/plugins';
 import type { PluginSlot } from '@/data/slices/mixer';
 
 interface PluginSlotButtonProps {
@@ -81,6 +80,9 @@ interface PluginSlotsProps {
 }
 
 export function PluginSlots({ trackId, trackType, instrument, channelStrip }: PluginSlotsProps) {
+  const availableInstruments = useMixerStore((s) => s.availableInstruments);
+  const availableEffects = useMixerStore((s) => s.availableEffects);
+
   return (
     <div className={slotsContainer}>
       {trackType === 'midi' ? (
@@ -88,7 +90,7 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
           slot={instrument}
           label="+ Instrument"
           icon="🎹"
-          options={ALL_INSTRUMENTS}
+          options={availableInstruments}
           onSelect={(pluginId, pluginName) =>
             useMixerStore.getState().setInstrument(trackId, pluginId, pluginName)
           }
@@ -106,7 +108,7 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
         slot={channelStrip}
         label="+ Strip"
         icon="🎛️"
-        options={ALL_CHANNEL_STRIPS}
+        options={availableEffects}
         onSelect={(pluginId, pluginName) =>
           useMixerStore.getState().setChannelStrip(trackId, pluginId, pluginName)
         }

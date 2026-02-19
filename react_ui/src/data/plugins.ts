@@ -22,6 +22,9 @@ export const ARTURIA_INSTRUMENTS: PluginInfo[] = [
   { id: 'arturia.piano-v',       name: 'Piano V',        vendor: 'Arturia', category: 'instrument' },
   { id: 'arturia.dx7-v',         name: 'DX7 V',          vendor: 'Arturia', category: 'instrument' },
   { id: 'arturia.b-3-v',         name: 'B-3 V',          vendor: 'Arturia', category: 'instrument' },
+  { id: 'arturia.buchla-easel-v', name: 'Buchla Easel V', vendor: 'Arturia', category: 'instrument' },
+  { id: 'sonicacademy.kick-2',   name: 'Kick 2',        vendor: 'Sonic Academy', category: 'instrument' },
+  { id: 'softube.heartbeat',     name: 'Heartbeat',     vendor: 'Softube', category: 'instrument' },
 ];
 
 // Channel Strips

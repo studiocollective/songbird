@@ -142,65 +142,53 @@ void SongbirdEditor::scanForPlugins()
 {
     auto& pm = engine.getPluginManager();
     auto& list = pm.knownPluginList;
-
-    // If we already have plugins cached from a previous run, skip scanning
-    if (list.getNumTypes() > 0) {
-        DBG("PluginScan: Found " + juce::String(list.getNumTypes()) + " cached plugins, skipping scan");
-        return;
-    }
-
-    DBG("PluginScan: Starting targeted plugin scan...");
-
-    // Specific plugin files to scan (macOS AU components + VST3 bundles)
-    juce::StringArray targetPlugins = {
-        // Arturia classic emulations
-        "/Library/Audio/Plug-Ins/Components/Pigments.component",
-        "/Library/Audio/Plug-Ins/Components/Mini V.component",
-        "/Library/Audio/Plug-Ins/Components/CS-80 V.component",
-        "/Library/Audio/Plug-Ins/Components/Prophet V.component",
-        "/Library/Audio/Plug-Ins/Components/Jup-8 V.component",
-        "/Library/Audio/Plug-Ins/Components/DX7 V.component",
-        "/Library/Audio/Plug-Ins/Components/Buchla Easel V.component",
-        // Drums, bass, channel strip
-        "/Library/Audio/Plug-Ins/Components/Kick 2.component",
-        "/Library/Audio/Plug-Ins/Components/Heartbeat.component",
-        "/Library/Audio/Plug-Ins/Components/SubLab XL.component",
-        "/Library/Audio/Plug-Ins/Components/Console1.component",
-        // VST3 variants
-        "/Library/Audio/Plug-Ins/VST3/Pigments.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Mini V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/CS-80 V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Prophet V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Jup-8 V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/DX7 V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Buchla Easel V.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Kick 2.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Heartbeat.vst3",
-        "/Library/Audio/Plug-Ins/VST3/SubLab XL.vst3",
-        "/Library/Audio/Plug-Ins/VST3/Console1.vst3",
-    };
-
-    for (auto& path : targetPlugins) {
-        juce::File pluginFile(path);
-        if (!pluginFile.exists()) continue;
-
-        // Try each registered format (AU, VST3)
+    
+    // Scan only the curated shortlist at startup to ensure they are available for playback
+    // (avoids scanning random crash-prone plugins)
+    
+    auto scanFile = [&](const juce::String& path, const juce::String& formatName) {
+        juce::File file(path);
+        if (!file.exists()) return;
+        
         for (int f = 0; f < pm.pluginFormatManager.getNumFormats(); f++) {
             auto* format = pm.pluginFormatManager.getFormat(f);
-            if (!format) continue;
-
-            // Check if this format can handle this file
-            if (format->fileMightContainThisPluginType(path)) {
-                juce::OwnedArray<juce::PluginDescription> results;
-                format->findAllTypesForFile(results, path);
-
-                for (auto* desc : results) {
-                    list.addType(*desc);
-                    DBG("PluginScan: Found '" + desc->name + "' (" + desc->pluginFormatName + ")");
-                }
+            if (!format || format->getName() != formatName) continue;
+            
+            juce::OwnedArray<juce::PluginDescription> results;
+            format->findAllTypesForFile(results, path);
+            for (auto* desc : results) {
+                list.addType(*desc);
+                DBG("PluginScan: Loaded " + desc->name + " (" + desc->pluginFormatName + ")");
             }
         }
+    };
+
+    DBG("PluginScan: Scanning curated shortlist...");
+
+    // 1. Synths (VST3)
+    juce::StringArray synths = {
+        "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
+        "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
+        "Heartbeat"
+    };
+    for (auto& name : synths)
+        scanFile("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3", "VST3");
+
+    // 2. Kick 2 (AU)
+    scanFile("/Library/Audio/Plug-Ins/Components/Kick 2.component", "AudioUnit");
+
+    // 3. Effects (VST3 preferred, then AU)
+    juce::StringArray effects = {
+        "Console 1", "American Class A", "British Class A",
+        "Weiss DS1-MK3", "Summit Audio Grand Channel"
+    };
+    for (auto& name : effects) {
+        juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
+        if (vst3.exists())
+            scanFile(vst3.getFullPathName(), "VST3");
+        else
+            scanFile("/Library/Audio/Plug-Ins/Components/" + name + ".component", "AudioUnit");
     }
 
-    DBG("PluginScan: Scan complete — " + juce::String(list.getNumTypes()) + " plugins found");
+    DBG("PluginScan: Complete. " + juce::String(list.getNumTypes()) + " plugins ready.");
 }

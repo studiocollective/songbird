@@ -146,12 +146,21 @@ addStateListener('trackNotes', (jsonStr: string) => {
   }
 });
 
+// --- C++ debug logs forwarded to browser console ---
+addStateListener('cppLog', (data: unknown) => {
+  const d = data as { message: string };
+  if (d?.message) console.log(d.message);
+});
+
 // --- Fetch initial track notes on startup ---
 if (typeof window !== 'undefined' && window.__JUCE__) {
   import('@/lib').then(({ Juce }) => {
     const getTrackNotes = Juce.getNativeFunction('getTrackNotes');
     // Small delay to let the Edit finish loading
     setTimeout(async () => {
+      // Fetch available plugins from C++
+      useMixerStore.getState().fetchAvailablePlugins();
+
       try {
         const jsonStr = await getTrackNotes();
         if (jsonStr && jsonStr !== '[]') {

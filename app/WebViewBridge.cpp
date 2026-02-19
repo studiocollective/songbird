@@ -37,13 +37,38 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         })
         // Open a plugin's editor window
         .withNativeFunction("openPlugin", [this](auto& args, auto complete) {
+            logToJS("Bridge: openPlugin called from JS with " + juce::String(args.size()) + " args");
             if (args.size() > 2) {
                 int trackId = static_cast<int>(args[0]);
                 juce::String slotType = args[1].toString();
                 juce::String pluginId = args[2].toString();
+                
+                logToJS("Bridge: scheduling openPluginWindow(" + juce::String(trackId) + ", " + slotType + ", " + pluginId + ")");
+                
                 juce::MessageManager::callAsync([this, trackId, slotType, pluginId]() {
+                    logToJS("Bridge: async executing openPluginWindow");
                     openPluginWindow(trackId, slotType, pluginId);
                 });
+            } else {
+                logToJS("Bridge: openPlugin called with insufficient args");
+            }
+            complete("ok");
+        })
+        // Change plugin on a track (swap instrument or channel strip)
+        .withNativeFunction("changePlugin", [this](auto& args, auto complete) {
+            logToJS("Bridge: changePlugin called from JS with " + juce::String(args.size()) + " args");
+            if (args.size() > 2) {
+                int trackId = static_cast<int>(args[0]);
+                juce::String slotType = args[1].toString();
+                juce::String pluginName = args[2].toString();
+                
+                logToJS("Bridge: scheduling changePlugin(" + juce::String(trackId) + ", " + slotType + ", '" + pluginName + "')");
+                
+                juce::MessageManager::callAsync([this, trackId, slotType, pluginName]() {
+                    changePlugin(trackId, slotType, pluginName);
+                });
+            } else {
+                logToJS("Bridge: changePlugin called with insufficient args");
             }
             complete("ok");
         })
@@ -100,5 +125,77 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 });
             }
             complete("ok");
+        })
+        // Get list of available plugins — instruments from filesystem, effects curated
+        .withNativeFunction("getAvailablePlugins", [this](const juce::Array<juce::var>&, std::function<void(juce::var)> complete) {
+            juce::Array<juce::var> instruments;
+            
+            juce::StringArray validSynths = {
+                "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
+                "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
+                "Heartbeat"
+            };
+            
+            // List all .vst3 bundles in the standard directory
+            juce::File vst3Dir("/Library/Audio/Plug-Ins/VST3");
+            if (vst3Dir.isDirectory()) {
+                auto files = vst3Dir.findChildFiles(
+                    juce::File::findDirectories, false, "*.vst3");
+                files.sort();
+                
+                for (auto& f : files) {
+                    auto name = f.getFileNameWithoutExtension();
+                    
+                    // Filter: only show if in our valid synth list
+                    // (prevents effects from cluttering the instrument dropdown)
+                    if (!validSynths.contains(name)) continue;
+                    
+                    juce::DynamicObject* obj = new juce::DynamicObject();
+                    obj->setProperty("id", f.getFullPathName());
+                    obj->setProperty("name", name);
+                    obj->setProperty("vendor", "");
+                    obj->setProperty("category", "instrument");
+                    instruments.add(juce::var(obj));
+                }
+            }
+            
+            // Add Kick 2 (AudioUnit only)
+            juce::File kick2AU("/Library/Audio/Plug-Ins/Components/Kick 2.component");
+            if (kick2AU.exists()) {
+                juce::DynamicObject* obj = new juce::DynamicObject();
+                obj->setProperty("id", kick2AU.getFullPathName());
+                obj->setProperty("name", "Kick 2");
+                obj->setProperty("vendor", "Sonic Academy");
+                obj->setProperty("category", "instrument");
+                instruments.add(juce::var(obj));
+            }
+            
+            // Curated channel strip / effects list
+            juce::Array<juce::var> effects;
+            juce::StringArray stripNames = {
+                "Console 1", "American Class A", "British Class A",
+                "Weiss DS1-MK3", "Summit Audio Grand Channel"
+            };
+            for (auto& name : stripNames) {
+                // Try VST3 first, then AU
+                juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
+                juce::File au("/Library/Audio/Plug-Ins/Components/" + name + ".component");
+                juce::String path = vst3.exists() ? vst3.getFullPathName()
+                                  : au.exists()   ? au.getFullPathName()
+                                  : "";
+                if (path.isNotEmpty()) {
+                    juce::DynamicObject* obj = new juce::DynamicObject();
+                    obj->setProperty("id", path);
+                    obj->setProperty("name", name);
+                    obj->setProperty("vendor", "");
+                    obj->setProperty("category", "channel-strip");
+                    effects.add(juce::var(obj));
+                }
+            }
+            
+            juce::DynamicObject* result = new juce::DynamicObject();
+            result->setProperty("instruments", instruments);
+            result->setProperty("effects", effects);
+            complete(juce::JSON::toString(juce::var(result)));
         });
 }

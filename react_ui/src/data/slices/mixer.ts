@@ -57,6 +57,11 @@ export interface MixerState {
   toggleChannelStripBypass: (id: number) => void;
   openPlugin: (trackId: number, slotType: 'instrument' | 'channelStrip') => void;
 
+  // Dynamic Plugin List
+  availableInstruments: { id: string; name: string; vendor: string; category: string }[];
+  availableEffects: { id: string; name: string; vendor: string; category: string }[];
+  fetchAvailablePlugins: () => Promise<void>;
+
   // Track data from bird file
   setTracks: (tracks: Track[]) => void;
   setTrackNotes: (trackId: number, notes: NoteData[]) => void;
@@ -67,7 +72,25 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   initialize: () => set({ initialized: true }),
 
   tracks: defaultTracks,
-  mixerOpen: false,
+  mixerOpen: true,
+
+  availableInstruments: [],
+  availableEffects: [],
+  fetchAvailablePlugins: async () => {
+      try {
+          const result = await nativeFunction('getAvailablePlugins')();
+          const data = typeof result === 'string' ? JSON.parse(result) : result;
+          if (data && data.instruments) {
+              set({ 
+                  availableInstruments: data.instruments,
+                  availableEffects: data.effects 
+              });
+              console.log(`[Mixer] Loaded ${data.instruments.length} instruments and ${data.effects.length} effects`);
+          }
+      } catch (e) {
+          console.error("Failed to fetch available plugins", e);
+      }
+  },
 
   toggleMixer: () => set((s) => ({ mixerOpen: !s.mixerOpen })),
   toggleMute: (id) =>
@@ -92,18 +115,22 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     })),
 
   // Plugin actions
-  setInstrument: (id, pluginId, pluginName) =>
+  setInstrument: (id, pluginId, pluginName) => {
     set((s) => ({
       tracks: s.tracks.map((t) =>
         t.id === id ? { ...t, instrument: { pluginId, pluginName, bypassed: false } } : t
       ),
-    })),
-  setChannelStrip: (id, pluginId, pluginName) =>
+    }));
+    nativeFunction('changePlugin')(id, 'instrument', pluginName ?? '');
+  },
+  setChannelStrip: (id, pluginId, pluginName) => {
     set((s) => ({
       tracks: s.tracks.map((t) =>
         t.id === id ? { ...t, channelStrip: { pluginId, pluginName, bypassed: false } } : t
       ),
-    })),
+    }));
+    nativeFunction('changePlugin')(id, 'channelStrip', pluginName ?? '');
+  },
   toggleInstrumentBypass: (id) =>
     set((s) => ({
       tracks: s.tracks.map((t) =>
@@ -130,5 +157,6 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       tracks: s.tracks.map((t) => (t.id === trackId ? { ...t, notes } : t)),
     })),
 });
+
 
 export const MixerStateID = 'songbird-mixer';

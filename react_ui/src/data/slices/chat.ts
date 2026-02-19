@@ -24,7 +24,7 @@ export const useChatSlice: StateCreator<ChatState> = (set) => ({
   initialized: false,
   initialize: () => set({ initialized: true }),
 
-  chatOpen: false,
+  chatOpen: true,
   chatMessages: [],
   chatInput: '',
 

@@ -49,6 +49,8 @@ private:
 
     // Plugin window management
     void openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId);
+    void changePlugin(int trackId, const juce::String& slotType, const juce::String& pluginName);
+    void logToJS(const juce::String& message);
 
     // Playback info (levels, transport position, stereo analysis)
     PlaybackInfo playbackInfo;
