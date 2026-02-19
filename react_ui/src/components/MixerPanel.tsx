@@ -11,10 +11,11 @@ export function MixerPanel() {
         <MasterChannel />
 
         <div className={channelsScroll}>
-          {tracks.map((track) => (
+          {tracks.map((track, index) => (
             <MixerChannel
               key={track.id}
               trackId={track.id}
+              trackIndex={index}
               name={track.name}
               trackType={track.type as 'midi' | 'audio'}
               color={track.color}

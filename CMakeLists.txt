@@ -41,6 +41,12 @@ target_compile_features(SongbirdPlayer PRIVATE cxx_std_20)
 target_sources(SongbirdPlayer PRIVATE
     app/Main.cpp
     app/SongbirdEditor.cpp
+    app/WebViewHelpers.cpp
+    app/StateSync.cpp
+    app/WebViewBridge.cpp
+    app/LyriaManager.cpp
+    app/PluginManager.cpp
+    app/LevelMeterBridge.cpp
     app/BirdLoader.cpp
     libraries/theory/note_parser.cpp
     libraries/sequencing/note.cpp

@@ -7,6 +7,7 @@
 #include <map>
 #include "libraries/magenta/LyriaPlugin.h"
 #include "BirdLoader.h"
+#include "LevelMeterBridge.h"
 
 namespace te = tracktion;
 
@@ -47,10 +48,11 @@ private:
     // Plugin window management
     void openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId);
 
+    // Audio level metering
+    LevelMeterBridge levelMeterBridge;
+
     // WebView zoom & inspector
     double zoomLevel = 1.0;
     bool inspectorEnabled = false;
-    void setWebViewPageZoom(double zoom);
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SongbirdEditor)
 };

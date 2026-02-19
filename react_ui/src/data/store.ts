@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+// Side-effect import: registers audioLevels listener
+import '@/data/meters';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { juceBridge, addStateListener } from './bridge';
 import type { TransportState, MixerState, ChatState, LyriaState } from '@/data/slices';

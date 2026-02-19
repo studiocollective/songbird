@@ -1,9 +1,11 @@
 import { cn } from '@/lib/utils';
 import { TrackColorDot, MuteSoloButtons, LevelMeter, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
+import { useMeterStore } from '@/data/meters';
 import type { PluginSlot } from '@/data/slices/mixer';
 
 interface MixerChannelProps {
   trackId: number;
+  trackIndex: number;
   name: string;
   trackType: 'midi' | 'audio';
   color: string;
@@ -16,8 +18,13 @@ interface MixerChannelProps {
 }
 
 export function MixerChannel({
-  trackId, name, trackType, color, muted, solo, volume, pan, instrument, channelStrip,
+  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, channelStrip,
 }: MixerChannelProps) {
+  const level = useMeterStore((s) => {
+    const ch = s.levels[trackIndex];
+    return ch ? Math.max(ch.left, ch.right) : 0;
+  });
+
   return (
     <div className={channel}>
       <div className={header}>
@@ -35,7 +42,7 @@ export function MixerChannel({
       </div>
 
       <div className={faderArea}>
-        <LevelMeter value={volume} color={color} height="h-20" muted={muted} />
+        <LevelMeter level={level} volume={volume} color={color} height="h-20" muted={muted} />
         <VolumeFader trackId={trackId} value={volume} color={color} height="h-20" />
       </div>
 
