@@ -112,16 +112,37 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("getTrackNotes", [this](auto&, auto complete) {
             complete(getTrackNotesJSON());
         })
+        // Read current .bird file content (for AI chat context)
+        .withNativeFunction("readBird", [this](auto&, auto complete) {
+            if (currentBirdFile.existsAsFile())
+                complete(currentBirdFile.loadFileAsString());
+            else
+                complete("");
+        })
         // Load a .bird file
         .withNativeFunction("loadBird", [this](auto& args, auto complete) {
             if (args.size() > 0) {
                 juce::String path = args[0].toString();
                 juce::MessageManager::callAsync([this, path]() {
-                    loadBirdFile(juce::File(path));
+                    auto file = juce::File(path);
+                    currentBirdFile = file;
+                    loadBirdFile(file);
                     if (webView) {
                         auto json = getTrackNotesJSON();
                         webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
                     }
+                });
+            }
+            complete("ok");
+        })
+        // Update current .bird file in-place (from AI tool call)
+        .withNativeFunction("updateBird", [this](auto& args, auto complete) {
+            if (args.size() > 0 && currentBirdFile.existsAsFile()) {
+                juce::String content = args[0].toString();
+                juce::MessageManager::callAsync([this, content]() {
+                    currentBirdFile.replaceWithText(content);
+                    DBG("BirdUpdate: Updated " + currentBirdFile.getFullPathName());
+                    loadBirdFile(currentBirdFile);
                 });
             }
             complete("ok");
@@ -167,6 +188,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     }
                     
                     // Hot-reload: immediately load the updated file into the engine
+                    currentBirdFile = targetFile;
                     loadBirdFile(targetFile);
                 });
             }
@@ -217,7 +239,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             }
             
             // Curated channel strip / effects list
-            juce::Array<juce::var> effects;
+            juce::Array<juce::var> channelStrips;
             juce::StringArray stripNames = {
                 "Console 1", "American Class A", "British Class A",
                 "Weiss DS1-MK3", "Summit Audio Grand Channel"
@@ -235,13 +257,38 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     obj->setProperty("name", name);
                     obj->setProperty("vendor", "");
                     obj->setProperty("category", "channel-strip");
-                    effects.add(juce::var(obj));
+                    channelStrips.add(juce::var(obj));
                 }
+            }
+
+            // Curated FX list
+            juce::Array<juce::var> fxPlugins;
+            juce::StringArray fxNames = {
+                "Tube Delay", "ValhallaRoom", "Widener", "soothe2", "Dist TUBE-CULTURE"
+            };
+            for (auto& name : fxNames) {
+                juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
+                juce::File au("/Library/Audio/Plug-Ins/Components/" + name + ".component");
+                juce::String path = vst3.exists() ? vst3.getFullPathName()
+                                  : au.exists()   ? au.getFullPathName()
+                                  : "";
+                // Sometimes Valhalla or others might be in a vendor subfolder for VST3, 
+                // but the scanner just needs an ID to tell the UI. 
+                // We'll use the path if found, or just the name as ID if we have to, 
+                // though Tracktion Engine scan will find it.
+                // Let's just output it anyway so the UI knows it's available.
+                juce::DynamicObject* obj = new juce::DynamicObject();
+                obj->setProperty("id", path.isNotEmpty() ? path : name);
+                obj->setProperty("name", name);
+                obj->setProperty("vendor", "");
+                obj->setProperty("category", "fx");
+                fxPlugins.add(juce::var(obj));
             }
             
             juce::DynamicObject* result = new juce::DynamicObject();
             result->setProperty("instruments", instruments);
-            result->setProperty("effects", effects);
+            result->setProperty("effects", channelStrips);
+            result->setProperty("fx", fxPlugins);
             complete(juce::JSON::toString(juce::var(result)));
         })
         // Get Gemini API key from application settings

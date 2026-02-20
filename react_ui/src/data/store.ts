@@ -123,8 +123,9 @@ const SECTION_COLORS = [
   'bg-rose-500/5', 'bg-cyan-500/5', 'bg-indigo-500/5', 'bg-teal-500/5',
 ];
 
-function processTrackNotes(jsonStr: string) {
-  const raw = JSON.parse(jsonStr);
+function processTrackNotes(data: string | object) {
+  // Handle both string (from initial getTrackNotes) and pre-parsed object (from event listener)
+  const raw = typeof data === 'string' ? JSON.parse(data) : data;
 
   // Support both old array format and new object format
   const trackData = Array.isArray(raw) ? raw : raw.tracks;
@@ -144,6 +145,9 @@ function processTrackNotes(jsonStr: string) {
     pan: 0,
     instrument: t.plugin
       ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
+      : emptySlot,
+    fx: t.fx
+      ? { pluginId: t.fx.pluginId, pluginName: t.fx.pluginName, bypassed: false }
       : emptySlot,
     channelStrip: t.channelStrip
       ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
@@ -166,9 +170,9 @@ function processTrackNotes(jsonStr: string) {
   return tracks;
 }
 
-addStateListener('trackNotes', (jsonStr: string) => {
+addStateListener('trackNotes', (data: unknown) => {
   try {
-    processTrackNotes(jsonStr);
+    processTrackNotes(data as string | object);
   } catch (e) {
     console.error('[trackNotes] Failed to parse:', e);
   }

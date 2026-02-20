@@ -7,28 +7,62 @@
 
 SongbirdEditor::SongbirdEditor()
 {
-    // Load the default .bird file into the Edit
-    // Search upward from the app bundle for the files/ directory
-    auto appFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
-    juce::File birdFile;
-    auto searchDir = appFile.getParentDirectory();
-    for (int i = 0; i < 8; i++) {
-        auto candidate = searchDir.getChildFile("files/daw.bird");
-        if (candidate.existsAsFile()) {
-            birdFile = candidate;
-            break;
+    // Check command line arguments for a sketch name
+    auto args = juce::JUCEApplicationBase::getCommandLineParameterArray();
+    juce::String sketchName;
+    if (args.size() > 0) {
+        sketchName = args[0];
+        if (!sketchName.endsWith(".bird")) {
+            sketchName += ".bird";
         }
-        searchDir = searchDir.getParentDirectory();
+        DBG("BirdLoader: Requested sketch '" + sketchName + "' via CLI");
     }
 
-    // Fallback: try relative to CWD
-    if (!birdFile.existsAsFile())
-        birdFile = juce::File::getCurrentWorkingDirectory().getChildFile("files/daw.bird");
+    // Search upward from the app bundle for the project root directory
+    auto appFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+    juce::File projectRoot = appFile.getParentDirectory();
+    for (int i = 0; i < 8; i++) {
+        if (projectRoot.getChildFile("files").isDirectory()) {
+            break; // Found root
+        }
+        projectRoot = projectRoot.getParentDirectory();
+    }
+
+    juce::File birdFile;
+
+    if (sketchName.isNotEmpty()) {
+        auto sketchesDir = projectRoot.getChildFile("files").getChildFile("sketches");
+        if (!sketchesDir.exists()) sketchesDir.createDirectory();
+        
+        birdFile = sketchesDir.getChildFile(sketchName);
+        if (!birdFile.existsAsFile()) {
+            DBG("BirdLoader: Sketch does not exist, creating template");
+            birdFile.create();
+            birdFile.replaceWithText(
+                "ch 1 kick\n"
+                "  plugin kick\n"
+                "\n"
+                "arr intro 4\n"
+                "\n"
+                "sec intro\n"
+                "  ch 1 kick\n"
+                "    p x x x _\n"
+                "      v 80\n"
+                "        n 36\n"
+            );
+        }
+    } else {
+        birdFile = projectRoot.getChildFile("files/daw.bird");
+        if (!birdFile.existsAsFile()) {
+            birdFile = juce::File::getCurrentWorkingDirectory().getChildFile("files/daw.bird");
+        }
+    }
 
     DBG("BirdLoader: App location: " + appFile.getFullPathName());
     DBG("BirdLoader: Bird file path: " + birdFile.getFullPathName());
 
     scanForPlugins();
+    currentBirdFile = birdFile;
     loadBirdFile(birdFile);
 
     // Create WebView with native function bridge
@@ -97,8 +131,11 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
 {
     if (!birdFile.existsAsFile()) {
         DBG("BirdLoader: File not found: " + birdFile.getFullPathName());
-        edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
-        edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+        if (!edit) {
+            edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
+            edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+            playbackInfo.setEdit(edit.get());
+        }
         return;
     }
 
@@ -107,19 +144,22 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
 
     if (!result.error.empty()) {
         DBG("BirdLoader: Parse error: " + juce::String(result.error));
-        edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
-        edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+        if (!edit) {
+            edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
+            edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+            playbackInfo.setEdit(edit.get());
+        }
         return;
     }
 
-    edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
-    edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+    if (!edit) {
+        edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
+        edit->tempoSequence.getTempos()[0]->setBpm(120.0);
+        playbackInfo.setEdit(edit.get());
+    }
 
     BirdLoader::populateEdit(*edit, result, engine);
     lastParseResult = result;  // store for JSON serialization
-
-    // Re-attach level meters to the new edit
-    playbackInfo.setEdit(edit.get());
 
     // Push track notes to UI if webview is up
     if (webView) {

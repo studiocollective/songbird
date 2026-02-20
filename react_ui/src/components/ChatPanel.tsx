@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/data/store';
-import { SONGBIRD_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { GeminiService } from '@/lib/ai/gemini';
 import { Juce } from '@/lib';
 
@@ -58,15 +58,6 @@ export function ChatPanel() {
     }
   };
 
-  const saveBirdFile = async (content: string) => {
-    const match = content.match(/```bird([\s\S]*?)```/);
-    if (match && match[1]) {
-      const code = match[1].trim();
-      console.log('[Chat] Saving generated bird code...');
-      await Juce.getNativeFunction('saveBird')('files/daw.bird', code);
-    }
-  };
-
   const handleSend = async () => {
     if (!chatInput.trim() || !apiKey) return;
     
@@ -78,21 +69,37 @@ export function ChatPanel() {
     addMessage('assistant', '');
 
     try {
+      // Read the current bird file so Gemini can see/edit it
+      let currentBird = '';
+      try {
+        currentBird = await Juce.getNativeFunction('readBird')();
+      } catch (e) {
+        console.warn('[Chat] Failed to read bird file:', e);
+      }
+
       const result = await GeminiService.streamMessage(
         apiKey,
         // Pass history without the empty assistant message we just added
         useChatStore.getState().chatMessages.slice(0, -1),
-        SONGBIRD_SYSTEM_PROMPT,
+        buildSystemPrompt(currentBird),
         (_delta, accumulated) => {
           updateLastMessage(accumulated);
         },
-        selectedModel
+        selectedModel,
+        // Tool call handler: Gemini calls update_bird_file → we save via C++
+        async (call) => {
+          if (call.name === 'update_bird_file') {
+            const content = call.args.content as string;
+            console.log('[Chat] Tool call: update_bird_file, saving...');
+            await Juce.getNativeFunction('updateBird')(content);
+            return { success: true };
+          }
+          return { error: 'Unknown tool' };
+        }
       );
       
       if (result.error) {
         updateLastMessage(`⚠️ Error: ${result.error}`);
-      } else {
-        await saveBirdFile(result.content);
       }
     } catch (e) {
       console.error(e);
@@ -158,7 +165,7 @@ export function ChatPanel() {
             className={modelSelect}
           >
             <option value="gemini-3-flash-preview">Flash</option>
-            <option value="gemini-3-pro-preview">Pro</option>
+            <option value="gemini-3.1-pro-preview">Pro</option>
           </select>
         </div>
 

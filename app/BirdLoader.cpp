@@ -26,6 +26,16 @@ static PluginInfo pluginFromKeyword(const std::string& keyword) {
     if (keyword == "kick")     return { "sonicacademy.kick-2",   "Kick 2" };
     if (keyword == "drums")    return { "softube.heartbeat",     "Heartbeat" };
     if (keyword == "bass")     return { "futureaudioworkshop.sublab-xl", "SubLab XL" };
+    // Effects
+    if (keyword == "delay")    return { "softube.tube-delay", "Tube Delay" };
+    if (keyword == "valhalla") return { "valhalladsp.valhallaroom", "ValhallaRoom" };
+    if (keyword == "widener")  return { "polyversemusic.widener", "Widener" };
+    if (keyword == "soothe")   return { "oeksound.soothe2", "soothe2" };
+    if (keyword == "tube")     return { "arturia.dist-tube-culture", "Dist TUBE-CULTURE" };
+    
+    // Channel Strips
+    if (keyword == "console1") return { "softube.console-1", "Console 1" };
+    
     return {}; // empty = no external plugin
 }
 
@@ -163,36 +173,50 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
     const std::vector<int>& pattern,
     const std::vector<std::vector<int>>& noteGroups,
     const std::vector<int>& velocities,
-    int sequenceLength)
+    int sequenceLength,
+    PatternState& state)
 {
     std::vector<BirdNote> result;
     if (pattern.empty() || noteGroups.empty() || velocities.empty())
         return result;
 
+    // Safety checks against vector sizes changing between sections
+    if (state.patIdx >= pattern.size()) state.patIdx = 0;
+    if (state.noteIdx >= noteGroups.size()) state.noteIdx = 0;
+    if (state.velIdx >= velocities.size()) state.velIdx = 0;
+
     int ticks = 0;
-    size_t patIdx = 0;
-    size_t noteIdx = 0;
-    size_t velIdx = 0;
 
     while (ticks < sequenceLength) {
-        int dur = pattern[patIdx];
+        int durConfig = pattern[state.patIdx];
+        int durTotal = std::abs(durConfig);
+        int durRemaining = durTotal - state.ticksInStep;
 
-        if (dur > 0) {
+        if (state.ticksInStep == 0 && durConfig > 0) {
             // Note-on: emit all notes in the current group
-            for (int pitch : noteGroups[noteIdx]) {
+            for (int pitch : noteGroups[state.noteIdx]) {
                 BirdNote n;
                 n.pitch = pitch;
                 n.beatPos = ticksToBeats(ticks);
-                n.duration = ticksToBeats(static_cast<int>(dur * 0.9)); // 90% gate
-                n.velocity = velocities[velIdx];
+                n.duration = ticksToBeats(static_cast<int>(durConfig * 0.9)); // 90% gate
+                n.velocity = velocities[state.velIdx];
                 result.push_back(n);
             }
-            noteIdx = (noteIdx + 1) % noteGroups.size();
-            velIdx = (velIdx + 1) % velocities.size();
+            state.noteIdx = (state.noteIdx + 1) % noteGroups.size();
+            state.velIdx = (state.velIdx + 1) % velocities.size();
         }
 
-        ticks += std::abs(dur);
-        patIdx = (patIdx + 1) % pattern.size();
+        // Advance time
+        if (ticks + durRemaining > sequenceLength) {
+            // Step spans beyond the current sequence
+            state.ticksInStep += (sequenceLength - ticks);
+            ticks = sequenceLength;
+        } else {
+            // Step completes within or exactly at the end of the sequence
+            ticks += durRemaining;
+            state.ticksInStep = 0;
+            state.patIdx = (state.patIdx + 1) % pattern.size();
+        }
     }
 
     return result;
@@ -212,22 +236,29 @@ struct UnresolvedChannel {
     int channel = 0;
     std::string name;
     std::string plugin;
+    std::string fx;
+    std::string strip;
+    bool cont = false;
     std::vector<UnresolvedLayer> layers;
 };
 
-// Resolve an unresolved channel into a BirdChannel given a bar count
-static BirdChannel resolveChannel(const UnresolvedChannel& uch, int bars) {
+// Returns a pair: {Resolved BirdChannel, new PatternState for the next section}
+static std::pair<BirdChannel, BirdLoader::PatternState> resolveChannel(const UnresolvedChannel& uch, int bars, BirdLoader::PatternState state = {}) {
     BirdChannel ch;
     ch.channel = uch.channel;
     ch.name = uch.name;
     ch.plugin = uch.plugin;
+    ch.fx = uch.fx;
+    ch.strip = uch.strip;
 
     int seqLen = bars * TICKS_PER_BAR;
+    
+    // For simplicity, we assume single-layer for continuous patterns right now
     for (auto& layer : uch.layers) {
-        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, seqLen);
+        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, seqLen, state);
         ch.notes.insert(ch.notes.end(), resolved.begin(), resolved.end());
     }
-    return ch;
+    return {ch, state};
 }
 
 // --- Main parser ---
@@ -409,6 +440,24 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
         }
 
+        // --- FX ---
+        if (tokens[0] == "fx" && tokens.size() > 1) {
+            currentUCh.fx = tokens[1];
+            continue;
+        }
+
+        // --- Strip ---
+        if (tokens[0] == "strip" && tokens.size() > 1) {
+            currentUCh.strip = tokens[1];
+            continue;
+        }
+
+        // --- Cont ---
+        if (tokens[0] == "cont") {
+            currentUCh.cont = true;
+            continue;
+        }
+
         // Skip: sw, m, cc, d, _d, etc. (not yet implemented)
     }
 
@@ -430,8 +479,24 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         for (auto& sd : sectionDefs)
             sectionMap[sd.name] = &sd;
 
-        // Collect unique channel names across all sections to create tracks
+        // Build a map of global channel configurations from topLevelChannels
+        std::map<int, UnresolvedChannel> globalConfigs;
+        for (auto& ch : topLevelChannels) {
+            globalConfigs[ch.channel] = ch;
+        }
+
+        // Collect unique channel names across all sections and globals to create tracks
         std::map<std::string, int> channelOrder; // name → track index
+        
+        // Add global channels first so they dictate track order
+        for (auto& ch : topLevelChannels) {
+            if (channelOrder.find(ch.name) == channelOrder.end()) {
+                int idx = static_cast<int>(channelOrder.size());
+                channelOrder[ch.name] = idx;
+            }
+        }
+        
+        // Then add any section-specific channels
         for (auto& sd : sectionDefs) {
             for (auto& uch : sd.channels) {
                 if (channelOrder.find(uch.name) == channelOrder.end()) {
@@ -448,6 +513,9 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             result.channels[idx].channel = idx;
         }
 
+        // Phase tracking for 'cont' patterns across sections
+        std::map<int, BirdLoader::PatternState> trackStates;
+
         // Walk arrangement entries and resolve notes at correct beat offsets
         double beatOffset = 0.0;
         for (auto& entry : result.arrangement) {
@@ -456,7 +524,29 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
 
             auto& sd = *it->second;
             for (auto& uch : sd.channels) {
-                auto resolved = resolveChannel(uch, entry.bars);
+                // Merge with global config if available
+                UnresolvedChannel mergedCh = uch;
+                if (globalConfigs.find(uch.channel) != globalConfigs.end()) {
+                    auto& globalCh = globalConfigs[uch.channel];
+                    if (mergedCh.plugin.empty()) mergedCh.plugin = globalCh.plugin;
+                    if (mergedCh.fx.empty()) mergedCh.fx = globalCh.fx;
+                    if (mergedCh.strip.empty()) mergedCh.strip = globalCh.strip;
+                    // If name is default "Track X", use global name
+                    if (mergedCh.name == "Track " + std::to_string(uch.channel + 1) && !globalCh.name.empty()) {
+                        mergedCh.name = globalCh.name;
+                    }
+                }
+
+                // Handle continuity state
+                BirdLoader::PatternState state;
+                if (mergedCh.cont) {
+                    state = trackStates[mergedCh.channel];
+                }
+
+                auto [resolved, newState] = resolveChannel(mergedCh, entry.bars, state);
+                
+                // Save state for next time
+                trackStates[mergedCh.channel] = newState;
 
                 // Find the target channel by name
                 auto orderIt = channelOrder.find(uch.name);
@@ -478,19 +568,18 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         }
 
         // Build sections list for JSON/UI
-        double sectionStart = 0.0;
         for (auto& entry : result.arrangement) {
             BirdSection sec;
             sec.name = entry.sectionName;
             // Channels are merged into result.channels; sec.channels left empty
             result.sections.push_back(sec);
-            sectionStart += entry.bars;
         }
 
     } else if (!topLevelChannels.empty()) {
         // Legacy file (no sections): resolve with result.bars
         for (auto& uch : topLevelChannels) {
-            result.channels.push_back(resolveChannel(uch, result.bars));
+            auto [resolvedCh, patternState] = resolveChannel(uch, result.bars);
+            result.channels.push_back(resolvedCh);
         }
     }
 
@@ -510,9 +599,11 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
 // --- Populate te::Edit ---
 
 void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine) {
-    // Clear existing tracks
-    for (auto* track : te::getAudioTracks(edit))
-        edit.deleteTrack(track);
+    // Delete excess tracks
+    auto currentTracks = te::getAudioTracks(edit);
+    for (int i = currentTracks.size() - 1; i >= static_cast<int>(result.channels.size()); --i) {
+        edit.deleteTrack(currentTracks[i]);
+    }
 
     double bpm = 120.0;
     edit.tempoSequence.getTempos()[0]->setBpm(bpm);
@@ -538,53 +629,120 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
         track->setName(juce::String(ch.name));
 
-        // Add instrument plugin based on bird file `plugin` keyword
-        auto pluginInfo = pluginFromKeyword(ch.plugin);
+        // Determine required plugins
+        juce::StringArray requiredPlugins;
         bool instrumentLoaded = false;
+        
+        auto pluginInfo = pluginFromKeyword(ch.plugin);
+        if (pluginInfo.pluginId.isNotEmpty()) requiredPlugins.add(pluginInfo.pluginName);
+        else requiredPlugins.add("4OSC");
 
-        if (pluginInfo.pluginId.isNotEmpty()) {
-            // Try to find the plugin in the scanned list
-            if (auto foundDesc = findPluginByName(engine, pluginInfo.pluginName)) {
-                auto extPlugin = edit.getPluginCache().createNewPlugin(
-                    te::ExternalPlugin::xmlTypeName, *foundDesc);
-                if (extPlugin) {
-                    track->pluginList.insertPlugin(*extPlugin, 0, nullptr);
-                    instrumentLoaded = true;
-                    DBG("BirdLoader: Loaded '" + foundDesc->name +
-                        "' (" + foundDesc->pluginFormatName + ") for track '" + juce::String(ch.name) + "'");
+        if (!ch.fx.empty()) {
+            auto fxInfo = pluginFromKeyword(ch.fx);
+            if (fxInfo.pluginId.isNotEmpty()) requiredPlugins.add(fxInfo.pluginName);
+        }
+        if (!ch.strip.empty()) {
+            auto stripInfo = pluginFromKeyword(ch.strip);
+            if (stripInfo.pluginId.isNotEmpty()) requiredPlugins.add(stripInfo.pluginName);
+        }
+
+        // Get current external plugins
+        juce::StringArray currentPlugins;
+        auto plugins = track->pluginList.getPlugins();
+         for (auto* p : plugins) {
+            if (dynamic_cast<te::ExternalPlugin*>(p)) {
+                currentPlugins.add(p->getName());
+            } else if (dynamic_cast<te::FourOscPlugin*>(p)) {
+                currentPlugins.add("4OSC"); // Match the required side
+            }
+        }
+
+        bool pluginsMatch = (requiredPlugins == currentPlugins);
+
+        if (!pluginsMatch) {
+            // Remove old plugins
+            for (auto* p : plugins) {
+                if (dynamic_cast<te::ExternalPlugin*>(p) || dynamic_cast<te::FourOscPlugin*>(p)) {
+                    p->removeFromParent();
                 }
-            } else {
-                DBG("BirdLoader: Plugin '" + pluginInfo.pluginName +
-                    "' not found in scanned list — falling back to FourOsc");
             }
+
+            // Add instrument plugin based on bird file `plugin` keyword
+            if (pluginInfo.pluginId.isNotEmpty()) {
+                if (auto foundDesc = findPluginByName(engine, pluginInfo.pluginName)) {
+                    auto extPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc);
+                    if (extPlugin) {
+                        track->pluginList.insertPlugin(*extPlugin, 0, nullptr);
+                        instrumentLoaded = true;
+                        DBG("BirdLoader: Loaded '" + foundDesc->name + "' for track '" + juce::String(ch.name) + "'");
+                    }
+                } else {
+                    DBG("BirdLoader: Plugin '" + pluginInfo.pluginName + "' not found in scanned list — falling back to FourOsc");
+                }
+            }
+
+            if (!instrumentLoaded) {
+                if (auto synth = edit.getPluginCache().createNewPlugin(te::FourOscPlugin::xmlTypeName, {})) {
+                    track->pluginList.insertPlugin(*synth, 0, nullptr);
+                }
+            }
+
+            // Add FX plugin if specified
+            if (!ch.fx.empty()) {
+                auto fxInfo = pluginFromKeyword(ch.fx);
+                if (fxInfo.pluginId.isNotEmpty()) {
+                    if (auto foundDesc = findPluginByName(engine, fxInfo.pluginName)) {
+                        if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
+                            track->pluginList.insertPlugin(*fxPlugin, -1, nullptr); 
+                            DBG("BirdLoader: Added FX '" + foundDesc->name + "' to track '" + juce::String(ch.name) + "'");
+                        }
+                    }
+                }
+            }
+
+            // Add Channel Strip if specified
+            if (!ch.strip.empty()) {
+                auto stripInfo = pluginFromKeyword(ch.strip);
+                if (stripInfo.pluginId.isNotEmpty()) {
+                    if (auto foundDesc = findPluginByName(engine, stripInfo.pluginName)) {
+                        if (auto stripPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
+                            track->pluginList.insertPlugin(*stripPlugin, -1, nullptr); 
+                            DBG("BirdLoader: Added Strip '" + foundDesc->name + "' to track '" + juce::String(ch.name) + "'");
+                        }
+                    }
+                }
+            }
+        } else {
+            DBG("BirdLoader: Plugins match, skipping tear-down for track '" + juce::String(ch.name) + "'");
         }
 
-        if (!instrumentLoaded) {
-            // Fallback to built-in synth
-            if (auto synth = edit.getPluginCache().createNewPlugin(
-                    te::FourOscPlugin::xmlTypeName, {})) {
-                track->pluginList.insertPlugin(*synth, 0, nullptr);
-            }
-        }
-
-        // Add Console 1 channel strip to every track (if found)
-        if (console1Desc) {
-            auto stripPlugin = edit.getPluginCache().createNewPlugin(
-                te::ExternalPlugin::xmlTypeName, *console1Desc);
-            if (stripPlugin) {
-                track->pluginList.insertPlugin(*stripPlugin, -1, nullptr);
-                DBG("BirdLoader: Added Console 1 to track '" + juce::String(ch.name) + "'");
-            }
-        }
-
-        // Create MIDI clip spanning the cycle
+        // --- Handle MIDI Clip ---
         te::TimeRange clipRange(te::TimePosition(), fourBarsTime);
-        auto* clipBase = track->insertNewClip(
-            te::TrackItem::Type::midi,
-            juce::String(ch.name),
-            clipRange, nullptr);
+        auto clips = track->getClips();
+        te::MidiClip* midiClip = nullptr;
 
-        auto* midiClip = dynamic_cast<te::MidiClip*>(clipBase);
+        for (auto* clip : clips) {
+            if (auto* mc = dynamic_cast<te::MidiClip*>(clip)) {
+                midiClip = mc;
+                break;
+            }
+        }
+
+        if (!midiClip) {
+            auto* clipBase = track->insertNewClip(
+                te::TrackItem::Type::midi,
+                juce::String(ch.name),
+                clipRange, nullptr);
+            midiClip = dynamic_cast<te::MidiClip*>(clipBase);
+        } else {
+            // Update bound of existing clip
+            midiClip->setStart(te::TimePosition(), false, false);
+            midiClip->setLength(clipRange.getLength(), false);
+            midiClip->setOffset(te::TimeDuration());
+            midiClip->getSequence().clear(nullptr);
+            midiClip->setName(juce::String(ch.name));
+        }
+
         if (!midiClip) continue;
 
         auto& seq = midiClip->getSequence();
@@ -620,21 +778,34 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
 
         // Look up plugin info from parse result
         juce::String pluginField;
+        juce::String fxField;
         juce::String channelStripField;
+        
         if (parseResult && t < static_cast<int>(parseResult->channels.size())) {
-            auto info = pluginFromKeyword(parseResult->channels[t].plugin);
+            auto& parsedCh = parseResult->channels[t];
+            
+            auto info = pluginFromKeyword(parsedCh.plugin);
             if (info.pluginId.isNotEmpty()) {
                 pluginField = ",\"plugin\":{\"pluginId\":" + juce::JSON::toString(info.pluginId) +
                               ",\"pluginName\":" + juce::JSON::toString(info.pluginName) + "}";
             }
-            // Console 1 on every channel
-            channelStripField = ",\"channelStrip\":{\"pluginId\":" + juce::JSON::toString(CONSOLE_1.pluginId) +
-                                ",\"pluginName\":" + juce::JSON::toString(CONSOLE_1.pluginName) + "}";
+            
+            auto fxInfo = pluginFromKeyword(parsedCh.fx);
+            if (fxInfo.pluginId.isNotEmpty()) {
+                fxField = ",\"fx\":{\"pluginId\":" + juce::JSON::toString(fxInfo.pluginId) +
+                          ",\"pluginName\":" + juce::JSON::toString(fxInfo.pluginName) + "}";
+            }
+
+            auto stripInfo = pluginFromKeyword(parsedCh.strip);
+            if (stripInfo.pluginId.isNotEmpty()) {
+                channelStripField = ",\"channelStrip\":{\"pluginId\":" + juce::JSON::toString(stripInfo.pluginId) +
+                                    ",\"pluginName\":" + juce::JSON::toString(stripInfo.pluginName) + "}";
+            }
         }
 
         json += "{\"id\":" + juce::String(t) +
                 ",\"name\":" + juce::JSON::toString(track->getName()) +
-                pluginField + channelStripField +
+                pluginField + fxField + channelStripField +
                 ",\"notes\":[";
 
         auto clips = track->getClips();

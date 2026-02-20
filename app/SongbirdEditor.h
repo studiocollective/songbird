@@ -40,6 +40,7 @@ private:
     void loadBirdFile(const juce::File& birdFile);
     juce::String getTrackNotesJSON();
     BirdParseResult lastParseResult;  // stored for JSON serialization with plugin info
+    juce::File currentBirdFile;       // path to the currently loaded .bird file
 
     // Lyria generated track management
     std::map<int, magenta::LyriaPlugin*> lyriaPlugins;

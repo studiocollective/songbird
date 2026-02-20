@@ -1,0 +1,10 @@
+ch 1 kick
+  plugin kick
+
+arr intro 4
+
+sec intro
+  ch 1 kick
+    p x x x _
+      v 80
+        n 36

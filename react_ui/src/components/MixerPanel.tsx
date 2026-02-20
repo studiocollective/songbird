@@ -25,6 +25,7 @@ export function MixerPanel() {
               volume={track.volume}
               pan={track.pan}
               instrument={track.instrument}
+              fx={track.fx}
               channelStrip={track.channelStrip}
             />
           ))}

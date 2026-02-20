@@ -20,6 +20,8 @@ struct BirdChannel {
     int channel;                 // MIDI channel (0-based)
     std::string name;            // channel name (e.g. "bass", "drums")
     std::string plugin;          // plugin keyword (e.g. "synths", "kick", "drums", "bass")
+    std::string fx;              // fx keyword (e.g. "delay", "reverb")
+    std::string strip;           // channel strip keyword (e.g. "console1")
     std::vector<BirdNote> notes; // resolved notes
 };
 
@@ -56,12 +58,21 @@ public:
     // Serialize all track note data from an Edit as a JSON string
     static juce::String getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);
 
+    struct PatternState {
+        size_t patIdx = 0;
+        size_t noteIdx = 0;
+        size_t velIdx = 0;
+        int ticksInStep = 0; // Ticks already elapsed in the current pattern step
+    };
+
     // Resolve pattern + note groups + velocities into concrete BirdNote events
+    // Modifies state to allow pattern phase to continue across sections
     static std::vector<BirdNote> resolveNotes(
         const std::vector<int>& pattern,
         const std::vector<std::vector<int>>& noteGroups,
         const std::vector<int>& velocities,
-        int sequenceLength);
+        int sequenceLength,
+        PatternState& state);
 
 private:
     // Internal parsing helpers

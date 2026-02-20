@@ -184,7 +184,8 @@ void BirdComposer::process_chunk(vector<string> chunk)
         }
     }
 
-    if (sequence.size() > 0) {
+    // If no sections were defined, run the legacy single-sequence mode
+    if (sequence.size() > 0 && sections.empty()) {
         construct_sequencers(sequence);
     }
 }

@@ -6,9 +6,15 @@ set -e
 cd "$(dirname "$0")/.."
 
 SKIP_BUILD=false
-if [ "$1" == "--skip-build" ]; then
-    SKIP_BUILD=true
-fi
+SKETCH_NAME=""
+
+for arg in "$@"; do
+    if [ "$arg" == "--skip-build" ]; then
+        SKIP_BUILD=true
+    else
+        SKETCH_NAME="$arg"
+    fi
+done
 
 # Colors
 GREEN='\033[0;32m'
@@ -76,7 +82,12 @@ done
 
 # Step 5: Launch the app
 echo -e "${GREEN}Launching Songbird Player...${NC}"
-open "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app"
+if [ -n "$SKETCH_NAME" ]; then
+    open "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app" --args "$SKETCH_NAME"
+    echo "  Opening sketch: $SKETCH_NAME"
+else
+    open "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app"
+fi
 
 echo ""
 echo -e "${CYAN}Songbird Player is running!${NC}"

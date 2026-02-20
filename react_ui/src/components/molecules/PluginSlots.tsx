@@ -76,11 +76,13 @@ interface PluginSlotsProps {
   trackId: number;
   trackType: 'midi' | 'audio';
   instrument: PluginSlot;
+  fx: PluginSlot;
   channelStrip: PluginSlot;
 }
 
-export function PluginSlots({ trackId, trackType, instrument, channelStrip }: PluginSlotsProps) {
+export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip }: PluginSlotsProps) {
   const availableInstruments = useMixerStore((s) => s.availableInstruments);
+  const availableFx = useMixerStore((s) => s.availableFx);
   const availableEffects = useMixerStore((s) => s.availableEffects);
 
   return (
@@ -105,6 +107,21 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
         <div className="h-4" />
       )}
       <PluginSlotButton
+        slot={fx}
+        label="+ FX"
+        icon="✨"
+        options={availableFx}
+        onSelect={(pluginId, pluginName) =>
+          useMixerStore.getState().setFx(trackId, pluginId, pluginName)
+        }
+        onToggleBypass={() =>
+          useMixerStore.getState().toggleFxBypass(trackId)
+        }
+        onOpen={() =>
+          useMixerStore.getState().openPlugin(trackId, 'fx')
+        }
+      />
+      <PluginSlotButton
         slot={channelStrip}
         label="+ Strip"
         icon="🎛️"
@@ -125,7 +142,7 @@ export function PluginSlots({ trackId, trackType, instrument, channelStrip }: Pl
 
 // --- Style constants ---
 
-const slotsContainer = `w-full px-1.5 space-y-0.5 mb-1.5 h-12 overflow-visible`;
+const slotsContainer = `w-full px-1.5 space-y-0.5 mb-1.5 h-16 overflow-visible`;
 
 const slotWrapper = `relative w-full`;
 const slotRow = `flex items-center gap-0.5`;

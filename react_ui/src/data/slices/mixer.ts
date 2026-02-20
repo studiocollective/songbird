@@ -34,6 +34,7 @@ export interface Track {
   volume: number;
   pan: number;
   instrument: PluginSlot;   // only used for midi tracks
+  fx: PluginSlot;           // Insert effect (e.g. reverb, delay)
   channelStrip: PluginSlot;
   notes: NoteData[];
 }
@@ -60,14 +61,17 @@ export interface MixerState {
 
   // Plugin actions
   setInstrument: (id: number, pluginId: string | null, pluginName: string | null) => void;
+  setFx: (id: number, pluginId: string | null, pluginName: string | null) => void;
   setChannelStrip: (id: number, pluginId: string | null, pluginName: string | null) => void;
   toggleInstrumentBypass: (id: number) => void;
+  toggleFxBypass: (id: number) => void;
   toggleChannelStripBypass: (id: number) => void;
-  openPlugin: (trackId: number, slotType: 'instrument' | 'channelStrip') => void;
+  openPlugin: (trackId: number, slotType: 'instrument' | 'fx' | 'channelStrip') => void;
 
   // Dynamic Plugin List
   availableInstruments: { id: string; name: string; vendor: string; category: string }[];
   availableEffects: { id: string; name: string; vendor: string; category: string }[];
+  availableFx: { id: string; name: string; vendor: string; category: string }[];
   fetchAvailablePlugins: () => Promise<void>;
 
   // Track data from bird file
@@ -87,6 +91,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
 
   availableInstruments: [],
   availableEffects: [],
+  availableFx: [],
   fetchAvailablePlugins: async () => {
       try {
           const result = await nativeFunction('getAvailablePlugins')();
@@ -94,9 +99,10 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
           if (data && data.instruments) {
               set({ 
                   availableInstruments: data.instruments,
-                  availableEffects: data.effects 
+                  availableEffects: data.effects,
+                  availableFx: data.fx || []
               });
-              console.log(`[Mixer] Loaded ${data.instruments.length} instruments and ${data.effects.length} effects`);
+              console.log(`[Mixer] Loaded ${data.instruments.length} instruments, ${data.effects.length} effects, and ${(data.fx || []).length} fx`);
           }
       } catch (e) {
           console.error("Failed to fetch available plugins", e);
@@ -134,6 +140,14 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     }));
     nativeFunction('changePlugin')(id, 'instrument', pluginName ?? '');
   },
+  setFx: (id, pluginId, pluginName) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === id ? { ...t, fx: { pluginId, pluginName, bypassed: false } } : t
+      ),
+    }));
+    nativeFunction('changePlugin')(id, 'fx', pluginName ?? '');
+  },
   setChannelStrip: (id, pluginId, pluginName) => {
     set((s) => ({
       tracks: s.tracks.map((t) =>
@@ -146,6 +160,12 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     set((s) => ({
       tracks: s.tracks.map((t) =>
         t.id === id ? { ...t, instrument: { ...t.instrument, bypassed: !t.instrument.bypassed } } : t
+      ),
+    })),
+  toggleFxBypass: (id) =>
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === id ? { ...t, fx: { ...t.fx, bypassed: !t.fx.bypassed } } : t
       ),
     })),
   toggleChannelStripBypass: (id) =>

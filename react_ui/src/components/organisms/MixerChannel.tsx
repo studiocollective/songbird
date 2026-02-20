@@ -14,11 +14,12 @@ interface MixerChannelProps {
   volume: number;
   pan: number;
   instrument: PluginSlot;
+  fx: PluginSlot;
   channelStrip: PluginSlot;
 }
 
 export function MixerChannel({
-  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, channelStrip,
+  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip,
 }: MixerChannelProps) {
   const level = useMeterStore((s) => {
     const ch = s.levels[trackIndex];
@@ -35,7 +36,7 @@ export function MixerChannel({
         </span>
       </div>
 
-      <PluginSlots trackId={trackId} trackType={trackType} instrument={instrument} channelStrip={channelStrip} />
+      <PluginSlots trackId={trackId} trackType={trackType} instrument={instrument} fx={fx} channelStrip={channelStrip} />
 
       <div className={msWrapper}>
         <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />
