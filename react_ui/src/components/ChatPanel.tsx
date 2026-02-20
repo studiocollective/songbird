@@ -4,13 +4,22 @@ import { useChatStore } from '@/data/store';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { GeminiService } from '@/lib/ai/gemini';
 import { Juce } from '@/lib';
+import { MarkdownRenderer } from './molecules/MarkdownRenderer';
 
 export function ChatPanel() {
-  const { chatOpen, chatMessages, chatInput, apiKey, selectedModel, setChatInput, setApiKey, setSelectedModel, addMessage, updateLastMessage } = useChatStore();
-  const [isTyping, setIsTyping] = useState(false);
+  const {
+    chatOpen, chatMessages, chatInput, apiKey, selectedModel,
+    isThinking, isStreaming, toolUseLabel,
+    setChatInput, setApiKey, setSelectedModel,
+    addMessage, updateLastMessage, removeLastMessage,
+    setThinking, setStreaming, setToolUseLabel,
+  } = useChatStore();
   const [tempKey, setTempKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const isActive = isThinking || isStreaming;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -18,7 +27,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatMessages, isTyping]);
+  }, [chatMessages, isThinking, isStreaming]);
 
   // Load API key from C++ ApplicationProperties on mount
   useEffect(() => {
@@ -58,15 +67,23 @@ export function ChatPanel() {
     }
   };
 
+  const handleStop = () => {
+    abortRef.current?.abort();
+  };
+
   const handleSend = async () => {
-    if (!chatInput.trim() || !apiKey) return;
+    if (!chatInput.trim() || !apiKey || isActive) return;
     
     addMessage('user', chatInput);
     setChatInput('');
-    setIsTyping(true);
+    setThinking(true);
+    setToolUseLabel(null);
 
-    // Add empty assistant message that will be streamed into
-    addMessage('assistant', '');
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    let hasReceivedText = false;
 
     try {
       // Read the current bird file so Gemini can see/edit it
@@ -79,33 +96,65 @@ export function ChatPanel() {
 
       const result = await GeminiService.streamMessage(
         apiKey,
-        // Pass history without the empty assistant message we just added
-        useChatStore.getState().chatMessages.slice(0, -1),
+        // Pass current history (without any not-yet-added assistant message)
+        useChatStore.getState().chatMessages,
         buildSystemPrompt(currentBird),
         (_delta, accumulated) => {
-          updateLastMessage(accumulated);
+          if (!hasReceivedText) {
+            // First chunk arrives — switch from thinking to streaming, add assistant message
+            hasReceivedText = true;
+            setThinking(false);
+            setStreaming(true);
+            addMessage('assistant', accumulated);
+          } else {
+            updateLastMessage(accumulated);
+          }
         },
         selectedModel,
         // Tool call handler: Gemini calls update_bird_file → we save via C++
         async (call) => {
           if (call.name === 'update_bird_file') {
+            setToolUseLabel('Updating bird file…');
             const content = call.args.content as string;
             console.log('[Chat] Tool call: update_bird_file, saving...');
             await Juce.getNativeFunction('updateBird')(content);
             return { success: true };
           }
           return { error: 'Unknown tool' };
-        }
+        },
+        controller.signal,
       );
-      
+
+      // Handle error response
       if (result.error) {
-        updateLastMessage(`⚠️ Error: ${result.error}`);
+        if (!hasReceivedText) {
+          addMessage('assistant', `⚠️ Error: ${result.error}`);
+        } else {
+          const current = useChatStore.getState().chatMessages;
+          const lastContent = current[current.length - 1]?.content || '';
+          updateLastMessage(lastContent + `\n\n⚠️ Error: ${result.error}`);
+        }
+      }
+
+      // Handle case where no text was received and no error (e.g. abort with no content)
+      if (!hasReceivedText && !result.error && controller.signal.aborted) {
+        // User stopped before any text — nothing to show
       }
     } catch (e) {
       console.error(e);
-      updateLastMessage('⚠️ Failed to connect to Gemini.');
+      if (!hasReceivedText) {
+        addMessage('assistant', '⚠️ Failed to connect to Gemini.');
+      } else {
+        updateLastMessage(
+          (useChatStore.getState().chatMessages.at(-1)?.content || '') +
+          '\n\n⚠️ Failed to connect to Gemini.'
+        );
+      }
     } finally {
-      setIsTyping(false);
+      setThinking(false);
+      setStreaming(false);
+      setToolUseLabel(null);
+      abortRef.current = null;
     }
   };
 
@@ -171,7 +220,7 @@ export function ChatPanel() {
 
         {/* Messages */}
         <div className={messagesScroll}>
-          {chatMessages.length === 0 && (
+          {chatMessages.length === 0 && !isThinking && (
             <div className={welcomeWrapper}>
               <div className={welcomeEmoji}>🐦</div>
               <p className={welcomeText}>
@@ -196,20 +245,36 @@ export function ChatPanel() {
           {chatMessages.map((msg, i) => (
             <div key={i} className={msg.role === 'user' ? userOuter : assistantOuter}>
               <div className={cn(bubble, msg.role === 'user' ? userBubble : assistantBubble)}>
-                <pre className={messageBody}>{msg.content}</pre>
+                <MarkdownRenderer content={msg.content} />
               </div>
             </div>
           ))}
 
-          {isTyping && (
+          {/* Tool use indicator */}
+          {toolUseLabel && (
             <div className={assistantOuter}>
-              <div className={typingContainer}>
-                <div className={typingDot} />
-                <div className={typingDot1} />
-                <div className={typingDot2} />
+              <div className={toolIndicator}>
+                <span className={toolIcon}>🔧</span>
+                <span>{toolUseLabel}</span>
               </div>
             </div>
           )}
+
+          {/* Thinking indicator — only while waiting for first text */}
+          {isThinking && (
+            <div className={assistantOuter}>
+              <div className={thinkingContainer}>
+                <span className={thinkingIcon}>✨</span>
+                <span className={thinkingText}>Thinking</span>
+                <span className={thinkingDots}>
+                  <span className={dot1}>.</span>
+                  <span className={dot2}>.</span>
+                  <span className={dot3}>.</span>
+                </span>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -223,11 +288,17 @@ export function ChatPanel() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Describe your music..."
               className={inputField}
-              disabled={isTyping}
+              disabled={isActive}
             />
-            <button onClick={handleSend} className={sendBtn} disabled={isTyping}>
-              Send
-            </button>
+            {isActive ? (
+              <button onClick={handleStop} className={stopBtn} title="Stop generation">
+                ■
+              </button>
+            ) : (
+              <button onClick={handleSend} className={sendBtn} disabled={!chatInput.trim()}>
+                Send
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -280,16 +351,26 @@ const userBubble = `
 const assistantBubble = `
   bg-[hsl(var(--chat-assistant))] text-[hsl(var(--foreground))]
   border border-[hsl(var(--chat-assistant-border))]`;
-const messageBody = `whitespace-pre-wrap font-sans`;
 
-// --- Typing ---
-const typingContainer = `
+// --- Thinking indicator ---
+const thinkingContainer = `
+  inline-flex items-center gap-1.5 px-3 py-1.5
+  text-[11px] text-[hsl(var(--muted-foreground))]
   bg-[hsl(var(--chat-assistant))] border border-[hsl(var(--chat-assistant-border))]
-  rounded-lg px-3 py-2 inline-flex gap-1`;
-const typingDotBase = `w-1.5 h-1.5 rounded-full bg-[hsl(var(--muted-foreground))] animate-bounce`;
-const typingDot = typingDotBase;
-const typingDot1 = `${typingDotBase} [animation-delay:150ms]`;
-const typingDot2 = `${typingDotBase} [animation-delay:300ms]`;
+  rounded-lg`;
+const thinkingIcon = `text-sm animate-pulse`;
+const thinkingText = `font-medium`;
+const thinkingDots = `inline-flex`;
+const dot1 = `animate-bounce [animation-delay:0ms]`;
+const dot2 = `animate-bounce [animation-delay:150ms]`;
+const dot3 = `animate-bounce [animation-delay:300ms]`;
+
+// --- Tool use indicator ---
+const toolIndicator = `
+  inline-flex items-center gap-1.5 px-3 py-1.5
+  text-[11px] text-[hsl(var(--muted-foreground))]
+  italic`;
+const toolIcon = `text-sm`;
 
 // --- Input ---
 const inputWrapper = `shrink-0 border-t border-[hsl(var(--border))] p-2`;
@@ -304,3 +385,8 @@ const sendBtn = `
   h-8 px-3 rounded-md bg-[hsl(var(--progress))] hover:bg-[hsl(var(--progress))]/80
   text-xs text-[hsl(var(--primary-foreground))] font-medium transition-colors
   disabled:opacity-50 disabled:cursor-not-allowed`;
+const stopBtn = `
+  h-8 w-8 rounded-md bg-[hsl(var(--destructive,0_84%_60%))]
+  hover:bg-[hsl(var(--destructive,0_84%_60%))]/80
+  text-xs text-white font-bold transition-colors
+  flex items-center justify-center`;

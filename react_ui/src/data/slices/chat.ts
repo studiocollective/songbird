@@ -15,13 +15,20 @@ export interface ChatState {
   chatInput: string;
   apiKey: string | null;
   selectedModel: string;
+  isThinking: boolean;
+  isStreaming: boolean;
+  toolUseLabel: string | null;
 
   toggleChat: () => void;
   setChatInput: (input: string) => void;
   setApiKey: (key: string) => void;
   setSelectedModel: (model: string) => void;
+  setThinking: (v: boolean) => void;
+  setStreaming: (v: boolean) => void;
+  setToolUseLabel: (label: string | null) => void;
   addMessage: (role: 'user' | 'assistant', content: string) => void;
   updateLastMessage: (content: string) => void;
+  removeLastMessage: () => void;
   clearMessages: () => void;
 }
 
@@ -34,11 +41,17 @@ export const useChatSlice: StateCreator<ChatState> = (set) => ({
   chatInput: '',
   apiKey: null,
   selectedModel: 'gemini-3-flash-preview',
+  isThinking: false,
+  isStreaming: false,
+  toolUseLabel: null,
 
   toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
   setChatInput: (chatInput) => set({ chatInput }),
   setApiKey: (apiKey) => set({ apiKey }),
   setSelectedModel: (selectedModel) => set({ selectedModel }),
+  setThinking: (isThinking) => set({ isThinking }),
+  setStreaming: (isStreaming) => set({ isStreaming }),
+  setToolUseLabel: (toolUseLabel) => set({ toolUseLabel }),
   addMessage: (role, content) =>
     set((s) => ({
       chatMessages: [...s.chatMessages, { role, content }],
@@ -51,6 +64,10 @@ export const useChatSlice: StateCreator<ChatState> = (set) => ({
       }
       return { chatMessages: msgs };
     }),
+  removeLastMessage: () =>
+    set((s) => ({
+      chatMessages: s.chatMessages.slice(0, -1),
+    })),
   clearMessages: () => set({ chatMessages: [] }),
 });
 

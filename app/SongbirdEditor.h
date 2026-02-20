@@ -8,6 +8,7 @@
 #include "libraries/magenta/LyriaPlugin.h"
 #include "BirdLoader.h"
 #include "PlaybackInfo.h"
+#include "libraries/tracktion/examples/common/PluginWindow.h"
 
 namespace te = tracktion;
 
@@ -22,7 +23,7 @@ public:
 
 private:
     // Engine & Edit
-    te::Engine engine { "Songbird Player" };
+    te::Engine engine { "Songbird Player", std::make_unique<ExtendedUIBehaviour>(), nullptr };
     std::unique_ptr<te::Edit> edit;
 
     // WebView

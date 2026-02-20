@@ -53,6 +53,7 @@ export class GeminiService {
     onChunk: (delta: string, accumulated: string) => void,
     preferredModel: string = 'gemini-3-flash-preview',
     onToolCall?: (call: ToolCall) => Promise<Record<string, unknown>>,
+    signal?: AbortSignal,
   ): Promise<GeminiResponse> {
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -62,7 +63,12 @@ export class GeminiService {
     const models = [preferredModel, ...MODELS.filter(m => m !== preferredModel)];
 
     for (const model of models) {
-      const result = await this.tryWithTools(model, apiKey, systemPrompt, contents, onChunk, onToolCall);
+      // Check if already aborted
+      if (signal?.aborted) {
+        return { content: '' };
+      }
+
+      const result = await this.tryWithTools(model, apiKey, systemPrompt, contents, onChunk, onToolCall, signal);
 
       if (result.error && (result.error.includes('high demand') || result.error.includes('429') || result.error.includes('503'))) {
         console.log(`[Gemini] ${model} unavailable, trying fallback...`);
@@ -87,6 +93,7 @@ export class GeminiService {
     contents: Array<{ role: string; parts: Array<Record<string, unknown>> }>,
     onChunk: (delta: string, accumulated: string) => void,
     onToolCall?: (call: ToolCall) => Promise<Record<string, unknown>>,
+    signal?: AbortSignal,
   ): Promise<GeminiResponse> {
     const generationConfig = {
       temperature: 0.7,
@@ -109,6 +116,7 @@ export class GeminiService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
+        signal,
       });
 
       console.log(`[Gemini] ${model} (tool call): ${response.status}`);
@@ -139,6 +147,11 @@ export class GeminiService {
         // Execute the tool
         const toolResult = await onToolCall({ name: fc.name, args: fc.args });
 
+        // Check abort after tool call
+        if (signal?.aborted) {
+          return { content: '' };
+        }
+
         // Step 2: Send function result back and stream the final response
         const followUpContents = [
           ...contents,
@@ -154,7 +167,7 @@ export class GeminiService {
           }
         ];
 
-        return await this.streamResponse(model, apiKey, systemPrompt, followUpContents, onChunk, generationConfig);
+        return await this.streamResponse(model, apiKey, systemPrompt, followUpContents, onChunk, generationConfig, signal);
       }
 
       // No function call — just extract text directly
@@ -169,6 +182,11 @@ export class GeminiService {
 
       return { content: textParts };
     } catch (e) {
+      // AbortError means user cancelled — return gracefully
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        console.log(`[Gemini] ${model} request aborted by user`);
+        return { content: '' };
+      }
       console.error(`[Gemini] ${model} error:`, e);
       return { content: '', error: e instanceof Error ? e.message : 'Unknown network error' };
     }
@@ -184,6 +202,7 @@ export class GeminiService {
     contents: unknown[],
     onChunk: (delta: string, accumulated: string) => void,
     generationConfig: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<GeminiResponse> {
     try {
       const url = `${BASE}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
@@ -198,6 +217,7 @@ export class GeminiService {
           contents,
           generationConfig,
         }),
+        signal,
       });
 
       console.log(`[Gemini] ${model} (stream): ${response.status}`);
@@ -224,6 +244,12 @@ export class GeminiService {
       let buffer = '';
 
       while (true) {
+        // Check abort before each read
+        if (signal?.aborted) {
+          reader.cancel();
+          return { content: accumulated };
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -255,6 +281,11 @@ export class GeminiService {
 
       return { content: accumulated };
     } catch (e) {
+      // AbortError means user cancelled — return what we have
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        console.log(`[Gemini] ${model} stream aborted by user`);
+        return { content: '' };
+      }
       console.error(`[Gemini] ${model} stream error:`, e);
       return { content: '', error: e instanceof Error ? e.message : 'Unknown network error' };
     }

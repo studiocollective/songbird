@@ -78,35 +78,6 @@ void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType,
         logToJS("[C++]   Target: " + name);
 
         targetPlugin->showWindowExplicitly();
-
-        // Helper to find and pop window
-        auto popWindow = [this, name](const juce::String& prefix) {
-            auto& d = juce::Desktop::getInstance();
-            bool found = false;
-            for (int i = 0; i < d.getNumComponents(); ++i) {
-                auto* c = d.getComponent(i);
-                auto wName = c->getName();
-                
-                // Bidirectional check: "Kick 2" in "Kick 2 - VST3" OR "Buchla Easel" in "Buchla Easel V"
-                if (wName.isNotEmpty() && (wName.containsIgnoreCase(name) || name.containsIgnoreCase(wName))) {
-                    c->setVisible(true);
-                    c->toFront(true);
-                    c->setAlwaysOnTop(true);
-                    found = true;
-                    logToJS("[C++]   " + prefix + " Found & Popped: " + wName);
-                }
-            }
-            if (!found) logToJS("[C++]   " + prefix + " No matching window found yet.");
-        };
-
-        // 1. Immediate check
-        popWindow("(Immediate)");
-
-        // 2. Delayed check (100ms)
-        juce::Timer::callAfterDelay(100, [popWindow] { popWindow("(100ms)"); });
-
-        // 3. Final check (500ms) - catch slow plugins
-        juce::Timer::callAfterDelay(500, [popWindow] { popWindow("(500ms)"); });
     }
     else
     {

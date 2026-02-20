@@ -204,6 +204,7 @@ void SongbirdEditor::scanForPlugins()
                 "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
                 "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
                 "Heartbeat", "Kick 3",
+                "Surge XT", "Monoment Bass", "SubLabXL",
                 "Console 1", "American Class A", "British Class A",
                 "Weiss DS1-MK3", "Summit Audio Grand Channel"
             };
@@ -261,7 +262,8 @@ void SongbirdEditor::scanForPlugins()
     juce::StringArray synths = {
         "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
         "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
-        "Heartbeat", "Kick 3"
+        "Heartbeat", "Kick 3",
+        "Surge XT", "Monoment Bass", "SubLabXL"
     };
     for (auto& name : synths)
         scanFile("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3", "VST3");

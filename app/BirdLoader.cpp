@@ -16,6 +16,7 @@ struct PluginInfo {
 static PluginInfo pluginFromKeyword(const std::string& keyword) {
     // Arturia classic emulations
     if (keyword == "synths")   return { "arturia.pigments",      "Pigments" };
+    if (keyword == "surge")    return { "surge-synth-team.surge-xt", "Surge XT" };
     if (keyword == "mini")     return { "arturia.mini-v",        "Mini V" };
     if (keyword == "cs80")     return { "arturia.cs-80-v",       "CS-80 V" };
     if (keyword == "prophet")  return { "arturia.prophet-v",     "Prophet-5 V" };
@@ -26,6 +27,8 @@ static PluginInfo pluginFromKeyword(const std::string& keyword) {
     if (keyword == "kick")     return { "sonicacademy.kick-3",   "Kick 3" };
     if (keyword == "drums")    return { "softube.heartbeat",     "Heartbeat" };
     if (keyword == "bass")     return { "arturia.mini-v",        "Mini V" };
+    if (keyword == "monoment") return { "softube.monoment-bass", "Monoment Bass" };
+    if (keyword == "sublab")   return { "futureaudioworkshop.sublabxl", "SubLabXL" };
     // Effects
     if (keyword == "delay")    return { "softube.tube-delay", "Tube Delay" };
     if (keyword == "valhalla") return { "valhalladsp.valhallaroom", "ValhallaRoom" };
@@ -99,7 +102,12 @@ std::vector<int> BirdLoader::parsePattern(const std::vector<std::string>& tokens
             // Rest of same length as last duration
             pattern.push_back(-std::abs(lastDur));
         } else {
-            lastDur = dur_from_string(tokens[i]);
+            int parsed = dur_from_string(tokens[i]);
+            if (parsed == 0) {
+                DBG("BirdLoader: Unknown duration '" + tokens[i] + "', defaulting to 'q'");
+                parsed = q;
+            }
+            lastDur = parsed;
             pattern.push_back(lastDur);
         }
     }
@@ -190,6 +198,12 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
     while (ticks < sequenceLength) {
         int durConfig = pattern[state.patIdx];
         int durTotal = std::abs(durConfig);
+        
+        if (durTotal == 0) {
+            durTotal = q; // fallback to prevent infinite loop
+            durConfig = durTotal; // treat as note-on
+        }
+
         int durRemaining = durTotal - state.ticksInStep;
 
         if (state.ticksInStep == 0 && durConfig > 0) {
