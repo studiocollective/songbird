@@ -80,21 +80,24 @@ for i in {1..20}; do
     sleep 0.5
 done
 
-# Step 5: Launch the app
+# Step 5: Launch the app (run binary directly so logs appear in terminal)
+APP_BIN="build/SongbirdPlayer_artefacts/Debug/Songbird Player.app/Contents/MacOS/Songbird Player"
 echo -e "${GREEN}Launching Songbird Player...${NC}"
 if [ -n "$SKETCH_NAME" ]; then
-    open "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app" --args "$SKETCH_NAME"
+    "$APP_BIN" "$SKETCH_NAME" &
+    APP_PID=$!
     echo "  Opening sketch: $SKETCH_NAME"
 else
-    open "build/SongbirdPlayer_artefacts/Debug/Songbird Player.app"
+    "$APP_BIN" &
+    APP_PID=$!
 fi
 
 echo ""
 echo -e "${CYAN}Songbird Player is running!${NC}"
 echo "  React UI: http://localhost:5173 (hot reload)"
-echo "  Press Ctrl+C to stop the dev server"
+echo "  Press Ctrl+C to stop"
 echo ""
 
-# Keep script running so Vite stays alive
-trap "kill $VITE_PID 2>/dev/null; exit" INT TERM
-wait $VITE_PID
+# Keep script running; Ctrl+C kills both app and Vite
+trap "kill $APP_PID $VITE_PID 2>/dev/null; exit" INT TERM
+wait $APP_PID $VITE_PID

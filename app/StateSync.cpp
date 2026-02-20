@@ -29,7 +29,7 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
         handleLyriaState(state);
     }
 
-    DBG("State updated: " + storeName);
+
 }
 
 void SongbirdEditor::applyTransportState(const juce::var& state)
@@ -61,7 +61,7 @@ void SongbirdEditor::applyTransportState(const juce::var& state)
         if (bpm > 20.0 && bpm < 300.0)
         {
             edit->tempoSequence.getTempos()[0]->setBpm(bpm);
-            DBG("BPM: " + juce::String(bpm));
+
         }
     }
 

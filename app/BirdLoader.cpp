@@ -18,14 +18,14 @@ static PluginInfo pluginFromKeyword(const std::string& keyword) {
     if (keyword == "synths")   return { "arturia.pigments",      "Pigments" };
     if (keyword == "mini")     return { "arturia.mini-v",        "Mini V" };
     if (keyword == "cs80")     return { "arturia.cs-80-v",       "CS-80 V" };
-    if (keyword == "prophet")  return { "arturia.prophet-v",     "Prophet V" };
+    if (keyword == "prophet")  return { "arturia.prophet-v",     "Prophet-5 V" };
     if (keyword == "jup8")     return { "arturia.jup-8-v",       "Jup-8 V" };
     if (keyword == "dx7")      return { "arturia.dx7-v",         "DX7 V" };
     if (keyword == "buchla")   return { "arturia.buchla-easel-v","Buchla Easel V" };
     // Drums & bass
-    if (keyword == "kick")     return { "sonicacademy.kick-2",   "Kick 2" };
+    if (keyword == "kick")     return { "sonicacademy.kick-3",   "Kick 3" };
     if (keyword == "drums")    return { "softube.heartbeat",     "Heartbeat" };
-    if (keyword == "bass")     return { "futureaudioworkshop.sublab-xl", "SubLab XL" };
+    if (keyword == "bass")     return { "arturia.mini-v",        "Mini V" };
     // Effects
     if (keyword == "delay")    return { "softube.tube-delay", "Tube Delay" };
     if (keyword == "valhalla") return { "valhalladsp.valhallaroom", "ValhallaRoom" };
@@ -327,11 +327,15 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
     // Flush current channel into appropriate container
     auto flushChannel = [&]() {
         flushLayer(true);
-        if (inChannel && !currentUCh.layers.empty()) {
-            if (currentSectionName.empty())
-                topLevelChannels.push_back(currentUCh);
-            else
-                currentSectionChannels.push_back(currentUCh);
+        if (inChannel) {
+            bool hasLayers = !currentUCh.layers.empty();
+            bool hasConfig = !currentUCh.plugin.empty() || !currentUCh.fx.empty() || !currentUCh.strip.empty();
+            if (hasLayers || hasConfig) {
+                if (currentSectionName.empty())
+                    topLevelChannels.push_back(currentUCh);
+                else
+                    currentSectionChannels.push_back(currentUCh);
+            }
         }
         inChannel = false;
         currentUCh = UnresolvedChannel();
@@ -553,9 +557,13 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
                 if (orderIt == channelOrder.end()) continue;
                 auto& targetCh = result.channels[orderIt->second];
 
-                // Copy plugin if not yet set
+                // Copy plugin/fx/strip if not yet set
                 if (targetCh.plugin.empty())
                     targetCh.plugin = resolved.plugin;
+                if (targetCh.fx.empty())
+                    targetCh.fx = resolved.fx;
+                if (targetCh.strip.empty())
+                    targetCh.strip = resolved.strip;
 
                 // Offset all resolved notes by current beat position
                 for (auto note : resolved.notes) {
@@ -658,6 +666,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         }
 
         bool pluginsMatch = (requiredPlugins == currentPlugins);
+        DBG("BirdLoader: Track '" + juce::String(ch.name) + "' Required: [" + requiredPlugins.joinIntoString(", ") + "] | Current: [" + currentPlugins.joinIntoString(", ") + "] -> Match: " + (pluginsMatch ? "Yes" : "No"));
 
         if (!pluginsMatch) {
             // Remove old plugins

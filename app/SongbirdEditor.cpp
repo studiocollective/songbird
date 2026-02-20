@@ -52,9 +52,9 @@ SongbirdEditor::SongbirdEditor()
             );
         }
     } else {
-        birdFile = projectRoot.getChildFile("files/daw.bird");
+        birdFile = projectRoot.getChildFile("files/sketches/daw.bird");
         if (!birdFile.existsAsFile()) {
-            birdFile = juce::File::getCurrentWorkingDirectory().getChildFile("files/daw.bird");
+            birdFile = juce::File::getCurrentWorkingDirectory().getChildFile("files/sketches/daw.bird");
         }
     }
 
@@ -203,7 +203,7 @@ void SongbirdEditor::scanForPlugins()
             juce::StringArray required = {
                 "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
                 "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
-                "Heartbeat", "Kick 2",
+                "Heartbeat", "Kick 3",
                 "Console 1", "American Class A", "British Class A",
                 "Weiss DS1-MK3", "Summit Audio Grand Channel"
             };
@@ -212,14 +212,13 @@ void SongbirdEditor::scanForPlugins()
                 bool found = false;
                 for (auto& type : list.getTypes())
                 {
-                    if (type.name == name) { found = true; break; }
+                    if (type.name.equalsIgnoreCase(name)) { found = true; break; }
                 }
                 if (!found)
                 {
                     // Only invalidate if the plugin file actually exists on disk
                     juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
-                    juce::File au("/Library/Audio/Plug-Ins/Components/" + name + ".component");
-                    if (vst3.exists() || au.exists())
+                    if (vst3.exists())
                     {
                         DBG("PluginScan: Cache missing installed plugin: " + name + ", re-scanning...");
                         allFound = false;
@@ -262,15 +261,12 @@ void SongbirdEditor::scanForPlugins()
     juce::StringArray synths = {
         "Augmented Strings", "Buchla Easel V", "CS-80 V4", "DX7 V",
         "Jun-6 V", "Jup-8 V4", "Mini V3", "OB-Xa V", "Prophet-5 V",
-        "Heartbeat"
+        "Heartbeat", "Kick 3"
     };
     for (auto& name : synths)
         scanFile("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3", "VST3");
 
-    // 2. Kick 2 (AU)
-    scanFile("/Library/Audio/Plug-Ins/Components/Kick 2.component", "AudioUnit");
-
-    // 3. Effects (VST3 preferred, then AU)
+    // 2. Effects (VST3)
     juce::StringArray effects = {
         "Console 1", "American Class A", "British Class A",
         "Weiss DS1-MK3", "Summit Audio Grand Channel"
@@ -279,8 +275,6 @@ void SongbirdEditor::scanForPlugins()
         juce::File vst3("/Library/Audio/Plug-Ins/VST3/" + name + ".vst3");
         if (vst3.exists())
             scanFile(vst3.getFullPathName(), "VST3");
-        else
-            scanFile("/Library/Audio/Plug-Ins/Components/" + name + ".component", "AudioUnit");
     }
 
     DBG("PluginScan: Complete. " + juce::String(list.getNumTypes()) + " plugins ready.");

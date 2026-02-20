@@ -28,7 +28,7 @@ arr
 
 sec intro
   ch 1 kick
-    p x x x _
+    p t t t
       v 80
         n 36
   ch 2 sub
@@ -46,7 +46,7 @@ sec intro
 
 sec verse
   ch 1 kick
-    p x x x _
+    p t t t
       v 80
         n 36
   ch 2 sub
@@ -84,7 +84,7 @@ sec verse
 
 sec chorus
   ch 1 kick
-    p x x x _
+    p t t t
       v 80
         n 36
   ch 2 sub
@@ -130,7 +130,7 @@ sec chorus
 
 sec outro
   ch 1 kick
-    p x x x _
+    p t t t
       v 80
         n 36
   ch 6 chords
