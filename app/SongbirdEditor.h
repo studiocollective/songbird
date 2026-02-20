@@ -12,7 +12,7 @@
 
 namespace te = tracktion;
 
-class SongbirdEditor : public juce::Component
+class SongbirdEditor : public juce::Component, private juce::Timer
 {
 public:
     SongbirdEditor();
@@ -35,13 +35,20 @@ private:
     void handleStateUpdate(const juce::String& storeName, const juce::String& jsonValue);
     void applyTransportState(const juce::var& state);
     void applyMixerState(const juce::var& state);
+    void saveStateCache();
+    void loadStateCache();
+    void timerCallback() override;
 
     // Bird file loading
     void scanForPlugins();
     void loadBirdFile(const juce::File& birdFile);
+    void exportSheetMusic();
+    void exportStems(bool includeReturnFx);
+    void exportMaster();
     juce::String getTrackNotesJSON();
-    BirdParseResult lastParseResult;  // stored for JSON serialization with plugin info
-    juce::File currentBirdFile;       // path to the currently loaded .bird file
+    BirdParseResult lastParseResult;
+    juce::File currentBirdFile;
+    std::unique_ptr<juce::Thread> stemExportThread;
 
     // Lyria generated track management
     std::map<int, magenta::LyriaPlugin*> lyriaPlugins;

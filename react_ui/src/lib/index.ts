@@ -1,4 +1,4 @@
-// Re-export JUCE bridge utilities
+// @ts-ignore - JUCE bridge is not a standard module
 import * as Juce from './juce/juce.js';
 export { Juce };
 export const isPlugin = typeof window !== 'undefined' && !!window.__JUCE__;

@@ -1,0 +1,178 @@
+# daw.bird — main project file
+
+ch 1 kick
+  plugin kick
+  strip console1
+ch 2 sub
+  plugin sublab
+  strip console1
+ch 3 bass
+  plugin mini
+  strip console1
+ch 4 drums
+  plugin drums
+  strip console1
+ch 5 lead
+  plugin jup8
+  strip console1
+ch 6 chords
+  plugin prophet
+  fx widener
+  strip console1
+
+arr
+  intro 4
+  verse 4
+  chorus 4
+  outro 4
+
+sec intro
+  ch 1 kick
+    p q q q q
+      v 110
+        n 36
+    brightness 15_
+  ch 2 sub
+    p w
+      v 80
+        n 29
+        n 32
+        n 27
+        n 34
+  ch 6 chords
+    # Rhythmic pattern is exactly 4 beats (1 bar)
+    # This ensures each chord in the list below lasts for one full bar
+    p q q _x x _x x _q
+      v 80
+        n 41 48 53 56   # Bar 1: Fm
+        n 44 48 51 56   # Bar 2: Ab
+        n 39 43 46 51   # Bar 3: Eb
+        n 34 46 50 53   # Bar 4: Bb
+    brightness 20_
+
+sec verse
+  # Global continuous wipe over the section
+  brightness ramp 0.0 1.0 4b
+
+  ch 2 sub
+    p w
+      v 80
+        n 29
+        n 32
+        n 27
+        n 34
+  ch 3 bass
+    p x x x x x x x x
+      v 60 
+        n 29 - - - 32 - - -
+        n 27 - - - 34 - - -
+    
+    brightness 20_
+    resonance
+      100/    .       50/     .
+      80/     .       40/     .
+      .       .       .       .
+      .       70/     .       60/
+
+  ch 4 drums
+    p _q q
+      v 110
+        n 38
+    p x
+      v 90 70 85 75
+        n 40
+    p _x x
+      v 80
+        n 41
+    p _q _x x _q x
+      v 70
+        n 42
+    p _h _q xx
+      v 65
+        n 43
+    input_gain 6.0_
+
+  ch 6 chords
+    p q q _x x _x x _q
+      v 70
+        n 41 48 53 56
+        n 44 48 51 56
+        n 39 43 46 51
+        n 34 46 50 53
+    brightness 20_
+
+sec chorus
+  ch 1 kick
+    p q q q q
+      v 115
+        n 36
+    brightness 15_
+  ch 2 sub
+    p w
+      v 80
+        n 29
+        n 32
+        n 27
+        n 34
+  ch 3 bass
+    p x x x x x x x x
+      v 70 
+        n 29 - - - 32 - - -
+        n 27 - - - 34 - - -
+    brightness 20_
+  ch 4 drums
+    p _q q
+      v 120
+        n 38 39
+    p x
+      v 100 80 95 85
+        n 40
+    p _x x
+      v 95
+        n 41
+    p _q _x x _q x
+      v 80
+        n 42
+    p _h _q xx
+      v 75
+        n 43
+    p w
+      v 90
+        n 44
+    input_gain 8.0_
+
+  ch 6 chords
+    p q q _x x _x x _q
+      v 90
+        n 41 48 53 56
+        n 44 48 51 56
+        n 39 43 46 51
+        n 34 46 50 53
+    brightness 20_
+
+sec outro
+  ch 1 kick
+    p q q q q
+      v 110
+        n 36
+    brightness 15_
+  ch 2 sub
+    p w
+      v 60
+        n 29
+        n 32
+        n 27
+        n 34
+  ch 4 drums
+    p x
+      v 60 50
+        n 40
+    input_gain 4.0_
+  ch 6 chords
+    p q q _x x _x x _q
+      v 60
+        n 41 48 53 56
+        n 44 48 51 56
+        n 39 43 46 51
+        n 34 46 50 53
+    brightness 20_

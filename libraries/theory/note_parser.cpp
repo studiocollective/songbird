@@ -210,3 +210,66 @@ vector<int> midi_from_chord_name(string s) {
 
     return result;
 }
+
+int sharps_from_key_name(string s, bool& isMinor) {
+    if (s.empty()) return -99;
+    
+    // Default to major
+    isMinor = false;
+    
+    // Check for minor
+    string lower_s = s;
+    for (char& c : lower_s) c = tolower(c);
+    
+    if (lower_s.find("m") != string::npos) {
+        // Simple check for "m", "min", "minor"
+        // But beware of e.g. "Eb major" - "m" is in "major"? Wait, usually it's "maj" or just nothing for major.
+        // Let's be more specific. If it ends with 'm', "min", "minor", or has it separated.
+        if (lower_s.find("min") != string::npos || lower_s.find("minor") != string::npos || 
+            (lower_s.length() >= 2 && lower_s.back() == 'm')) {
+            isMinor = true;
+        } else if (lower_s.find("m") != string::npos && lower_s.find("maj") == string::npos) {
+            // E.g. "C m"
+            isMinor = true;
+        }
+    }
+    
+    // Extract root
+    if (s[0] < 'A' || s[0] > 'G') return -99;
+    string root(1, s[0]);
+    if (s.length() > 1 && (s[1] == '#' || s[1] == 'b')) {
+        root += s[1];
+    }
+    
+    // Map of major keys to sharps/flats
+    // Positive = sharps, Negative = flats
+    int sharps = 0;
+    
+    if (root == "C") sharps = 0;
+    else if (root == "G") sharps = 1;
+    else if (root == "D") sharps = 2;
+    else if (root == "A") sharps = 3;
+    else if (root == "E") sharps = 4;
+    else if (root == "B" || root == "Cb") sharps = 5; // Cb is technically -7, B is 5
+    else if (root == "F#" || root == "Gb") sharps = 6; // F# is 6, Gb is -6
+    else if (root == "C#" || root == "Db") sharps = 7; // C# is 7, Db is -5
+    else if (root == "F") sharps = -1;
+    else if (root == "Bb" || root == "A#") sharps = -2;
+    else if (root == "Eb" || root == "D#") sharps = -3;
+    else if (root == "Ab" || root == "G#") sharps = -4;
+    else return -99; // unknown
+    
+    // If Db, Gb, Cb, adjust to flats. Overlap with sharps for enharmonics.
+    if (root == "F#") sharps = 6;
+    else if (root == "Gb") sharps = -6;
+    else if (root == "Db") sharps = -5;
+    else if (root == "C#") sharps = 7;
+    else if (root == "Cb") sharps = -7;
+    
+    if (isMinor) {
+        // Minor keys have 3 fewer sharps (or 3 more flats) than their parallel major
+        sharps -= 3;
+    }
+    
+    return sharps;
+}

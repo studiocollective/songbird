@@ -14,6 +14,7 @@ export interface TransportState {
   loopBars: number;     // loop length in bars
   position: number;
   lastPositionUpdate: number; // timestamp of last position update (for smooth animation)
+  keySignature: string | null;
 
   play: () => void;
   stop: () => void;
@@ -23,6 +24,7 @@ export interface TransportState {
   setCurrentBar: (bar: number) => void;
   setCurrentSection: (section: string) => void;
   toggleLooping: () => void;
+  setKeySignature: (key: string | null) => void;
 }
 
 export const useTransportSlice: StateCreator<TransportState> = (set) => ({
@@ -38,6 +40,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
   loopBars: 0,
   position: 0,
   lastPositionUpdate: 0,
+  keySignature: null,
 
   play: () => set({ playing: true, lastPositionUpdate: performance.now() }),
   stop: () => set({ playing: false, position: 0, currentBar: 1, lastPositionUpdate: performance.now() }),
@@ -47,6 +50,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
   setCurrentBar: (bar) => set({ currentBar: bar }),
   setCurrentSection: (section) => set({ currentSection: section }),
   toggleLooping: () => set((s) => ({ looping: !s.looping })),
+  setKeySignature: (key) => set({ keySignature: key }),
 });
 
 export const TransportStateID = 'songbird-transport';

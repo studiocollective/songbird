@@ -22,7 +22,7 @@ void SongbirdEditor::logToJS(const juce::String& message)
 // Plugin window management
 //==============================================================================
 
-void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType, const juce::String& /*pluginId*/)
+void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId)
 {
     if (!edit)
     {
@@ -31,14 +31,19 @@ void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType,
     }
 
     auto audioTracks = te::getAudioTracks(*edit);
-    if (trackId < 0 || trackId >= audioTracks.size())
-    {
-        logToJS("[C++] openPluginWindow: trackId " + juce::String(trackId) + " out of range (0.." + juce::String(audioTracks.size() - 1) + ")");
-        return;
+    te::Track* track = nullptr;
+
+    if (trackId == audioTracks.size()) {
+        track = edit->getMasterTrack();
+    } else if (trackId >= 0 && trackId < audioTracks.size()) {
+        track = audioTracks[trackId];
     }
 
-    auto* track = audioTracks[trackId];
-    if (!track) return;
+    if (!track)
+    {
+        logToJS("[C++] openPluginWindow: trackId " + juce::String(trackId) + " out of range (0.." + juce::String(audioTracks.size()) + ")");
+        return;
+    }
 
     logToJS("[C++] openPluginWindow: track=" + juce::String(trackId) + " slot=" + slotType);
     logToJS("[C++]   Track '" + track->getName() + "' has " + juce::String(track->pluginList.size()) + " plugins:");
@@ -51,14 +56,43 @@ void SongbirdEditor::openPluginWindow(int trackId, const juce::String& slotType,
 
     if (slotType == "instrument")
     {
+        auto* audioTrack = dynamic_cast<te::AudioTrack*>(track);
         for (auto* plugin : track->pluginList)
         {
-            if (plugin != track->getVolumePlugin()
-                && !dynamic_cast<te::LevelMeterPlugin*>(plugin))
+            if (audioTrack && plugin == audioTrack->getVolumePlugin()) continue;
+            if (dynamic_cast<te::LevelMeterPlugin*>(plugin)) continue;
+
+            targetPlugin = plugin;
+            break;
+        }
+    }
+    else if (slotType == "fx")
+    {
+        for (auto* plugin : track->pluginList)
+        {
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
             {
-                targetPlugin = plugin;
-                break;
+                if (ext->getName() == pluginId || ext->desc.fileOrIdentifier == pluginId)
+                {
+                    targetPlugin = plugin;
+                    break;
+                }
             }
+        }
+        
+        // Fallback if not found by exact name/id (e.g. if the UI passes a generic name but the plugin desc is different)
+        if (!targetPlugin)
+        {
+            // Just find an ExternalPlugin that is neither the first (instrument) nor the last (channel strip)
+            juce::Array<te::ExternalPlugin*> extPlugins;
+            for (auto* plugin : track->pluginList)
+                if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+                    extPlugins.add(ext);
+                    
+            if (extPlugins.size() == 2) // Instrument and FX
+                targetPlugin = extPlugins.getLast();
+            else if (extPlugins.size() >= 3) // Instrument, FX, Strip
+                targetPlugin = extPlugins[1];
         }
     }
     else if (slotType == "channelStrip")
@@ -94,9 +128,14 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
     if (!edit) return;
 
     auto audioTracks = te::getAudioTracks(*edit);
-    if (trackId < 0 || trackId >= audioTracks.size()) return;
+    te::Track* track = nullptr;
 
-    auto* track = audioTracks[trackId];
+    if (trackId == audioTracks.size()) {
+        track = edit->getMasterTrack();
+    } else if (trackId >= 0 && trackId < audioTracks.size()) {
+        track = audioTracks[trackId];
+    }
+
     if (!track) return;
 
     logToJS("[C++] changePlugin: track=" + juce::String(trackId) + " slot=" + slotType + " name='" + pluginName + "'");
@@ -166,15 +205,15 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
 
     if (slotType == "instrument")
     {
+        auto* audioTrack = dynamic_cast<te::AudioTrack*>(track);
         for (auto* plugin : track->pluginList)
         {
-            if (plugin != track->getVolumePlugin()
-                && !dynamic_cast<te::LevelMeterPlugin*>(plugin))
-            {
-                logToJS("[C++]   Removing old instrument: " + plugin->getName());
-                plugin->deleteFromParent();
-                break;
-            }
+            if (audioTrack && plugin == audioTrack->getVolumePlugin()) continue;
+            if (dynamic_cast<te::LevelMeterPlugin*>(plugin)) continue;
+
+            logToJS("[C++]   Removing old instrument: " + plugin->getName());
+            plugin->deleteFromParent();
+            break;
         }
 
         if (newDesc)
@@ -205,6 +244,44 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
                     logToJS("[C++]     ... and " + juce::String(list.getNumTypes() - 20) + " more.");
                     break;
                 }
+            }
+        }
+    }
+    else if (slotType == "fx")
+    {
+        // Try to replace the existing FX plugin
+        te::ExternalPlugin* existingFx = nullptr;
+        juce::Array<te::ExternalPlugin*> extPlugins;
+        for (auto* plugin : track->pluginList)
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+                extPlugins.add(ext);
+                
+        if (extPlugins.size() == 2) // Instrument and FX
+            existingFx = extPlugins.getLast();
+        else if (extPlugins.size() >= 3) // Instrument, FX, Strip
+            existingFx = extPlugins[1];
+
+        if (existingFx)
+        {
+            logToJS("[C++]   Removing old FX: " + existingFx->getName());
+            existingFx->deleteFromParent();
+        }
+
+        if (newDesc)
+        {
+            auto newPlugin = edit->getPluginCache().createNewPlugin(
+                te::ExternalPlugin::xmlTypeName, *newDesc);
+            if (newPlugin)
+            {
+                // Insert after instrument. If there's an instrument, it's at index 0 or 1.
+                // Just inserting before the channel strip if it exists.
+                int insertPos = track->pluginList.size() - 1; // Default to end (before last volume/meter)
+                if (extPlugins.size() > 0 && extPlugins.getLast() != existingFx) {
+                    insertPos = track->pluginList.indexOf(extPlugins.getLast());
+                }
+                
+                track->pluginList.insertPlugin(*newPlugin, insertPos, nullptr);
+                logToJS("[C++]   ✓ Loaded FX: " + newDesc->name);
             }
         }
     }

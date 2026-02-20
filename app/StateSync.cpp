@@ -9,6 +9,9 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
     // Store the state for later retrieval
     stateCache[storeName] = jsonValue;
 
+    // Debounce save to disk (500ms)
+    startTimer(500);
+
     // Parse and react to state changes
     auto json = juce::JSON::parse(jsonValue);
     if (!json.isObject()) return;
@@ -54,6 +57,21 @@ void SongbirdEditor::applyTransportState(const juce::var& state)
         }
     }
 
+    // Position
+    if (state.hasProperty("position"))
+    {
+        double posValue = state.getProperty("position", -1.0);
+        if (posValue >= 0.0)
+        {
+            double currentPos = transport.getPosition().inSeconds();
+            if (std::abs(currentPos - posValue) > 0.05)
+            {
+                transport.setPosition(te::TimePosition::fromSeconds(posValue));
+                DBG("Transport: position set to " + juce::String(posValue));
+            }
+        }
+    }
+
     // BPM
     if (state.hasProperty("bpm"))
     {
@@ -85,17 +103,30 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
 
     auto audioTracks = te::getAudioTracks(*edit);
 
-    for (int i = 0; i < tracksArray->size() && i < audioTracks.size(); i++)
+    for (int i = 0; i < tracksArray->size(); i++)
     {
         auto trackState = (*tracksArray)[i];
-        auto* track = audioTracks[i];
-        if (!track || !trackState.isObject()) continue;
+        if (!trackState.isObject()) continue;
+
+        te::Track* track = nullptr;
+        bool isMaster = trackState.hasProperty("isMaster") ? (bool)trackState.getProperty("isMaster", false) : false;
+
+        if (isMaster) {
+            track = edit->getMasterTrack();
+        } else if (i < audioTracks.size()) {
+            track = audioTracks[i];
+        }
+
+        if (!track) continue;
+
+        auto* audioTrack = dynamic_cast<te::AudioTrack*>(track);
+        if (!audioTrack) continue;
 
         // Volume (0-127 → 0.0-1.0)
         if (trackState.hasProperty("volume"))
         {
             double vol = (double)trackState.getProperty("volume", 80) / 127.0;
-            if (auto volPlugin = track->getVolumePlugin())
+            if (auto volPlugin = audioTrack->getVolumePlugin())
                 volPlugin->setVolumeDb(juce::Decibels::gainToDecibels(static_cast<float>(vol)));
         }
 
@@ -103,20 +134,38 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
         if (trackState.hasProperty("pan"))
         {
             double pan = (double)trackState.getProperty("pan", 0) / 64.0;
-            if (auto volPlugin = track->getVolumePlugin())
+            if (auto volPlugin = audioTrack->getVolumePlugin())
                 volPlugin->setPan(static_cast<float>(pan));
         }
 
         // Mute
         if (trackState.hasProperty("muted"))
         {
-            track->setMute((bool)trackState.getProperty("muted", false));
+            audioTrack->setMute((bool)trackState.getProperty("muted", false));
         }
 
         // Solo
         if (trackState.hasProperty("solo"))
         {
-            track->setSolo((bool)trackState.getProperty("solo", false));
+            audioTrack->setSolo((bool)trackState.getProperty("solo", false));
+        }
+
+        // Sends
+        if (trackState.hasProperty("sends"))
+        {
+            auto sendsVar = trackState.getProperty("sends", {});
+            if (sendsVar.isArray())
+            {
+                auto* sendsArray = sendsVar.getArray();
+                for (int b = 0; b < sendsArray->size() && b < 4; b++)
+                {
+                    if (auto* sendPlugin = audioTrack->getAuxSendPlugin(b))
+                    {
+                        double sendVol = (double)(*sendsArray)[b];
+                        sendPlugin->setGainDb(juce::Decibels::gainToDecibels(static_cast<float>(sendVol)));
+                    }
+                }
+            }
         }
     }
 }

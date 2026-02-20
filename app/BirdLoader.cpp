@@ -1,4 +1,5 @@
 #include "BirdLoader.h"
+#include "MacroMapper.h"
 #include "libraries/theory/note_parser.h"
 #include "libraries/sequencing/utils/time_constants.h"
 
@@ -43,6 +44,10 @@ static PluginInfo pluginFromKeyword(const std::string& keyword) {
 }
 
 static const PluginInfo CONSOLE_1 = { "softube.console-1", "Console 1" };
+static const PluginInfo REVERB_VALHALLA = { "valhalladsp.valhallaroom", "ValhallaRoom" };
+static const PluginInfo DELAY_TUBE = { "softube.tube-delay", "Tube Delay" };
+static const PluginInfo DIST_CULTURE = { "arturia.dist-tube-culture", "Dist TUBE-CULTURE" };
+static const PluginInfo WEISS_DS1 = { "softube.ds1-mk3", "DS1-MK3" };
 
 // Search the scanned plugin list for a plugin matching the given display name
 static std::unique_ptr<juce::PluginDescription> findPluginByName(
@@ -123,13 +128,17 @@ std::vector<int> BirdLoader::parseVelocities(const std::vector<std::string>& tok
         if (tokens[i] == "-") {
             velocities.push_back(lastVel);
         } else if ((tokens[i][0] == '+' || tokens[i][0] == '-') && tokens[i].size() > 1) {
-            int newVel = lastVel + std::stoi(tokens[i]);
-            newVel = std::clamp(newVel, 0, 127);
-            lastVel = newVel;
-            velocities.push_back(newVel);
+            try {
+                int newVel = lastVel + std::stoi(tokens[i]);
+                newVel = std::clamp(newVel, 0, 127);
+                lastVel = newVel;
+                velocities.push_back(newVel);
+            } catch (...) {}
         } else {
-            lastVel = std::stoi(tokens[i]);
-            velocities.push_back(lastVel);
+            try {
+                lastVel = std::stoi(tokens[i]);
+                velocities.push_back(lastVel);
+            } catch (...) {}
         }
     }
     return velocities;
@@ -141,13 +150,56 @@ std::vector<int> BirdLoader::parseVelocities(const std::vector<std::string>& tok
 
 std::vector<std::vector<int>> BirdLoader::parseNotes(const std::vector<std::string>& tokens, int& lastNote) {
     std::vector<std::vector<int>> noteGroups;
+    
+    // Check if ALL tokens (after "n") are plain MIDI numbers or note names (no relative offsets, repeats, @chords).
+    // If so, they all form a single simultaneous chord group.
+    // Example: `n 41 48 53 56` -> one chord group {41, 48, 53, 56}
+    // Example: `n @Cmaj7` -> one chord group from the chord parser
+    // Example: `n 60 - +2` -> three separate sequential steps (mixed syntax = sequential)
+    bool allPlainNotes = tokens.size() > 1;
+    for (size_t i = 1; i < tokens.size() && allPlainNotes; i++) {
+        const auto& t = tokens[i];
+        if (t == "-") { allPlainNotes = false; break; }
+        if (t[0] == '+') { allPlainNotes = false; break; }
+        if (t[0] == '-' && t.size() > 1 && !std::isdigit(t[1])) { allPlainNotes = false; break; }
+        // Relative offsets like `-2` start with '-' followed by a digit — that's sequential too
+        if (t[0] == '-' && t.size() > 1 && std::isdigit(t[1])) { allPlainNotes = false; break; }
+        // @chords are already self-contained multi-note groups — keep them sequential
+        if (is_chord_name(t)) { allPlainNotes = false; break; }
+    }
+    
+    if (allPlainNotes && tokens.size() > 2) {
+        // Multiple plain notes on one line → one chord group
+        std::vector<int> chord;
+        for (size_t i = 1; i < tokens.size(); i++) {
+            const auto& t = tokens[i];
+            if (is_note_name(t)) {
+                int midi = midi_from_note_name(t);
+                if (midi >= 0) chord.push_back(midi);
+            } else {
+                try {
+                    int midi = std::stoi(t);
+                    chord.push_back(midi);
+                } catch (...) {}
+            }
+        }
+        if (!chord.empty()) {
+            lastNote = chord[0];
+            noteGroups.push_back(chord);
+        }
+        return noteGroups;
+    }
+    
+    // Original sequential parsing — one group per token
     for (size_t i = 1; i < tokens.size(); i++) {
         if (tokens[i] == "-") {
             noteGroups.push_back({lastNote});
         } else if ((tokens[i][0] == '+' || (tokens[i][0] == '-' && tokens[i].size() > 1))) {
-            int newNote = lastNote + std::stoi(tokens[i]);
-            lastNote = newNote;
-            noteGroups.push_back({newNote});
+            try {
+                int newNote = lastNote + std::stoi(tokens[i]);
+                lastNote = newNote;
+                noteGroups.push_back({newNote});
+            } catch (...) {}
         } else if (is_chord_name(tokens[i])) {
             auto chordNotes = midi_from_chord_name(tokens[i]);
             if (!chordNotes.empty()) {
@@ -161,13 +213,10 @@ std::vector<std::vector<int>> BirdLoader::parseNotes(const std::vector<std::stri
                 noteGroups.push_back({midi});
             }
         } else {
-            // MIDI number
             try {
                 lastNote = std::stoi(tokens[i]);
                 noteGroups.push_back({lastNote});
-            } catch (...) {
-                // skip invalid tokens
-            }
+            } catch (...) {}
         }
     }
     return noteGroups;
@@ -181,6 +230,7 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
     const std::vector<int>& pattern,
     const std::vector<std::vector<int>>& noteGroups,
     const std::vector<int>& velocities,
+    const std::map<std::string, std::vector<std::string>>& stepAutomations,
     int sequenceLength,
     PatternState& state)
 {
@@ -214,6 +264,25 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
                 n.beatPos = ticksToBeats(ticks);
                 n.duration = ticksToBeats(static_cast<int>(durConfig * 0.9)); // 90% gate
                 n.velocity = velocities[state.velIdx];
+                
+                // Add any step automations that correspond to this pattern step
+                for (const auto& [macro, values] : stepAutomations) {
+                    if (!values.empty()) {
+                        size_t macroIdx = state.patIdx % values.size(); // Or keep its own state index in future
+                        try {
+                            // Extract numeric portion (ignoring symbols for step values for now)
+                            std::string valStr = values[macroIdx];
+                            std::string numStr = "";
+                            for (char c : valStr) {
+                                if (isdigit(c) || c == '.' || c == '-') numStr += c;
+                            }
+                            if (!numStr.empty()) {
+                                n.stepParams[macro] = std::stof(numStr) / 100.0f; // Scale 0-100 to 0.0-1.0
+                            }
+                        } catch (...) {}
+                    }
+                }
+                
                 result.push_back(n);
             }
             state.noteIdx = (state.noteIdx + 1) % noteGroups.size();
@@ -244,6 +313,7 @@ struct UnresolvedLayer {
     std::vector<int> pattern;
     std::vector<std::vector<int>> noteGroups;
     std::vector<int> velocities;
+    std::map<std::string, std::vector<std::string>> stepAutomations;
 };
 
 struct UnresolvedChannel {
@@ -254,6 +324,7 @@ struct UnresolvedChannel {
     std::string strip;
     bool cont = false;
     std::vector<UnresolvedLayer> layers;
+    std::map<std::string, BirdAutomationCurve> automation;
 };
 
 // Returns a pair: {Resolved BirdChannel, new PatternState for the next section}
@@ -264,12 +335,13 @@ static std::pair<BirdChannel, BirdLoader::PatternState> resolveChannel(const Unr
     ch.plugin = uch.plugin;
     ch.fx = uch.fx;
     ch.strip = uch.strip;
+    ch.automation = uch.automation;
 
     int seqLen = bars * TICKS_PER_BAR;
     
     // For simplicity, we assume single-layer for continuous patterns right now
     for (auto& layer : uch.layers) {
-        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, seqLen, state);
+        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, layer.stepAutomations, seqLen, state);
         ch.notes.insert(ch.notes.end(), resolved.begin(), resolved.end());
     }
     return {ch, state};
@@ -306,6 +378,7 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
     std::vector<int> currentPattern;
     std::vector<std::vector<int>> currentNoteGroups;
     std::vector<int> currentVelocities;
+    std::map<std::string, std::vector<std::string>> currentStepAutomations;
 
     // Section state
     std::string currentSectionName;  // empty = top-level
@@ -330,10 +403,12 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             layer.pattern = currentPattern;
             layer.noteGroups = currentNoteGroups;
             layer.velocities = currentVelocities;
+            layer.stepAutomations = currentStepAutomations;
             currentUCh.layers.push_back(std::move(layer));
         }
         currentNoteGroups.clear();
         currentVelocities.clear();
+        currentStepAutomations.clear();
         if (clearPattern)
             currentPattern.clear();
     };
@@ -343,7 +418,7 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         flushLayer(true);
         if (inChannel) {
             bool hasLayers = !currentUCh.layers.empty();
-            bool hasConfig = !currentUCh.plugin.empty() || !currentUCh.fx.empty() || !currentUCh.strip.empty();
+            bool hasConfig = !currentUCh.plugin.empty() || !currentUCh.fx.empty() || !currentUCh.strip.empty() || !currentUCh.automation.empty();
             if (hasLayers || hasConfig) {
                 if (currentSectionName.empty())
                     topLevelChannels.push_back(currentUCh);
@@ -356,6 +431,7 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         currentPattern.clear();
         currentNoteGroups.clear();
         currentVelocities.clear();
+        currentStepAutomations.clear();
     };
 
     // Flush current section
@@ -418,6 +494,26 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
         }
 
+        // --- Key Signature ---
+        if (tokens[0] == "key" && tokens.size() > 1) {
+            std::string keyString = tokens[1];
+            for (size_t i = 2; i < tokens.size(); ++i) {
+                keyString += " " + tokens[i];
+            }
+            
+            bool isMinor = false;
+            int sharps = sharps_from_key_name(keyString, isMinor);
+            if (sharps != -99) {
+                result.keySharpsFlats = sharps;
+                result.keyIsMinor = isMinor;
+                result.keyName = keyString;
+                result.hasKeySignature = true;
+            } else {
+                DBG("BirdLoader: Failed to parse key signature '" + keyString + "'");
+            }
+            continue;
+        }
+
         // --- Channel ---
         if (tokens[0] == "ch") {
             flushChannel();
@@ -474,6 +570,49 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         if (tokens[0] == "cont") {
             currentUCh.cont = true;
             continue;
+        }
+
+        // --- Handle Semantic Macros & Automation ---
+        // If a keyword isn't matched by the core structural syntax above,
+        // it is assumed to be an automation macro targeting a plugin parameter.
+        if (inChannel) {
+            // Is it continuous (e.g. `brightness ramp 0.2 1.0`) or stepped (e.g. `cutoff 80/ 40)`)?
+            if (tokens.size() > 1) {
+                // If the second token is a generator type like "ramp" or "lfo"
+                if (tokens[1] == "ramp" || tokens[1] == "lfo") {
+                    BirdAutomationCurve curve;
+                    curve.macroName = tokens[0];
+                    // Example: brightness ramp 0.2 1.0 4b
+                    // We'll parse this explicitly here. For now, just linear ramp support.
+                    if (tokens[1] == "ramp" && tokens.size() >= 4) {
+                        try {
+                            float startVal = std::stof(tokens[2]);
+                            float endVal = std::stof(tokens[3]);
+                            
+                            BirdAutomationPoint p1;
+                            p1.time = 0.0;
+                            p1.value = startVal;
+                            p1.shape = BirdAutomationPoint::Linear;
+                            curve.points.push_back(p1);
+                            
+                            BirdAutomationPoint p2;
+                            p2.time = 4.0; // defaulting to 1 bar right now if length isn't parsed
+                            p2.value = endVal;
+                            p2.shape = BirdAutomationPoint::Step;
+                            curve.points.push_back(p2);
+                            
+                            currentUCh.automation[curve.macroName] = curve;
+                        } catch (...) {}
+                    }
+                } else {
+                    // Otherwise, it's a step-based automation parameter (e.g., `cutoff 80/ 40) 60`)
+                    std::vector<std::string> stepValues;
+                    for (size_t i = 1; i < tokens.size(); i++) {
+                        stepValues.push_back(tokens[i]);
+                    }
+                    currentStepAutomations[tokens[0]] = stepValues;
+                }
+            }
         }
 
         // Skip: sw, m, cc, d, _d, etc. (not yet implemented)
@@ -621,9 +760,32 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
 // --- Populate te::Edit ---
 
 void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine) {
-    // Delete excess tracks
+    // Stash existing track settings by name
+    struct TrackState {
+        float volume = 1.0f;
+        float pan = 0.0f;
+        bool mute = false;
+        bool solo = false;
+    };
+    std::map<juce::String, TrackState> previousStates;
+    
     auto currentTracks = te::getAudioTracks(edit);
-    for (int i = currentTracks.size() - 1; i >= static_cast<int>(result.channels.size()); --i) {
+    for (auto* track : currentTracks) {
+        if (track) {
+            TrackState ts;
+            ts.mute = track->isMuted(false);
+            ts.solo = track->isSolo(false);
+            if (auto volPlugin = track->getVolumePlugin()) {
+                ts.volume = volPlugin->getVolumeDb();
+                ts.pan = volPlugin->getPan();
+            }
+            previousStates[track->getName()] = ts;
+        }
+    }
+
+    // Delete excess tracks
+    int expectedTracks = static_cast<int>(result.channels.size()) + 4;
+    for (int i = currentTracks.size() - 1; i >= expectedTracks; --i) {
         edit.deleteTrack(currentTracks[i]);
     }
 
@@ -650,6 +812,17 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         if (!track) continue;
 
         track->setName(juce::String(ch.name));
+
+        // Restore track settings if we had them
+        if (previousStates.find(track->getName()) != previousStates.end()) {
+            auto& ts = previousStates[track->getName()];
+            track->setMute(ts.mute);
+            track->setSolo(ts.solo);
+            if (auto volPlugin = track->getVolumePlugin()) {
+                volPlugin->setVolumeDb(ts.volume); // It's already in dB
+                volPlugin->setPan(ts.pan);
+            }
+        }
 
         // Determine required plugins
         juce::StringArray requiredPlugins;
@@ -780,9 +953,191 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
                 0, nullptr);
         }
 
+        // --- Add Sends (Regular Tracks) ---
+        for (int bus = 0; bus < 4; bus++) {
+            bool found = false;
+            for (auto* p : track->pluginList.getPlugins()) {
+                if (auto* send = dynamic_cast<te::AuxSendPlugin*>(p)) {
+                    if (send->busNumber == bus) { found = true; break; }
+                }
+            }
+            if (!found) {
+                if (auto plugin = edit.getPluginCache().createNewPlugin(te::AuxSendPlugin::xmlTypeName, {})) {
+                    track->pluginList.insertPlugin(*plugin, -1, nullptr);
+                    auto* sendPlugin = dynamic_cast<te::AuxSendPlugin*>(plugin.get());
+                    sendPlugin->busNumber = bus;
+                    sendPlugin->setGainDb(-100.0f); // Default to muted
+                }
+            }
+        }
+
+        // --- Apply Automation Curves ---
+        // Helper to find parameter
+        auto applyAutomation = [&](const juce::String& macroName, const juce::String& pluginName, const std::vector<BirdAutomationPoint>& points, double timeOffsetBeats = 0.0) {
+            juce::String paramId = MacroMapper::getParameterID(pluginName, macroName);
+            if (paramId.isEmpty()) return;
+
+            // Find the plugin
+            te::Plugin::Ptr targetPlugin;
+            for (auto* p : track->pluginList.getPlugins()) {
+                if (auto* ext = dynamic_cast<te::ExternalPlugin*>(p)) {
+                    if (ext->getName() == pluginName || ext->desc.name.containsIgnoreCase(pluginName)) {
+                        targetPlugin = p;
+                        break;
+                    }
+                }
+            }
+            if (!targetPlugin) return;
+
+            // Find the parameter
+            te::AutomatableParameter::Ptr targetParam;
+            for (auto* param : targetPlugin->getAutomatableParameters()) {
+                if (param->paramID == paramId || param->getPluginAndParamName() == paramId || param->getParameterName().containsIgnoreCase(paramId)) {
+                    targetParam = param;
+                    break;
+                }
+            }
+            
+            if (targetParam) {
+                auto& curve = targetParam->getCurve();
+                
+                // Write points
+                for (auto& pt : points) {
+                    double actualBeats = pt.time + timeOffsetBeats;
+                    auto timePos = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(actualBeats));
+                    float val = pt.value;
+                    
+                    // Simple linear curve for now 
+                    float curveShape = 0.0f; 
+                    if (pt.shape == BirdAutomationPoint::Exponential || pt.shape == BirdAutomationPoint::Logarithmic) curveShape = 0.5f; 
+                    
+                    curve.addPoint(timePos, val, curveShape, nullptr);
+                }
+            }
+        };
+
+        // 1. Continuous section-level automation
+        for (const auto& [macro, curve] : ch.automation) {
+            // For now, assume it targets the main instrument plugin
+            if (pluginInfo.pluginName.isNotEmpty()) {
+                applyAutomation(macro, pluginInfo.pluginName, curve.points, 0.0);
+            }
+        }
+
+        // 2. Step-based pattern-level automation attached to notes
+        std::map<juce::String, std::vector<BirdAutomationPoint>> stepCurvesByMacro;
+        
+        for (const auto& note : ch.notes) {
+            for (const auto& [macro, value] : note.stepParams) {
+                BirdAutomationPoint pt;
+                pt.time = note.beatPos;
+                pt.value = value;
+                pt.shape = BirdAutomationPoint::Step; // TODO parse shapes from strings
+                stepCurvesByMacro[macro].push_back(pt);
+            }
+        }
+        
+        for (const auto& [macro, points] : stepCurvesByMacro) {
+            if (pluginInfo.pluginName.isNotEmpty()) {
+                applyAutomation(macro, pluginInfo.pluginName, points, 0.0);
+            }
+        }
+
         DBG("BirdLoader: Track " + juce::String(ch.name) +
             " — " + juce::String(static_cast<int>(ch.notes.size())) + " notes" +
             (ch.plugin.empty() ? "" : " [plugin: " + ch.plugin + "]"));
+    }
+
+    // --- Create/Configure 4 Return Tracks ---
+    int numRegularTracks = static_cast<int>(result.channels.size());
+    for (int r = 0; r < 4; r++) {
+        int trackIdx = numRegularTracks + r;
+        edit.ensureNumberOfAudioTracks(trackIdx + 1);
+        auto* track = te::getAudioTracks(edit)[trackIdx];
+        if (!track) continue;
+
+        track->setName("Return " + juce::String(r + 1));
+
+        // Restore track settings if we had them
+        if (previousStates.find(track->getName()) != previousStates.end()) {
+            auto& ts = previousStates[track->getName()];
+            track->setMute(ts.mute);
+            track->setSolo(ts.solo);
+            if (auto volPlugin = track->getVolumePlugin()) {
+                volPlugin->setVolumeDb(ts.volume);
+                volPlugin->setPan(ts.pan);
+            }
+        }
+
+        // Ensure AuxReturnPlugin
+        bool foundReturn = false;
+        for (auto* p : track->pluginList.getPlugins()) {
+            if (auto* rp = dynamic_cast<te::AuxReturnPlugin*>(p)) {
+                if (rp->busNumber == r) { foundReturn = true; break; }
+            }
+        }
+        if (!foundReturn) {
+            if (auto plugin = edit.getPluginCache().createNewPlugin(te::AuxReturnPlugin::xmlTypeName, {})) {
+                track->pluginList.insertPlugin(*plugin, 0, nullptr);
+                auto* returnPlugin = dynamic_cast<te::AuxReturnPlugin*>(plugin.get());
+                returnPlugin->busNumber = r;
+            }
+        }
+
+        // Add specific fixed FX if missing (User Request)
+        // Return 1: Long Hall (ValhallaRoom)
+        // Return 2: Short Plate (ValhallaRoom)
+        // Return 3: Tube Delay (Tube Delay)
+        // Return 4: Overdrive (Dist TUBE-CULTURE)
+        bool hasExternalFX = false;
+        for (auto* p : track->pluginList.getPlugins()) {
+            if (dynamic_cast<te::ExternalPlugin*>(p) != nullptr) {
+                hasExternalFX = true;
+                break;
+            }
+        }
+        
+        if (!hasExternalFX) {
+            PluginInfo fxToAdd;
+            if (r == 0) fxToAdd = REVERB_VALHALLA;
+            else if (r == 1) fxToAdd = REVERB_VALHALLA; // Different preset loaded later maybe
+            else if (r == 2) fxToAdd = DELAY_TUBE;
+            else if (r == 3) fxToAdd = DIST_CULTURE;
+            
+            if (fxToAdd.pluginId.isNotEmpty()) {
+                if (auto foundDesc = findPluginByName(engine, fxToAdd.pluginName)) {
+                    if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
+                        track->pluginList.insertPlugin(*fxPlugin, -1, nullptr); 
+                        DBG("BirdLoader: Added Return FX '" + foundDesc->name + "' to 'Return " + juce::String(r + 1) + "'");
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Create/Configure Master Track ---
+    if (auto* master = edit.getMasterTrack()) {
+        const std::vector<PluginInfo> masterFX = { WEISS_DS1, CONSOLE_1 };
+        
+        for (const auto& fx : masterFX) {
+            bool found = false;
+            for (auto* p : master->pluginList.getPlugins()) {
+                if (auto* ext = dynamic_cast<te::ExternalPlugin*>(p)) {
+                    if (ext->getName().containsIgnoreCase(fx.pluginName)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found && fx.pluginId.isNotEmpty()) {
+                if (auto foundDesc = findPluginByName(engine, fx.pluginName)) {
+                    if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
+                        master->pluginList.insertPlugin(*fxPlugin, -1, nullptr);
+                        DBG("BirdLoader: Added Master FX '" + foundDesc->name + "'");
+                    }
+                }
+            }
+        }
     }
 
     DBG("BirdLoader: Loaded " + juce::String(static_cast<int>(result.channels.size())) +
@@ -795,16 +1150,34 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
     auto tracks = te::getAudioTracks(edit);
     juce::String json = "{\"tracks\":[";
 
-    for (int t = 0; t < tracks.size(); t++) {
-        auto* track = tracks[t];
-        if (t > 0) json += ",";
+    int trackCount = 0;
+    for (int t = 0; t <= tracks.size(); t++) {
+        te::Track* track = nullptr;
+        bool isMaster = (t == tracks.size());
+        
+        if (isMaster) {
+            track = edit.getMasterTrack();
+        } else {
+            track = tracks[t];
+        }
 
-        // Look up plugin info from parse result
+        if (!track) continue;
+
+        // Skip the master track in the regular loop — it's handled separately at the end
+        if (!isMaster && dynamic_cast<te::MasterTrack*>(track)) continue;
+
+        if (trackCount > 0) json += ",";
+        trackCount++;
+
+        // For return/master tracks: read the actual ExternalPlugins from the plugin list directly
+        bool isReturn = !isMaster && track->getName().startsWith("Return ");
+
+        // Look up plugin info from parse result (regular tracks only)
         juce::String pluginField;
         juce::String fxField;
         juce::String channelStripField;
         
-        if (parseResult && t < static_cast<int>(parseResult->channels.size())) {
+        if (!isMaster && !isReturn && parseResult && t < static_cast<int>(parseResult->channels.size())) {
             auto& parsedCh = parseResult->channels[t];
             
             auto info = pluginFromKeyword(parsedCh.plugin);
@@ -826,26 +1199,115 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
             }
         }
 
+        if (isReturn || isMaster) {
+            juce::Array<te::ExternalPlugin*> extPlugins;
+            for (auto* p : track->pluginList.getPlugins()) {
+                if (auto* ext = dynamic_cast<te::ExternalPlugin*>(p))
+                    extPlugins.add(ext);
+            }
+            if (extPlugins.size() >= 1) {
+                auto name = extPlugins[0]->getName();
+                fxField = juce::String(",\"fx\":{\"pluginId\":\"\",\"pluginName\":") + juce::JSON::toString(name) + "}";
+            }
+            if (extPlugins.size() >= 2) {
+                auto name = extPlugins[1]->getName();
+                channelStripField = juce::String(",\"channelStrip\":{\"pluginId\":\"\",\"pluginName\":") + juce::JSON::toString(name) + "}";
+            }
+        }
+
+        juce::String sendsJson = "[0.0, 0.0, 0.0, 0.0]";
+        if (!isReturn && !isMaster) {
+            juce::Array<float> sendVals = { 0.0f, 0.0f, 0.0f, 0.0f };
+            for (auto* p : track->pluginList.getPlugins()) {
+                if (auto* send = dynamic_cast<te::AuxSendPlugin*>(p)) {
+                    if (send->busNumber >= 0 && send->busNumber < 4) {
+                        sendVals.set(send->busNumber, juce::Decibels::decibelsToGain(send->getGainDb()));
+                    }
+                }
+            }
+            sendsJson = "[" + juce::String(sendVals[0], 2) + "," + 
+                              juce::String(sendVals[1], 2) + "," + 
+                              juce::String(sendVals[2], 2) + "," + 
+                              juce::String(sendVals[3], 2) + "]";
+        }
+
         json += "{\"id\":" + juce::String(t) +
-                ",\"name\":" + juce::JSON::toString(track->getName()) +
+                ",\"name\":" + juce::JSON::toString(isMaster ? "Master" : track->getName()) +
+                ",\"isReturn\":" + (isReturn ? "true" : "false") +
+                ",\"isMaster\":" + (isMaster ? "true" : "false") +
+                ",\"sends\":" + sendsJson +
                 pluginField + fxField + channelStripField +
                 ",\"notes\":[";
 
-        auto clips = track->getClips();
-        int noteCount = 0;
-        for (auto* clip : clips) {
-            auto* midiClip = dynamic_cast<te::MidiClip*>(clip);
-            if (!midiClip) continue;
+        if (!isMaster) {
+            if (auto* audioTrack = dynamic_cast<te::AudioTrack*>(track)) {
+                auto clips = audioTrack->getClips();
+                int noteCount = 0;
+                for (auto* clip : clips) {
+                    auto* midiClip = dynamic_cast<te::MidiClip*>(clip);
+                    if (!midiClip) continue;
 
-            auto& seq = midiClip->getSequence();
-            for (int n = 0; n < seq.getNumNotes(); n++) {
-                auto* note = seq.getNote(n);
-                if (noteCount > 0) json += ",";
-                json += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
-                        ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
-                        ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
-                        ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
-                noteCount++;
+                    auto& seq = midiClip->getSequence();
+                    for (int n = 0; n < seq.getNumNotes(); n++) {
+                        auto* note = seq.getNote(n);
+                        if (noteCount > 0) json += ",";
+                        json += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
+                                ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
+                                ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
+                                ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
+                        noteCount++;
+                    }
+                }
+            }
+        }
+        json += "],\"automation\":[";
+
+        if (!isMaster && parseResult && t < static_cast<int>(parseResult->channels.size())) {
+            auto& parsedCh = parseResult->channels[t];
+            
+            // Collect all step automation into curves by macro
+            std::map<juce::String, std::vector<BirdAutomationPoint>> stepCurvesByMacro;
+            for (const auto& note : parsedCh.notes) {
+                for (const auto& [macro, value] : note.stepParams) {
+                    BirdAutomationPoint pt;
+                    pt.time = note.beatPos;
+                    pt.value = value;
+                    pt.shape = BirdAutomationPoint::Step;
+                    stepCurvesByMacro[macro].push_back(pt);
+                }
+            }
+            
+            int macroCount = 0;
+            // 1. Continuous section curves
+            for (const auto& [macro, curve] : parsedCh.automation) {
+                if (macroCount > 0) json += ",";
+                json += "{\"macro\":" + juce::JSON::toString(juce::String(macro)) + ",\"points\":[";
+                for (size_t i = 0; i < curve.points.size(); ++i) {
+                    if (i > 0) json += ",";
+                    auto& pt = curve.points[i];
+                    json += "{\"time\":" + juce::String(pt.time, 3) + 
+                            ",\"value\":" + juce::String(pt.value, 3) + 
+                            ",\"shape\":" + juce::String(pt.shape) + "}";
+                }
+                json += "]}";
+                macroCount++;
+            }
+            // 2. Step curves
+            for (const auto& [macro, points] : stepCurvesByMacro) {
+                // Skip if this macro was already written as a continuous curve
+                if (parsedCh.automation.find(macro.toStdString()) != parsedCh.automation.end()) continue;
+                
+                if (macroCount > 0) json += ",";
+                json += "{\"macro\":" + juce::JSON::toString(macro) + ",\"points\":[";
+                for (size_t i = 0; i < points.size(); ++i) {
+                    if (i > 0) json += ",";
+                    auto& pt = points[i];
+                    json += "{\"time\":" + juce::String(pt.time, 3) + 
+                            ",\"value\":" + juce::String(pt.value, 3) + 
+                            ",\"shape\":" + juce::String(pt.shape) + "}";
+                }
+                json += "]}";
+                macroCount++;
             }
         }
 
@@ -867,6 +1329,12 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
         }
     }
 
-    json += "],\"totalBars\":" + juce::String(parseResult ? parseResult->bars : 1) + "}";
+    json += "],\"totalBars\":" + juce::String(parseResult ? parseResult->bars : 1);
+
+    if (parseResult && parseResult->hasKeySignature) {
+        json += ",\"keySignature\":" + juce::JSON::toString(juce::String(parseResult->keyName));
+    }
+
+    json += "}";
     return json;
 }

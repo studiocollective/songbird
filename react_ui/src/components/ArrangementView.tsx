@@ -1,14 +1,31 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useMixerStore, useTransportStore } from '@/data/store';
 import type { NoteData } from '@/data/slices/mixer';
+import { Chord } from '@tonaljs/tonal';
+import { AutomationOverlay } from './AutomationOverlay';
 
 export function ArrangementView() {
   const { tracks, sections, totalBars: storeTotalBars } = useMixerStore();
   const { looping, loopBars } = useTransportStore();
+  const [showAutomation, setShowAutomation] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey) {
+        setShowAutomation((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Compute total bars: use store value (from arrangement) if available,
   // otherwise fall back to max note beat position
-  const maxBeat = tracks.reduce((max, track) => {
+  const arrangementTracks = tracks.filter((t) => !t.isReturn && !t.isMaster);
+  const maxBeat = arrangementTracks.reduce((max, track) => {
     const trackMax = track.notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
     return Math.max(max, trackMax);
   }, 4); // minimum 4 beats = 1 bar
@@ -64,7 +81,7 @@ export function ArrangementView() {
 
       {/* Track lanes */}
       <div className={lanesScroll}>
-        {tracks.map((track) => (
+        {tracks.filter((t) => !t.isReturn).map((track) => (
           <div key={track.id} className={laneRow}>
             <div className={laneHeader}>
               <div
@@ -118,11 +135,24 @@ export function ArrangementView() {
 
               {/* MIDI notes mini piano-roll */}
               {track.notes.length > 0 && (
-                <NoteClip
-                  notes={track.notes}
-                  color={track.color}
-                  totalBars={totalBars}
-                />
+                <div className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0`}>
+                    <NoteClip
+                      notes={track.notes}
+                      color={track.color}
+                      totalBars={totalBars}
+                    />
+                </div>
+              )}
+
+              {/* Automation Curves Layer */}
+              {showAutomation && track.automation && track.automation.length > 0 && (
+                <div className="absolute inset-0 z-30 pointer-events-none">
+                    <AutomationOverlay 
+                      automation={track.automation} 
+                      totalBars={totalBars} 
+                      color={track.color} 
+                    />
+                </div>
               )}
 
               {/* Playhead line on lane */}
@@ -220,6 +250,65 @@ function NoteClip({
   const clipLeft = (minBeat / totalBeats) * 100;
   const clipWidth = ((maxBeatEnd - minBeat) / totalBeats) * 100;
 
+  // --- Auto-detect chords ---
+  // Group notes that start at approximately the same time
+  const chordGroups: { startBeat: number; endBeat: number; chordName: string }[] = [];
+  // Use a looser tolerance because chords in Bird can be written as several notes
+  // in the same slot but may have tiny floating point offsets
+  const beatTolerance = 0.5;
+
+  // Sort notes by start time
+  const sortedNotes = [...notes].sort((a, b) => a.beat - b.beat);
+  
+  let currentGroup: NoteData[] = [];
+  
+  const MIDI_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+  const processGroup = () => {
+    if (currentGroup.length >= 3) {
+      // Get unique pitch classes (0-11), not full MIDI numbers, so voicings across octaves collapse
+      const pitchClasses = [...new Set(currentGroup.map(n => n.pitch % 12))].sort((a, b) => a - b);
+      
+      if (pitchClasses.length >= 3) {
+        // Chord.detect needs note names WITHOUT octave numbers: 'C', 'E', 'G'
+        const noteNames = pitchClasses.map(pc => MIDI_NOTE_NAMES[pc]);
+        const detected = Chord.detect(noteNames);
+        
+        if (detected && detected.length > 0) {
+          // Pick the shortest/simplest chord name as the best match
+          const bestName = detected.reduce((a, b) => a.length <= b.length ? a : b);
+          
+          const groupMinBeat = Math.min(...currentGroup.map(n => n.beat));
+          // Use note duration to determine the chord block width; don't let it collapse to 0
+          const groupDuration = Math.max(...currentGroup.map(n => n.duration));
+          const groupMaxBeat = groupMinBeat + groupDuration;
+          
+          chordGroups.push({
+            startBeat: groupMinBeat,
+            endBeat: groupMaxBeat,
+            chordName: bestName
+          });
+        }
+      }
+    }
+    currentGroup = [];
+  };
+
+  for (const note of sortedNotes) {
+    if (currentGroup.length === 0) {
+      currentGroup.push(note);
+    } else {
+      const groupStart = currentGroup[0].beat;
+      if (Math.abs(note.beat - groupStart) <= beatTolerance) {
+        currentGroup.push(note);
+      } else {
+        processGroup();
+        currentGroup.push(note);
+      }
+    }
+  }
+  processGroup(); // process final group
+
   return (
     <div
       className={clip}
@@ -253,6 +342,26 @@ function NoteClip({
           );
         })}
       </svg>
+      {/* Chord Overlays */}
+      {chordGroups.map((group, i) => {
+        const span = maxBeatEnd - minBeat;
+        const xPct = span > 0 ? ((group.startBeat - minBeat) / span) * 100 : 0;
+        const wPct = span > 0 ? ((group.endBeat - group.startBeat) / span) * 100 : 100;
+        
+        // Render a small text box centered horizontally over the chord
+        return (
+          <div
+            key={`chord-${i}`}
+            className={chordLabelContainer}
+            style={{
+              left: `${xPct}%`,
+              width: `max(${wPct}%, 32px)`,
+            }}
+          >
+            <span className={chordLabelText}>{group.chordName}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -324,3 +433,16 @@ const clip = `
   z-20`;
 
 const notesSvg = `w-full h-full`;
+
+const chordLabelContainer = `
+  absolute inset-y-0
+  flex items-center justify-center pointer-events-none z-30
+`;
+
+const chordLabelText = `
+  bg-[hsl(var(--background))]/50 backdrop-blur-sm
+  text-[hsl(var(--foreground))] text-[9px] font-bold tracking-wider
+  px-1.5 py-0.5 rounded
+  border border-[hsl(var(--border))]/30
+  shadow-sm whitespace-nowrap
+`;

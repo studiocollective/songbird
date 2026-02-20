@@ -5,19 +5,22 @@ import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { GeminiService } from '@/lib/ai/gemini';
 import { Juce } from '@/lib';
 import { MarkdownRenderer } from './molecules/MarkdownRenderer';
+import { validateBirdSyntax } from '@/lib/ai/validator';
 
 export function ChatPanel() {
   const {
     chatOpen, chatMessages, chatInput, apiKey, selectedModel,
     isThinking, isStreaming, toolUseLabel,
     setChatInput, setApiKey, setSelectedModel,
-    addMessage, updateLastMessage, removeLastMessage,
+    addMessage, updateLastMessage,
     setThinking, setStreaming, setToolUseLabel,
   } = useChatStore();
   const [tempKey, setTempKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(true);
+  const [messageQueue, setMessageQueue] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isActive = isThinking || isStreaming;
 
@@ -71,10 +74,18 @@ export function ChatPanel() {
     abortRef.current?.abort();
   };
 
-  const handleSend = async () => {
-    if (!chatInput.trim() || !apiKey || isActive) return;
+  const handleSend = async (messageOverride?: string) => {
+    const text = (messageOverride ?? chatInput).trim();
+    if (!text || !apiKey) return;
+
+    if (isActive) {
+      // Queue message for after the current response finishes
+      setMessageQueue(q => [...q, text]);
+      setChatInput('');
+      return;
+    }
     
-    addMessage('user', chatInput);
+    addMessage('user', text);
     setChatInput('');
     setThinking(true);
     setToolUseLabel(null);
@@ -119,6 +130,12 @@ export function ChatPanel() {
             console.log('[Chat] Tool call: update_bird_file, saving...');
             await Juce.getNativeFunction('updateBird')(content);
             return { success: true };
+          } else if (call.name === 'validate_bird_file') {
+            setToolUseLabel('Validating grammar…');
+            const content = call.args.content as string;
+            const result = validateBirdSyntax(content);
+            console.log(`[Chat] Tool call: validate_bird_file -> ${result.isValid ? 'OK' : result.error}`);
+            return result;
           }
           return { error: 'Unknown tool' };
         },
@@ -155,6 +172,16 @@ export function ChatPanel() {
       setStreaming(false);
       setToolUseLabel(null);
       abortRef.current = null;
+
+      // Drain the queue — send the next message if one was queued
+      setMessageQueue(q => {
+        if (q.length > 0) {
+          const [next, ...rest] = q;
+          setTimeout(() => handleSend(next), 0);
+          return rest;
+        }
+        return q;
+      });
     }
   };
 
@@ -280,22 +307,33 @@ export function ChatPanel() {
 
         {/* Input */}
         <div className={inputWrapper}>
+          {messageQueue.length > 0 && (
+            <div className={queueBadge}>
+              <span>⏳</span>
+              <span>{messageQueue.length} message{messageQueue.length > 1 ? 's' : ''} queued</span>
+            </div>
+          )}
           <div className={inputRow}>
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Describe your music..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder={isActive ? 'Type to queue next message…' : 'Describe your music…'}
               className={inputField}
-              disabled={isActive}
+              rows={1}
             />
             {isActive ? (
               <button onClick={handleStop} className={stopBtn} title="Stop generation">
                 ■
               </button>
             ) : (
-              <button onClick={handleSend} className={sendBtn} disabled={!chatInput.trim()}>
+              <button onClick={() => handleSend()} className={sendBtn} disabled={!chatInput.trim()}>
                 Send
               </button>
             )}
@@ -373,20 +411,24 @@ const toolIndicator = `
 const toolIcon = `text-sm`;
 
 // --- Input ---
-const inputWrapper = `shrink-0 border-t border-[hsl(var(--border))] p-2`;
-const inputRow = `flex gap-2`;
+const inputWrapper = `shrink-0 border-t border-[hsl(var(--border))] p-2 space-y-1.5`;
+const queueBadge = `
+  flex items-center gap-1.5 px-2 py-1 rounded
+  bg-[hsl(var(--card))] border border-[hsl(var(--border))]
+  text-[10px] text-[hsl(var(--muted-foreground))] italic`;
+const inputRow = `flex gap-2 items-end`;
 const inputField = `
-  flex-1 h-8 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
-  rounded-md px-3 text-xs text-[hsl(var(--foreground))]
+  flex-1 min-h-8 max-h-32 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
+  rounded-md px-3 py-1.5 text-xs text-[hsl(var(--foreground))]
   placeholder-[hsl(var(--muted-foreground))]
   focus:outline-none focus:border-[hsl(var(--ring))]
-  disabled:opacity-50`;
+  resize-none overflow-y-auto leading-relaxed`;
 const sendBtn = `
   h-8 px-3 rounded-md bg-[hsl(var(--progress))] hover:bg-[hsl(var(--progress))]/80
   text-xs text-[hsl(var(--primary-foreground))] font-medium transition-colors
-  disabled:opacity-50 disabled:cursor-not-allowed`;
+  disabled:opacity-50 disabled:cursor-not-allowed shrink-0`;
 const stopBtn = `
   h-8 w-8 rounded-md bg-[hsl(var(--destructive,0_84%_60%))]
   hover:bg-[hsl(var(--destructive,0_84%_60%))]/80
   text-xs text-white font-bold transition-colors
-  flex items-center justify-center`;
+  flex items-center justify-center shrink-0`;

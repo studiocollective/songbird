@@ -1,10 +1,40 @@
+import { useState, useRef, useEffect } from 'react';
 import { useTransportStore, useMixerStore, useChatStore } from '@/data/store';
 import { cn } from '@/lib/utils';
+import { Juce, isPlugin } from '@/lib';
 
 export function Transport() {
-  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping } = useTransportStore();
+  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature } = useTransportStore();
   const { toggleMixer, mixerOpen } = useMixerStore();
   const { toggleChat, chatOpen } = useChatStore();
+
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportMenuRef]);
+
+  const handleExportStems = (includeReturnFx: boolean) => {
+    setExportMenuOpen(false);
+    if (isPlugin) Juce.getNativeFunction('exportStems')?.(includeReturnFx);
+  };
+
+  const handleExportMaster = () => {
+    setExportMenuOpen(false);
+    if (isPlugin) Juce.getNativeFunction('exportMaster')?.();
+  };
+
+  const handleExportMidi = () => {
+    setExportMenuOpen(false);
+    if (isPlugin) Juce.getNativeFunction('exportSheetMusic')?.();
+  };
 
   return (
     <div className={bar}>
@@ -48,7 +78,7 @@ export function Transport() {
 
       <div className={divider} />
 
-      {/* BPM */}
+      {/* BPM & Key */}
       <div className={controlGroup}>
         <span className={dimLabel}>BPM</span>
         <input
@@ -57,6 +87,13 @@ export function Transport() {
           onChange={(e) => setBpm(Number(e.target.value))}
           className={bpmInput}
         />
+        {keySignature && (
+          <>
+            <div className={`ml-2 mr-2 ${divider}`} />
+            <span className={dimLabel}>Key</span>
+            <span className={keyText}>{keySignature}</span>
+          </>
+        )}
       </div>
 
       <div className={divider} />
@@ -75,6 +112,47 @@ export function Transport() {
 
       {/* Panel toggles */}
       <div className={controlGroup}>
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            onClick={() => setExportMenuOpen(!exportMenuOpen)}
+            className={cn(panelBtn, exportMenuOpen ? panelBtnActive : panelBtnInactive)}
+            title="Export Options"
+          >
+            Export
+          </button>
+          
+          {exportMenuOpen && (
+            <div className={`absolute top-full right-0 mt-2 w-48 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-md shadow-lg overflow-hidden z-50`}>
+              <div className="py-1">
+                <button
+                  onClick={() => handleExportStems(false)}
+                  className="w-full text-left px-4 py-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]"
+                >
+                  Export Stems (Dry)
+                </button>
+                <button
+                  onClick={() => handleExportStems(true)}
+                  className="w-full text-left px-4 py-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]"
+                >
+                  Export Stems (+ Return FX)
+                </button>
+                <button
+                  onClick={handleExportMaster}
+                  className="w-full text-left px-4 py-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]"
+                >
+                  Export Master
+                </button>
+                <div className="border-t border-[hsl(var(--border))] my-1"></div>
+                <button
+                  onClick={handleExportMidi}
+                  className="w-full text-left px-4 py-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]"
+                >
+                  Export MIDI (Sheet Music)
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <button
           onClick={toggleMixer}
           className={cn(panelBtn, mixerOpen ? panelBtnActive : panelBtnInactive)}
@@ -112,6 +190,9 @@ const bpmInput = `
   w-14 h-7 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
   rounded text-center text-sm text-[hsl(var(--foreground))] font-mono
   focus:outline-none focus:border-[hsl(var(--ring))]`;
+const keyText = `
+  px-2 h-7 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
+  rounded flex items-center justify-center text-sm text-[hsl(var(--foreground))] font-mono`;
 
 const positionGroup = `flex items-center gap-3`;
 const positionText = `text-sm font-mono text-[hsl(var(--foreground))]`;

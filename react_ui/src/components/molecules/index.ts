@@ -8,3 +8,4 @@ export { ChatMessage } from './ChatMessage';
 export { TypingIndicator } from './TypingIndicator';
 export { ChatSuggestion } from './ChatSuggestion';
 export { PluginSlots, PluginSlotButton } from './PluginSlots';
+export { SendControl } from './SendControl';

@@ -67,6 +67,6 @@ const meterWrapper = `flex-1 flex items-center justify-center gap-0.5`;
 const meterTrack = `relative w-1.5 h-28 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
 const meterFill = `
   absolute bottom-0 w-full rounded-full
-  bg-gradient-to-t from-emerald-500/80 via-emerald-400 to-amber-400`;
+  bg-gradient-to-t from-emerald-500/80 via-emerald-400 to-red-500`;
 const segment = `absolute w-full h-px bg-[hsl(var(--mixer))] bottom-[var(--seg-bottom)]`;
 const readout = `text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-1`;

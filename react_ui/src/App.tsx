@@ -4,6 +4,7 @@ import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { DebugPanel } from '@/components/DebugPanel';
+import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
 import { Juce, isPlugin } from '@/lib';
 
 const setZoom = isPlugin ? Juce.getNativeFunction('setZoom') : null;
@@ -46,6 +47,7 @@ function App() {
       </div>
       <MixerPanel />
       <DebugPanel />
+      <ExportProgressModal />
     </div>
   );
 }

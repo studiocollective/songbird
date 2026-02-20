@@ -11,6 +11,17 @@ export interface NoteData {
 
 export type TrackType = 'midi' | 'audio' | 'generated';
 
+export interface AutomationPoint {
+  time: number;
+  value: number;
+  shape: number; // 0=Step, 1=Linear, 2=Exponential, 3=Logarithmic, 4=Smooth
+}
+
+export interface AutomationCurve {
+  macro: string;
+  points: AutomationPoint[];
+}
+
 export interface Section {
   name: string;
   start: number;   // bar offset
@@ -37,6 +48,10 @@ export interface Track {
   fx: PluginSlot;           // Insert effect (e.g. reverb, delay)
   channelStrip: PluginSlot;
   notes: NoteData[];
+  automation?: AutomationCurve[];
+  sends?: number[];
+  isReturn?: boolean;
+  isMaster?: boolean;
 }
 
 const defaultTracks: Track[] = [];
@@ -51,12 +66,15 @@ export interface MixerState {
   sections: Section[];
   totalBars: number;
   mixerOpen: boolean;
+  returnsOpen: boolean;
 
   toggleMixer: () => void;
+  toggleReturns: () => void;
   toggleMute: (id: number) => void;
   toggleSolo: (id: number) => void;
   setVolume: (id: number, volume: number) => void;
   setPan: (id: number, pan: number) => void;
+  setSendLevel: (id: number, bus: number, level: number) => void;
   setTrackName: (id: number, name: string) => void;
 
   // Plugin actions
@@ -88,6 +106,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   sections: [],
   totalBars: 1,
   mixerOpen: true,
+  returnsOpen: false,
 
   availableInstruments: [],
   availableEffects: [],
@@ -110,6 +129,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   },
 
   toggleMixer: () => set((s) => ({ mixerOpen: !s.mixerOpen })),
+  toggleReturns: () => set((s) => ({ returnsOpen: !s.returnsOpen })),
   toggleMute: (id) =>
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, muted: !t.muted } : t)),
@@ -125,6 +145,17 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   setPan: (id, pan) =>
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, pan } : t)),
+    })),
+  setSendLevel: (id, bus, level) =>
+    set((s) => ({
+      tracks: s.tracks.map((t) => {
+        if (t.id === id) {
+          const sends = [...(t.sends || [0, 0, 0, 0])];
+          sends[bus] = level;
+          return { ...t, sends };
+        }
+        return t;
+      }),
     })),
   setTrackName: (id, name) =>
     set((s) => ({

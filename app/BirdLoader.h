@@ -7,12 +7,30 @@
 
 namespace te = tracktion;
 
+// --- Automation curve data ---
+struct BirdAutomationPoint {
+    double time;        // position in beats (relative to section start for continuous, or relative to note for steps)
+    float value;        // 0.0 to 1.0 (normalized)
+    
+    // Curve shape to the *next* point
+    enum Shape { Step, Linear, Exponential, Logarithmic, Smooth };
+    Shape shape = Linear;
+};
+
+struct BirdAutomationCurve {
+    std::string macroName;
+    std::vector<BirdAutomationPoint> points;
+};
+
 // --- Resolved note data from a .bird file ---
 struct BirdNote {
     int pitch;          // MIDI note number
     double beatPos;     // position in beats (0-based)
     double duration;    // duration in beats
     int velocity;       // 0–127
+    
+    // Step-based automation tied to this specific note
+    std::map<std::string, float> stepParams; 
 };
 
 // --- A parsed channel from a .bird file ---
@@ -23,6 +41,9 @@ struct BirdChannel {
     std::string fx;              // fx keyword (e.g. "delay", "reverb")
     std::string strip;           // channel strip keyword (e.g. "console1")
     std::vector<BirdNote> notes; // resolved notes
+    
+    // Continuous automation curves attached to this channel (section-level)
+    std::map<std::string, BirdAutomationCurve> automation;
 };
 
 // --- A named section containing its own channels ---
@@ -40,6 +61,10 @@ struct BirdArrangementEntry {
 // --- Parse result ---
 struct BirdParseResult {
     int bars = 1;                                    // cycle length in bars (total if arrangement exists)
+    int keySharpsFlats = 0;                          // key signature: >0 for sharps, <0 for flats
+    bool keyIsMinor = false;                         // true if key signature is minor
+    std::string keyName = "";                        // Original key string (e.g. "C min")
+    bool hasKeySignature = false;                    // true if a key signature was explicitly parsed
     std::vector<BirdChannel> channels;               // top-level channels (no sections)
     std::vector<BirdSection> sections;               // named sections
     std::vector<BirdArrangementEntry> arrangement;   // arrangement order
@@ -65,12 +90,13 @@ public:
         int ticksInStep = 0; // Ticks already elapsed in the current pattern step
     };
 
-    // Resolve pattern + note groups + velocities into concrete BirdNote events
+    // Resolve pattern + note groups + velocities + step automation into concrete BirdNote events
     // Modifies state to allow pattern phase to continue across sections
     static std::vector<BirdNote> resolveNotes(
         const std::vector<int>& pattern,
         const std::vector<std::vector<int>>& noteGroups,
         const std::vector<int>& velocities,
+        const std::map<std::string, std::vector<std::string>>& stepAutomations,
         int sequenceLength,
         PatternState& state);
 

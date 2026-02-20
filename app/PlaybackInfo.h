@@ -23,6 +23,7 @@ public:
 
     void setEdit(te::Edit* edit);
     void setWebView(juce::WebBrowserComponent* wv);
+    void reattachAnalyzer(); // Call after BirdLoader::populateEdit to re-insert the analyzer plugin
 
 private:
     void attachClients();
@@ -35,8 +36,24 @@ private:
     // Per-track level metering clients
     std::vector<std::unique_ptr<te::LevelMeasurer::Client>> trackClients;
 
-    // Stereo analysis (computed from master L/R)
+    // Custom Master Analyzer
+    te::Plugin::Ptr analyzerPlugin;
+
+    // Stereo analysis
     float stereoWidth = 0.0f;        // 0..1 (mono..wide)
     float phaseCorrelation = 1.0f;   // -1..+1 (out of phase..mono)
+    float stereoBalance = 0.0f;      // -1..+1 (full left..full right)
     int stereoFrameCount = 0;
+    
+    // FFT processing
+    static constexpr int fftOrder = 10;
+    static constexpr int fftSize = 1 << fftOrder;
+    float fifo[fftSize] = { 0.0f };
+    float fftData[fftSize * 2] = { 0.0f };
+    int fifoIndex = 0;
+    bool nextFFTBlockReady = false;
+    std::vector<float> spectrumMagnitudes;
+
+public:
+    void processMasterBuffer(const juce::AudioBuffer<float>& buffer, int numSamples);
 };

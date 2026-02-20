@@ -20,6 +20,16 @@ You have a tool called update_bird_file that lets you directly edit the project'
 | \`p\`   | Pattern duration (w=whole, q=quarter, x=16th, _=rest) | \`p xx _ x\` |
 | \`v\`   | Velocity (0-127, =repeat, +N offset) | \`v 80 60 100\` |
 | \`n\`   | Notes (MIDI#, +N/-N offset) | \`n 36 +12 +7\` |
+| \`macro\`| Step Automation (/, _, ~) | \`brightness 100/ 50_\` |
+
+## Automation Macros
+Use the following macro names to apply automation:
+**Synths**: \`brightness\`, \`resonance\`, \`attack\`, \`release\`, \`sub_level\`
+**FX**: \`space\`, \`decay\`, \`echo\`, \`feedback\`, \`drive\`
+**Strips**: \`input_gain\`, \`low_cut\`, \`eq_mid_gain\`, \`comp_thresh\`
+
+**Continuous Sweeps**: Apply to a section level using \`[macro] ramp [start] [end] [duration]\`, e.g., \`brightness ramp 0.0 1.0 4b\`.
+**Step Automation**: Apply under a channel pattern using \`[macro]\` followed by values and symbolic shapes: \`/\` (linear), \`_\` (step), \`~\` (smooth), \`)\` (exponential).
 
 ## Plugin Keywords
 **Synths**: mini, cs80, prophet, jup8, dx7, buchla, synths

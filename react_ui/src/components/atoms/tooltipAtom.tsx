@@ -19,7 +19,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from '@/components/ui';
+} from './tooltip';
 import {cn} from '@/lib/utils';
 
 const TooltipAtom: React.FC<{children: React.ReactNode; tooltip: string; className?: string}> = ({

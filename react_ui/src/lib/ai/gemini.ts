@@ -30,6 +30,24 @@ const BIRD_TOOL = {
   }],
 };
 
+// Tool declaration for validating bird syntax
+const VALIDATE_TOOL = {
+  functionDeclarations: [{
+    name: 'validate_bird_file',
+    description: 'Validates the structural syntax of a .bird file before saving. Use this to check your work for errors such as unaligned columns or missing global declarations. Returns an object { isValid: boolean, error?: string }.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        content: {
+          type: 'STRING',
+          description: 'The .bird file content to validate',
+        },
+      },
+      required: ['content'],
+    },
+  }],
+};
+
 const MODELS = [
   'gemini-3-flash-preview',
   'gemini-3.1-pro-preview',
@@ -81,11 +99,6 @@ export class GeminiService {
     return { content: '', error: 'All models are currently overloaded. Please try again later.' };
   }
 
-  /**
-   * Step 1: Non-streaming call with tools.
-   * If the model returns a functionCall, execute it and make a follow-up call.
-   * Otherwise, or for the final response, stream the text.
-   */
   private static async tryWithTools(
     model: string,
     apiKey: string,
@@ -102,108 +115,71 @@ export class GeminiService {
       maxOutputTokens: 4096,
     };
 
-    try {
-      // Step 1: Non-streaming call with tool declarations
-      const url = `${BASE}/${model}:generateContent?key=${apiKey}`;
-      const body = JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        tools: onToolCall ? [BIRD_TOOL] : undefined,
-        generationConfig,
-      });
+    // Step 1: Streaming call with tool declarations
+    const initialResponse = await this.executeStreamRequest(
+      model, apiKey, systemPrompt, contents, onToolCall ? [BIRD_TOOL, VALIDATE_TOOL] : undefined, onChunk, generationConfig, signal
+    );
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal,
-      });
+    if (initialResponse.error) {
+      return { content: initialResponse.content, error: initialResponse.error };
+    }
 
-      console.log(`[Gemini] ${model} (tool call): ${response.status}`);
+    // Step 2: Handle function call if present
+    if (initialResponse.functionCall && onToolCall) {
+      const fc = initialResponse.functionCall;
+      console.log(`[Gemini] Function call: ${fc.name}`, fc.args);
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        try {
-          const errorData = JSON.parse(errorText);
-          return { content: '', error: errorData.error?.message || `API Error: ${response.status}` };
-        } catch {
-          return { content: '', error: `API Error: ${response.status} - ${errorText.slice(0, 200)}` };
-        }
+      const toolResult = await onToolCall({ name: fc.name, args: fc.args });
+
+      if (signal?.aborted) {
+        return { content: initialResponse.content };
       }
 
-      const data = await response.json();
-      const candidate = data.candidates?.[0];
-      if (!candidate) return { content: '', error: 'No response candidate' };
+      // Step 3: Stream follow-up after tool call
+      const followUpContents = [
+        ...contents,
+        {
+          role: 'model',
+          parts: initialResponse.modelParts && initialResponse.modelParts.length > 0 ? initialResponse.modelParts : [{ functionCall: fc }]
+        },
+        {
+          role: 'user',
+          parts: [{
+            functionResponse: {
+              name: fc.name,
+              response: { result: toolResult || {} },
+            }
+          }]
+        }
+      ];
 
-      // Check if the model wants to call a function
-      const functionCallPart = candidate.content?.parts?.find(
-        (p: Record<string, unknown>) => p.functionCall
+      // Pass a wrapped onChunk to append to whatever text might have already been generated
+      let followUpAccumulated = initialResponse.content;
+      const followUpResponse = await this.executeStreamRequest(
+        model, apiKey, systemPrompt, followUpContents, undefined,
+        (delta) => {
+          followUpAccumulated += delta;
+          onChunk(delta, followUpAccumulated);
+        },
+        generationConfig, signal
       );
 
-      if (functionCallPart && onToolCall) {
-        const fc = functionCallPart.functionCall as { name: string; args: Record<string, unknown> };
-        console.log(`[Gemini] Function call: ${fc.name}`, fc.args);
-
-        // Execute the tool
-        const toolResult = await onToolCall({ name: fc.name, args: fc.args });
-
-        // Check abort after tool call
-        if (signal?.aborted) {
-          return { content: '' };
-        }
-
-        // Step 2: Send function result back and stream the final response
-        const followUpContents = [
-          ...contents,
-          candidate.content,  // model's functionCall turn
-          {
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fc.name,
-                response: { result: toolResult },
-              }
-            }]
-          }
-        ];
-
-        return await this.streamResponse(model, apiKey, systemPrompt, followUpContents, onChunk, generationConfig, signal);
-      }
-
-      // No function call — just extract text directly
-      const textParts = candidate.content?.parts
-        ?.filter((p: Record<string, unknown>) => p.text)
-        ?.map((p: { text: string }) => p.text)
-        .join('') || '';
-
-      if (textParts) {
-        onChunk(textParts, textParts);
-      }
-
-      return { content: textParts };
-    } catch (e) {
-      // AbortError means user cancelled — return gracefully
-      if (e instanceof DOMException && e.name === 'AbortError') {
-        console.log(`[Gemini] ${model} request aborted by user`);
-        return { content: '' };
-      }
-      console.error(`[Gemini] ${model} error:`, e);
-      return { content: '', error: e instanceof Error ? e.message : 'Unknown network error' };
+      return { content: followUpAccumulated, error: followUpResponse.error };
     }
+
+    return { content: initialResponse.content };
   }
 
-  /**
-   * Stream a response using SSE (used for the final text response after function calling).
-   */
-  private static async streamResponse(
+  private static async executeStreamRequest(
     model: string,
     apiKey: string,
     systemPrompt: string,
     contents: unknown[],
+    tools: unknown[] | undefined,
     onChunk: (delta: string, accumulated: string) => void,
     generationConfig: Record<string, unknown>,
     signal?: AbortSignal,
-  ): Promise<GeminiResponse> {
+  ): Promise<{ content: string; functionCall?: { name: string; args: Record<string, unknown> }, modelParts?: Record<string, unknown>[], error?: string }> {
     try {
       const url = `${BASE}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
       const response = await fetch(url, {
@@ -215,6 +191,7 @@ export class GeminiService {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents,
+          tools,
           generationConfig,
         }),
         signal,
@@ -242,12 +219,13 @@ export class GeminiService {
       const decoder = new TextDecoder();
       let accumulated = '';
       let buffer = '';
+      let functionCall: { name: string; args: Record<string, unknown> } | undefined;
+      const modelParts: Record<string, unknown>[] = [];
 
       while (true) {
-        // Check abort before each read
         if (signal?.aborted) {
           reader.cancel();
-          return { content: accumulated };
+          return { content: accumulated, functionCall, modelParts };
         }
 
         const { done, value } = await reader.read();
@@ -265,11 +243,45 @@ export class GeminiService {
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              accumulated += text;
-              onChunk(text, accumulated);
-              hadText = true;
+            const candidate = parsed.candidates?.[0];
+            const parts = candidate?.content?.parts;
+            if (parts) {
+              for (const part of parts) {
+                if ('text' in part) {
+                  accumulated += part.text as string;
+                  onChunk(part.text as string, accumulated);
+                  hadText = true;
+
+                  const lastPart = modelParts[modelParts.length - 1];
+                  if (lastPart && 'text' in lastPart) {
+                    lastPart.text = (lastPart.text as string) + part.text;
+                    // Merge any other keys that might have appeared with text
+                    for (const k of Object.keys(part)) {
+                      if (k !== 'text') lastPart[k] = part[k as keyof typeof part];
+                    }
+                  } else {
+                    modelParts.push({ ...part });
+                  }
+                } else if ('functionCall' in part) {
+                  functionCall = part.functionCall as { name: string; args: Record<string, unknown> };
+                  const existing = modelParts.find(p => 'functionCall' in p && (p.functionCall as { name: string }).name === functionCall?.name);
+                  
+                  if (existing) {
+                    Object.assign(existing, part);
+                  } else {
+                    modelParts.push({ ...part });
+                  }
+                } else if ('thought' in part) {
+                  const lastPart = modelParts[modelParts.length - 1];
+                  if (lastPart && 'thought' in lastPart) {
+                    lastPart.thought = (lastPart.thought as string) + part.thought;
+                  } else {
+                    modelParts.push({ ...part });
+                  }
+                } else {
+                  modelParts.push({ ...part });
+                }
+              }
             }
           } catch {
             // skip malformed
@@ -279,9 +291,8 @@ export class GeminiService {
         if (hadText) await yieldToBrowser();
       }
 
-      return { content: accumulated };
+      return { content: accumulated, functionCall, modelParts };
     } catch (e) {
-      // AbortError means user cancelled — return what we have
       if (e instanceof DOMException && e.name === 'AbortError') {
         console.log(`[Gemini] ${model} stream aborted by user`);
         return { content: '' };

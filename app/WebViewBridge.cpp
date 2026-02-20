@@ -147,6 +147,31 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             }
             complete("ok");
         })
+        // Export to MIDI (Sheet Music)
+        .withNativeFunction("exportSheetMusic", [this](auto& args, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                exportSheetMusic();
+            });
+            complete("ok");
+        })
+        // Export Stems
+        .withNativeFunction("exportStems", [this](auto& args, auto complete) {
+            bool includeReturnFx = false;
+            if (args.size() > 0) {
+                includeReturnFx = static_cast<bool>(args[0]);
+            }
+            juce::MessageManager::callAsync([this, includeReturnFx]() {
+                exportStems(includeReturnFx);
+            });
+            complete("ok");
+        })
+        // Export Master (full mix)
+        .withNativeFunction("exportMaster", [this](auto& args, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                exportMaster();
+            });
+            complete("ok");
+        })
         // Save a .bird file (from AI generation)
         .withNativeFunction("saveBird", [this](auto& args, auto complete) {
             if (args.size() > 1) {

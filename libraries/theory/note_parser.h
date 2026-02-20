@@ -22,4 +22,9 @@ bool is_note_name(string s);
 // Check if a string looks like a chord name (starts with @)
 bool is_chord_name(string s);
 
+// Returns the number of sharps (positive) or flats (negative) for a key signature string
+// e.g. "F# minor", "C", "G maj"
+// Returns -99 if parsing fails. Sets isMinor appropriately.
+int sharps_from_key_name(string s, bool& isMinor);
+
 #endif // THEORY_NOTE_PARSER

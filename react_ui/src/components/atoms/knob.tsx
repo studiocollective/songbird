@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import {useState, useEffect, useCallback, useRef, PointerEvent} from 'react';
+import {useState, useEffect, useCallback, useRef} from 'react';
+import type {PointerEvent} from 'react';
 
 import {cn} from '@/lib/utils';
 import {OnOffSwitch} from './onoff';
@@ -58,16 +59,6 @@ const Knob: React.FC<KnobProps> = ({
   const deltaY = useRef<number>(0);
   const [angle, setAngle] = useState<number>(initialAngle);
 
-  // Start dragging
-  function handlePointerDown(e: PointerEvent<HTMLDivElement>) {
-    if (disabled) return;
-
-    currentY.current = e.clientY;
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-  }
-
   const handlePointerMove = useCallback(
     (e: globalThis.PointerEvent) => {
       if (currentY.current === undefined) return;
@@ -89,17 +80,24 @@ const Knob: React.FC<KnobProps> = ({
     [currentY, min, max, step, value, onChange], // Dependencies for useCallback
   );
 
-  // Stop dragging (using useCallback for stable reference in listeners)
-  const handlePointerUp = useCallback(
-    () => {
-      currentY.current = undefined;
-      deltaY.current = 0;
+  // Stop dragging
+  function handlePointerUp() {
+    currentY.current = undefined;
+    deltaY.current = 0;
 
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    },
-    [handlePointerMove], // handlePointerMove is a dependency
-  );
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+  }
+
+  // Start dragging
+  function handlePointerDown(e: PointerEvent<HTMLDivElement>) {
+    if (disabled) return;
+
+    currentY.current = e.clientY;
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  }
 
   // Effect to synchronize angle state when value prop changes externally
   useEffect(() => {

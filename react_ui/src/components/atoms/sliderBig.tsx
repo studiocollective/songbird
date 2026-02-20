@@ -18,11 +18,9 @@ import * as React from 'react';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 
 import {cn} from '@/lib/utils';
-import {SliderProps} from '@/components/ui/shadcn/slider';
-
 const SliderBig = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & SliderProps
+  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & { color?: string }
 >(({className, color, ...props}, ref) => (
   <SliderPrimitive.Root ref={ref} className={cn(root, className)} {...props}>
     <SliderPrimitive.Track className={track}>

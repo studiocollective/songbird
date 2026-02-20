@@ -76,28 +76,32 @@ export const useLyriaStore = create<LyriaState>()(
 
 // --- C++ → JS state listeners (partial updates from engine) ---
 
-addStateListener(TransportStateID, (partialState: Partial<TransportState>) => {
+addStateListener(TransportStateID, (data: unknown) => {
+  const partialState = data as Partial<TransportState>;
   useTransportStore.setState((prev) => ({
     ...prev,
     ...partialState,
   }));
 });
 
-addStateListener(MixerStateID, (partialState: Partial<MixerState>) => {
+addStateListener(MixerStateID, (data: unknown) => {
+  const partialState = data as Partial<MixerState>;
   useMixerStore.setState((prev) => ({
     ...prev,
     ...partialState,
   }));
 });
 
-addStateListener(ChatStateID, (partialState: Partial<ChatState>) => {
+addStateListener(ChatStateID, (data: unknown) => {
+  const partialState = data as Partial<ChatState>;
   useChatStore.setState((prev) => ({
     ...prev,
     ...partialState,
   }));
 });
 
-addStateListener(LyriaStateID, (partialState: Partial<LyriaState>) => {
+addStateListener(LyriaStateID, (data: unknown) => {
+  const partialState = data as Partial<LyriaState>;
   useLyriaStore.setState((prev) => ({
     ...prev,
     ...partialState,
@@ -131,30 +135,45 @@ function processTrackNotes(data: string | object) {
   const trackData = Array.isArray(raw) ? raw : raw.tracks;
   const sectionsData = Array.isArray(raw) ? [] : (raw.sections ?? []);
   const totalBars = Array.isArray(raw) ? 1 : (raw.totalBars ?? 1);
+  const keySignature = Array.isArray(raw) ? null : (raw.keySignature ?? null);
 
   const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
   const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
-  const tracks = trackData.map((t: any, i: number) => ({
-    id: t.id,
-    name: t.name,
-    type: 'midi' as const,
-    color: TRACK_COLORS[i % TRACK_COLORS.length],
-    muted: false,
-    solo: false,
-    volume: 80,
-    pan: 0,
-    instrument: t.plugin
-      ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: false }
-      : emptySlot,
-    fx: t.fx
-      ? { pluginId: t.fx.pluginId, pluginName: t.fx.pluginName, bypassed: false }
-      : emptySlot,
-    channelStrip: t.channelStrip
-      ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: false }
-      : emptySlot,
-    notes: t.notes,
-  }));
+  
+  const existingTracks = useMixerStore.getState().tracks || [];
 
+  useTransportStore.getState().setKeySignature(keySignature);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tracks = trackData.map((t: any, i: number) => {
+    const existing = existingTracks.find(x => x.name === t.name);
+
+    return {
+      id: t.id,
+      name: t.name,
+      type: 'midi' as const,
+      color: existing ? existing.color : TRACK_COLORS[i % TRACK_COLORS.length],
+      muted: existing ? existing.muted : false,
+      solo: existing ? existing.solo : false,
+      volume: existing ? existing.volume : 80,
+      pan: existing ? existing.pan : 0,
+      instrument: t.plugin
+        ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: existing?.instrument?.bypassed ?? false }
+        : emptySlot,
+      fx: t.fx
+        ? { pluginId: t.fx.pluginId, pluginName: t.fx.pluginName, bypassed: existing?.fx?.bypassed ?? false }
+        : emptySlot,
+      channelStrip: t.channelStrip
+        ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: existing?.channelStrip?.bypassed ?? false }
+        : emptySlot,
+      notes: t.notes,
+      isReturn: t.isReturn ?? false,
+      isMaster: t.isMaster ?? false,
+      sends: t.sends ?? existing?.sends ?? [0, 0, 0, 0],
+    };
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sections = sectionsData.map((s: any, i: number) => ({
     name: s.name,
     start: s.start,

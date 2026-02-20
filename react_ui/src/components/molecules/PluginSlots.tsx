@@ -38,15 +38,13 @@ export function PluginSlotButton({ slot, label, icon, onSelect, onToggleBypass, 
         <button onClick={() => setOpen(!open)} className={nameClass} title={slot.pluginName || label}>
           {slot.pluginName || label}
         </button>
-        {slot.pluginId && (
-          <button
-            onClick={onOpen}
-            className={openPluginBtn}
-            title="Open plugin window"
-          >
-            ⤢
-          </button>
-        )}
+        <button
+          onClick={onOpen}
+          className={cn(openPluginBtn, !slot.pluginId && 'invisible')}
+          title="Open plugin window"
+        >
+          ⤢
+        </button>
       </div>
 
       {open && (
@@ -78,9 +76,10 @@ interface PluginSlotsProps {
   instrument: PluginSlot;
   fx: PluginSlot;
   channelStrip: PluginSlot;
+  isMaster?: boolean;
 }
 
-export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip }: PluginSlotsProps) {
+export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster }: PluginSlotsProps) {
   const availableInstruments = useMixerStore((s) => s.availableInstruments);
   const availableFx = useMixerStore((s) => s.availableFx);
   const availableEffects = useMixerStore((s) => s.availableEffects);
@@ -109,7 +108,7 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip }
       <PluginSlotButton
         slot={fx}
         label="+ FX"
-        icon="✨"
+        icon={isMaster ? "🎛️" : "✨"}
         options={availableFx}
         onSelect={(pluginId, pluginName) =>
           useMixerStore.getState().setFx(trackId, pluginId, pluginName)
@@ -160,7 +159,7 @@ const nameBypassed = `bg-[hsl(var(--card))]/60 text-[hsl(var(--muted-foreground)
 const nameEmpty = `bg-[hsl(var(--card))]/40 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--card))]`;
 
 const openPluginBtn = `
-  w-4 h-4 rounded shrink-0 flex items-center justify-center
+  w-4 h-4 shrink-0 rounded flex items-center justify-center
   text-[9px] leading-none
   text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
   hover:bg-[hsl(var(--muted))] transition-colors`;

@@ -16,30 +16,34 @@ interface MixerChannelProps {
   instrument: PluginSlot;
   fx: PluginSlot;
   channelStrip: PluginSlot;
+  isReturn?: boolean;
+  isMaster?: boolean;
 }
 
 export function MixerChannel({
-  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip,
+  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false
 }: MixerChannelProps) {
   const level = useMeterStore((s) => {
+    if (isMaster) return Math.max(s.master.left, s.master.right);
     const ch = s.levels[trackIndex];
     return ch ? Math.max(ch.left, ch.right) : 0;
   });
 
   return (
     <div className={channel}>
+
       <div className={header}>
         <TrackColorDot color={color} size="md" />
         <span className={trackName}>{name}</span>
-        <span className={cn(badge, trackType === 'midi' ? badgeMidi : badgeAudio)}>
-          {trackType}
+        <span className={cn(badge, (isReturn || trackType === 'audio') ? badgeAudio : badgeMidi, isMaster && 'bg-emerald-500/20 text-emerald-300')}>
+          {isMaster ? 'master' : (isReturn ? 'return' : trackType)}
         </span>
       </div>
 
-      <PluginSlots trackId={trackId} trackType={trackType} instrument={instrument} fx={fx} channelStrip={channelStrip} />
+      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} />
 
       <div className={msWrapper}>
-        <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />
+        {!isMaster && <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />}
       </div>
 
       <div className={faderArea}>
@@ -47,9 +51,11 @@ export function MixerChannel({
         <VolumeFader trackId={trackId} value={volume} color={color} height="h-20" />
       </div>
 
-      <div className={panWrapper}>
-        <PanControl trackId={trackId} value={pan} color={color} />
-      </div>
+      {!isMaster && (
+        <div className={panWrapper}>
+          <PanControl trackId={trackId} value={pan} color={color} />
+        </div>
+      )}
 
       <div className={volumeReadout}>{volume}</div>
     </div>
@@ -57,7 +63,7 @@ export function MixerChannel({
 }
 
 const channel = `
-  w-28 shrink-0 border-r border-[hsl(var(--border))]/50
+  relative w-28 shrink-0 border-r border-[hsl(var(--border))]/50
   flex flex-col items-center py-2
   hover:bg-[hsl(var(--mixer-channel-hover))] transition-colors`;
 
