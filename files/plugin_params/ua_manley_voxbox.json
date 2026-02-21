@@ -1,0 +1,227 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Source Select",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "Low Cut",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Phase",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Input",
+    "default": 0.303223,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "SC Link",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Comp Byp",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Comp Thresh",
+    "default": 0.495728,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Comp Attack",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "Comp Rel",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "EQ Byp",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "Lo Peak",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "Lo Peak Freq",
+    "default": 0.3,
+    "numSteps": 11,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "Mid Dip",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "Mid Dip Freq",
+    "default": 0.1,
+    "numSteps": 11,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "Hi Peak",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "Hi Peak Freq",
+    "default": 0.8,
+    "numSteps": 11,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "De Ess Byp",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "De Ess Sel",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "De Ess Thr",
+    "default": 0.411438,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Meter",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Transformer Byp",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Output",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "Power",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "Master Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

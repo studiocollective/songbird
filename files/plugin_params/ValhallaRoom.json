@@ -1,0 +1,209 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "mix",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "predelay",
+    "default": 0.02,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "decay",
+    "default": 0.019019,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "HiCut",
+    "default": 0.530201,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "earlyLateMix",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "lateSize",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "lateCross",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "lateModRate",
+    "default": 0.0909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "lateModDepth",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "RTBassMultiply",
+    "default": 0.333333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "RTXover",
+    "default": 0.0909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "RTHighMultiply",
+    "default": 0.444444,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "RTHighXover",
+    "default": 0.530201,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "earlySize",
+    "default": 0.029029,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "earlyCross",
+    "default": 0.1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "earlyModRate",
+    "default": 0.0909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "earlyModDepth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "earlySend",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "diffusion",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "type",
+    "default": 0.0833333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "space",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "LoCut",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

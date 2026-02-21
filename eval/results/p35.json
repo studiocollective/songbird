@@ -1,0 +1,54 @@
+{
+  "id": 35,
+  "category": "mix_control",
+  "prompt": "Mute all drum tracks so I can hear only the bass and melody.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "set_track_mixer",
+        "args": {
+          "solo": false,
+          "trackId": 4,
+          "volumeDb": 0,
+          "mute": true,
+          "pan": 0
+        }
+      },
+      {
+        "name": "set_track_mixer",
+        "args": {
+          "mute": true,
+          "pan": 0,
+          "volumeDb": 0,
+          "solo": false,
+          "trackId": 5
+        }
+      },
+      {
+        "name": "set_track_mixer",
+        "args": {
+          "mute": true,
+          "pan": 0,
+          "solo": false,
+          "trackId": 6,
+          "volumeDb": 0
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly used the set_track_mixer tool to set mute=true for the intended drum tracks.",
+    "quality_reason": "The execution accurately fulfills the user's request to mute the drums, leaving the bass and melody audible."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

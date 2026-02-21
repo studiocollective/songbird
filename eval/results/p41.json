@@ -1,0 +1,23 @@
+{
+  "id": 41,
+  "category": "sound_design",
+  "prompt": "Make the synth brighter — open up the filter cutoff.",
+  "response": {
+    "text": "Which synth would you like to make brighter? You have a few tracks using synthesizers: **Melody** (mini), **Bass** (bass), and **Chords** (jup8).",
+    "toolCalls": []
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly asked for clarification instead of guessing which synth to adjust, as there are multiple synths in the project.",
+    "quality_reason": "The response is excellent because it explicitly lists the available synth tracks by name and instrument, making it easy for the user to specify."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

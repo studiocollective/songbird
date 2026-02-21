@@ -1,0 +1,164 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Mix",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "PreDelay",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Decay",
+    "default": 0.42048,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Size",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Attack",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "BassMult",
+    "default": 0.623039,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "BassXover",
+    "default": 0.444701,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "HighShelf",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "HighFreq",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "EarlyDiffusion",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "LateDiffusion",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "ModRate",
+    "default": 0.245455,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "ModDepth",
+    "default": 0.38,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "HighCut",
+    "default": 0.590539,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "LowCut",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "ColorMode",
+    "default": 0.333333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "ReverbMode",
+    "default": 0.0416667,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import '@/data/meters';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { juceBridge, addStateListener } from './bridge';
-import type { TransportState, MixerState, ChatState, LyriaState } from '@/data/slices';
+import type { TransportState, MixerState, ChatState, LyriaState, TrackType } from '@/data/slices';
 import {
   useTransportSlice,
   TransportStateID,
@@ -151,7 +151,12 @@ function processTrackNotes(data: string | object) {
     return {
       id: t.id,
       name: t.name,
-      type: 'midi' as const,
+      type: (() => {
+        const raw = t.trackType ?? existing?.type ?? 'midi';
+        if (raw === 'gen-midi') return 'midi' as TrackType;
+        if (raw === 'gen-audio') return 'audio' as TrackType;
+        return raw as TrackType;
+      })(),
       color: existing ? existing.color : TRACK_COLORS[i % TRACK_COLORS.length],
       muted: existing ? existing.muted : false,
       solo: existing ? existing.solo : false,
@@ -170,6 +175,8 @@ function processTrackNotes(data: string | object) {
       isReturn: t.isReturn ?? false,
       isMaster: t.isMaster ?? false,
       sends: t.sends ?? existing?.sends ?? [0, 0, 0, 0],
+      sidechainTrackId: existing ? (existing.sidechainTrackId ?? null) : null,
+      sidechainSensitivity: existing ? (existing.sidechainSensitivity ?? 0.6) : 0.6,
     };
   });
 

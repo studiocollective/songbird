@@ -9,6 +9,8 @@
 #include "BirdLoader.h"
 #include "PlaybackInfo.h"
 #include "libraries/tracktion/examples/common/PluginWindow.h"
+#include "MidiRecorder.h"
+#include "AudioRecorder.h"
 
 namespace te = tracktion;
 
@@ -42,6 +44,8 @@ private:
     // Bird file loading
     void scanForPlugins();
     void loadBirdFile(const juce::File& birdFile);
+    void scheduleReload(const juce::String& content);
+    void applyParsedResult(const BirdParseResult& result);
     void exportSheetMusic();
     void exportStems(bool includeReturnFx);
     void exportMaster();
@@ -50,15 +54,35 @@ private:
     juce::File currentBirdFile;
     std::unique_ptr<juce::Thread> stemExportThread;
 
+    // Reload debounce & background parse
+    juce::String pendingBirdContent;
+    std::atomic<bool> reloadPending { false };
+    std::unique_ptr<juce::Thread> reloadThread;
+
     // Lyria generated track management
-    std::map<int, magenta::LyriaPlugin*> lyriaPlugins;
+    struct LyriaTrackContext {
+        magenta::LyriaPlugin* plugin = nullptr;
+        int quantizeBars = 0;  // 0 = no quantize, 1 = 1 bar, 2 = 2 bars, etc.
+    };
+    std::map<int, LyriaTrackContext> lyriaPlugins;
     void addGeneratedTrack();
     void removeGeneratedTrack(int trackId);
     void handleLyriaState(const juce::var& state);
+    void setLyriaTrackConfig(int trackId, const juce::var& config);
+    void setLyriaTrackPrompts(int trackId, const juce::var& prompts);
+    void setLyriaQuantize(int trackId, int bars);
+
+    // MIDI recorder
+    std::unique_ptr<MidiRecorder> midiRecorder;
+    int midiRecordTrackId = -1;
+
+    // Audio recorder
+    std::unique_ptr<AudioRecorder> audioRecorder;
 
     // Plugin window management
     void openPluginWindow(int trackId, const juce::String& slotType, const juce::String& pluginId);
     void changePlugin(int trackId, const juce::String& slotType, const juce::String& pluginName);
+    void setSidechainSource(int destTrackId, int sourceTrackId);
     void logToJS(const juce::String& message);
 
     // Playback info (levels, transport position, stereo analysis)

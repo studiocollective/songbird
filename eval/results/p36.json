@@ -1,0 +1,34 @@
+{
+  "id": 36,
+  "category": "mix_control",
+  "prompt": "Turn up the bass by 3 dB.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "set_track_mixer",
+        "args": {
+          "pan": 0,
+          "solo": false,
+          "trackId": 2,
+          "volumeDb": 3,
+          "mute": false
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 2,
+    "relevance_reason": "The AI correctly used the set_track_mixer tool to increase the volume of the bass track.",
+    "quality_reason": "Setting the bass volume to 3 dB accurately fulfills the user's request, assuming a baseline of 0 dB."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 2,
+    "total": 7
+  }
+}

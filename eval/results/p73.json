@@ -1,0 +1,32 @@
+{
+  "id": 73,
+  "category": "vibe",
+  "prompt": "Make the chorus feel more energetic — add more notes, higher velocities, and denser rhythms than the verse.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "update_bird_file",
+        "args": {
+          "content": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 80\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n    v 80\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n    v 70\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 90\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 85\n\n  ch 6 HiHat\n    p x x x x x x x x x x x x x x x x\n    n 42\n    v 60\n\nsec chorus\n  ch 1 Melody\n    p e e e e e e e e\n    n 65 67 69 72 74 72 69 67\n    v 110\n\n  ch 2 Bass\n    p e e e e e e e e\n    n 36\n    v 105\n\n  ch 3 Chords\n    p q e e q e e\n    n 53 57 60\n    v 95\n\n  ch 4 Kick\n    p q q q q\n    n 36\n    v 120\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 115\n\n  ch 6 HiHat\n    p x x x x x x x x x x x x x x x x\n    n 42\n    v 100\n"
+        }
+      }
+    ]
+  },
+  "birdContent": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 80\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n    v 80\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n    v 70\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 90\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 85\n\n  ch 6 HiHat\n    p x x x x x x x x x x x x x x x x\n    n 42\n    v 60\n\nsec chorus\n  ch 1 Melody\n    p e e e e e e e e\n    n 65 67 69 72 74 72 69 67\n    v 110\n\n  ch 2 Bass\n    p e e e e e e e e\n    n 36\n    v 105\n\n  ch 3 Chords\n    p q e e q e e\n    n 53 57 60\n    v 95\n\n  ch 4 Kick\n    p q q q q\n    n 36\n    v 120\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 115\n\n  ch 6 HiHat\n    p x x x x x x x x x x x x x x x x\n    n 42\n    v 100\n",
+  "validationResult": {
+    "isValid": true
+  },
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly updated the chorus section with denser rhythmic patterns (e.g., 8th notes instead of quarter notes) and significantly higher velocities (100-120 range).",
+    "quality_reason": "The musical choices effectively create a higher energy level in the chorus through driving 8th-note basslines, 4-on-the-floor kicks, and appropriately boosted velocities without being overwhelming."
+  },
+  "scores": {
+    "validity": 3,
+    "relevance": 4,
+    "quality": 3,
+    "total": 10
+  }
+}

@@ -81,7 +81,7 @@ export function ArrangementView() {
 
       {/* Track lanes */}
       <div className={lanesScroll}>
-        {tracks.filter((t) => !t.isReturn).map((track) => (
+        {arrangementTracks.map((track) => (
           <div key={track.id} className={laneRow}>
             <div className={laneHeader}>
               <div

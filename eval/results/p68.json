@@ -1,0 +1,32 @@
+{
+  "id": 68,
+  "category": "humanization",
+  "prompt": "Add some dynamic variation to the melody — let some notes be louder on the phrase peaks and softer in between.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "update_bird_file",
+        "args": {
+          "content": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 80 95 115 100\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n    v 85 100 120 105\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n"
+        }
+      }
+    ]
+  },
+  "birdContent": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 80 95 115 100\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n    v 85 100 120 105\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n",
+  "validationResult": {
+    "isValid": true
+  },
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly added explicit 'v' lines to the Melody channel with varying velocity values.",
+    "quality_reason": "The velocity contours emphasize the third beat (a strong metric peak), creating a musically sensible and dynamic phrasing."
+  },
+  "scores": {
+    "validity": 3,
+    "relevance": 4,
+    "quality": 3,
+    "total": 10
+  }
+}

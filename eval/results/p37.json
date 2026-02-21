@@ -1,0 +1,30 @@
+{
+  "id": 37,
+  "category": "mix_control",
+  "prompt": "Set the BPM to 140.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "set_bpm",
+        "args": {
+          "bpm": 140
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly used the set_bpm tool with the exact value requested by the user.",
+    "quality_reason": "The execution is flawless and perfectly fulfills the user's intent."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

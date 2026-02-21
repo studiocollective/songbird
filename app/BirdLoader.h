@@ -37,6 +37,7 @@ struct BirdNote {
 struct BirdChannel {
     int channel;                 // MIDI channel (0-based)
     std::string name;            // channel name (e.g. "bass", "drums")
+    std::string trackType;       // "midi" | "audio" (default: "midi")
     std::string plugin;          // plugin keyword (e.g. "synths", "kick", "drums", "bass")
     std::string fx;              // fx keyword (e.g. "delay", "reverb")
     std::string strip;           // channel strip keyword (e.g. "console1")
@@ -90,13 +91,16 @@ public:
         int ticksInStep = 0; // Ticks already elapsed in the current pattern step
     };
 
-    // Resolve pattern + note groups + velocities + step automation into concrete BirdNote events
+    // Resolve pattern + note groups + velocities + timing into concrete BirdNote events
     // Modifies state to allow pattern phase to continue across sections
     static std::vector<BirdNote> resolveNotes(
         const std::vector<int>& pattern,
         const std::vector<std::vector<int>>& noteGroups,
         const std::vector<int>& velocities,
         const std::map<std::string, std::vector<std::string>>& stepAutomations,
+        const std::vector<int>& timingOffsets,
+        int swingPercent,
+        int humanizeTicks,
         int sequenceLength,
         PatternState& state);
 

@@ -1,0 +1,1622 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Source A Select",
+    "default": 0.004,
+    "numSteps": 1001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "Source B Select",
+    "default": 0.088,
+    "numSteps": 1001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Source B Octave",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Source B Detune",
+    "default": 0.53,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "cent"
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Dirt Select",
+    "default": 0.002,
+    "numSteps": 1001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Dirt to Filter",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Crossover On/Off",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Crossover Freq",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Source Mix",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "Velocity",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "Glide Type",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "Glide Time",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "Punch",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "Release",
+    "default": 0.205,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "Aging",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "Volume",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "Cut-Off",
+    "default": 0.8,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "Resonance",
+    "default": 0.49,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Env Type",
+    "default": 0.9,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "Env Amount",
+    "default": 0.485,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Keytrack",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Filter Type",
+    "default": 1,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Filter On/Off",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "LFO On/Off",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "LFO Amount",
+    "default": 0.8364,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "LFO Rise",
+    "default": 0.5876,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "LFO Shape",
+    "default": 0.7818,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "LFO Tempo Sync",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "LFO DAW Speed",
+    "default": 0.6,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "LFO Speed",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "View Tone/Effects",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "Drive On/Off",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "Drive Type",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "Drive Amount",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "Ambience On/Off",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "Ambience Tone",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "Ambience Dry/Wet",
+    "default": 0.335,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "Ambience Type",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "EQ On/Off",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "EQ Bass",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "EQ Tilt",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "Comp On/Off",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "Comp Amount",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "Spatialization On/Off",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "Monomaker",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "Stereo Widener",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "MIDI Channel",
+    "default": 0.059,
+    "numSteps": 18,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "CV Gate",
+    "default": 0,
+    "numSteps": 10,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "CV Note",
+    "default": 0,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "[MIDI CC 0 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "[MIDI CC 1 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "[MIDI CC 2 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "[MIDI CC 3 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "[MIDI CC 4 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "[MIDI CC 5 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "[MIDI CC 6 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 57,
+    "id": "",
+    "name": "[MIDI CC 7 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 58,
+    "id": "",
+    "name": "[MIDI CC 8 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 59,
+    "id": "",
+    "name": "[MIDI CC 9 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 60,
+    "id": "",
+    "name": "[MIDI CC 10 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 61,
+    "id": "",
+    "name": "[MIDI CC 11 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 62,
+    "id": "",
+    "name": "[MIDI CC 12 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 63,
+    "id": "",
+    "name": "[MIDI CC 13 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 64,
+    "id": "",
+    "name": "[MIDI CC 14 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 65,
+    "id": "",
+    "name": "[MIDI CC 15 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 66,
+    "id": "",
+    "name": "[MIDI CC 16 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 67,
+    "id": "",
+    "name": "[MIDI CC 17 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 68,
+    "id": "",
+    "name": "[MIDI CC 18 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 69,
+    "id": "",
+    "name": "[MIDI CC 19 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 70,
+    "id": "",
+    "name": "[MIDI CC 20 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 71,
+    "id": "",
+    "name": "[MIDI CC 21 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 72,
+    "id": "",
+    "name": "[MIDI CC 22 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 73,
+    "id": "",
+    "name": "[MIDI CC 23 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 74,
+    "id": "",
+    "name": "[MIDI CC 24 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 75,
+    "id": "",
+    "name": "[MIDI CC 25 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 76,
+    "id": "",
+    "name": "[MIDI CC 26 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 77,
+    "id": "",
+    "name": "[MIDI CC 27 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 78,
+    "id": "",
+    "name": "[MIDI CC 28 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 79,
+    "id": "",
+    "name": "[MIDI CC 29 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 80,
+    "id": "",
+    "name": "[MIDI CC 30 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 81,
+    "id": "",
+    "name": "[MIDI CC 31 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 82,
+    "id": "",
+    "name": "[MIDI CC 32 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 83,
+    "id": "",
+    "name": "[MIDI CC 33 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 84,
+    "id": "",
+    "name": "[MIDI CC 34 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 85,
+    "id": "",
+    "name": "[MIDI CC 35 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 86,
+    "id": "",
+    "name": "[MIDI CC 36 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 87,
+    "id": "",
+    "name": "[MIDI CC 37 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 88,
+    "id": "",
+    "name": "[MIDI CC 38 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 89,
+    "id": "",
+    "name": "[MIDI CC 39 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 90,
+    "id": "",
+    "name": "[MIDI CC 40 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 91,
+    "id": "",
+    "name": "[MIDI CC 41 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 92,
+    "id": "",
+    "name": "[MIDI CC 42 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 93,
+    "id": "",
+    "name": "[MIDI CC 43 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 94,
+    "id": "",
+    "name": "[MIDI CC 44 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 95,
+    "id": "",
+    "name": "[MIDI CC 45 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 96,
+    "id": "",
+    "name": "[MIDI CC 46 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 97,
+    "id": "",
+    "name": "[MIDI CC 47 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 98,
+    "id": "",
+    "name": "[MIDI CC 48 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 99,
+    "id": "",
+    "name": "[MIDI CC 49 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 100,
+    "id": "",
+    "name": "[MIDI CC 50 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 101,
+    "id": "",
+    "name": "[MIDI CC 51 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 102,
+    "id": "",
+    "name": "[MIDI CC 52 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 103,
+    "id": "",
+    "name": "[MIDI CC 53 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 104,
+    "id": "",
+    "name": "[MIDI CC 54 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 105,
+    "id": "",
+    "name": "[MIDI CC 55 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 106,
+    "id": "",
+    "name": "[MIDI CC 56 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 107,
+    "id": "",
+    "name": "[MIDI CC 57 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 108,
+    "id": "",
+    "name": "[MIDI CC 58 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 109,
+    "id": "",
+    "name": "[MIDI CC 59 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 110,
+    "id": "",
+    "name": "[MIDI CC 60 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 111,
+    "id": "",
+    "name": "[MIDI CC 61 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 112,
+    "id": "",
+    "name": "[MIDI CC 62 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 113,
+    "id": "",
+    "name": "[MIDI CC 63 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 114,
+    "id": "",
+    "name": "[MIDI CC 64 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 115,
+    "id": "",
+    "name": "[MIDI CC 65 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 116,
+    "id": "",
+    "name": "[MIDI CC 66 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 117,
+    "id": "",
+    "name": "[MIDI CC 67 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 118,
+    "id": "",
+    "name": "[MIDI CC 68 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 119,
+    "id": "",
+    "name": "[MIDI CC 69 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 120,
+    "id": "",
+    "name": "[MIDI CC 70 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 121,
+    "id": "",
+    "name": "[MIDI CC 71 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 122,
+    "id": "",
+    "name": "[MIDI CC 72 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 123,
+    "id": "",
+    "name": "[MIDI CC 73 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 124,
+    "id": "",
+    "name": "[MIDI CC 74 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 125,
+    "id": "",
+    "name": "[MIDI CC 75 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 126,
+    "id": "",
+    "name": "[MIDI CC 76 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 127,
+    "id": "",
+    "name": "[MIDI CC 77 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 128,
+    "id": "",
+    "name": "[MIDI CC 78 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 129,
+    "id": "",
+    "name": "[MIDI CC 79 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 130,
+    "id": "",
+    "name": "[MIDI CC 80 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 131,
+    "id": "",
+    "name": "[MIDI CC 81 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 132,
+    "id": "",
+    "name": "[MIDI CC 82 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 133,
+    "id": "",
+    "name": "[MIDI CC 83 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 134,
+    "id": "",
+    "name": "[MIDI CC 84 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 135,
+    "id": "",
+    "name": "[MIDI CC 85 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 136,
+    "id": "",
+    "name": "[MIDI CC 86 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 137,
+    "id": "",
+    "name": "[MIDI CC 87 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 138,
+    "id": "",
+    "name": "[MIDI CC 88 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 139,
+    "id": "",
+    "name": "[MIDI CC 89 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 140,
+    "id": "",
+    "name": "[MIDI CC 90 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 141,
+    "id": "",
+    "name": "[MIDI CC 91 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 142,
+    "id": "",
+    "name": "[MIDI CC 92 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 143,
+    "id": "",
+    "name": "[MIDI CC 93 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 144,
+    "id": "",
+    "name": "[MIDI CC 94 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 145,
+    "id": "",
+    "name": "[MIDI CC 95 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 146,
+    "id": "",
+    "name": "[MIDI CC 96 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 147,
+    "id": "",
+    "name": "[MIDI CC 97 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 148,
+    "id": "",
+    "name": "[MIDI CC 98 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 149,
+    "id": "",
+    "name": "[MIDI CC 99 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 150,
+    "id": "",
+    "name": "[MIDI CC 100 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 151,
+    "id": "",
+    "name": "[MIDI CC 101 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 152,
+    "id": "",
+    "name": "[MIDI CC 102 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 153,
+    "id": "",
+    "name": "[MIDI CC 103 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 154,
+    "id": "",
+    "name": "[MIDI CC 104 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 155,
+    "id": "",
+    "name": "[MIDI CC 105 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 156,
+    "id": "",
+    "name": "[MIDI CC 106 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 157,
+    "id": "",
+    "name": "[MIDI CC 107 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 158,
+    "id": "",
+    "name": "[MIDI CC 108 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 159,
+    "id": "",
+    "name": "[MIDI CC 109 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 160,
+    "id": "",
+    "name": "[MIDI CC 110 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 161,
+    "id": "",
+    "name": "[MIDI CC 111 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 162,
+    "id": "",
+    "name": "[MIDI CC 112 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 163,
+    "id": "",
+    "name": "[MIDI CC 113 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 164,
+    "id": "",
+    "name": "[MIDI CC 114 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 165,
+    "id": "",
+    "name": "[MIDI CC 115 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 166,
+    "id": "",
+    "name": "[MIDI CC 116 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 167,
+    "id": "",
+    "name": "[MIDI CC 117 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 168,
+    "id": "",
+    "name": "[MIDI CC 118 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 169,
+    "id": "",
+    "name": "[MIDI CC 119 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 170,
+    "id": "",
+    "name": "[MIDI CC 120 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 171,
+    "id": "",
+    "name": "[MIDI CC 121 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 172,
+    "id": "",
+    "name": "[MIDI CC 122 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 173,
+    "id": "",
+    "name": "[MIDI CC 123 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 174,
+    "id": "",
+    "name": "[MIDI CC 124 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 175,
+    "id": "",
+    "name": "[MIDI CC 125 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 176,
+    "id": "",
+    "name": "[MIDI CC 126 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 177,
+    "id": "",
+    "name": "[MIDI CC 127 (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 178,
+    "id": "",
+    "name": "[MIDI Pitch Bend (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 179,
+    "id": "",
+    "name": "[MIDI Aftertouch (ch 1)]",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "id": 43,
+  "category": "sound_design",
+  "prompt": "Make the kick punchier by shortening the decay.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 4
+        }
+      },
+      {
+        "name": "set_plugin_param",
+        "args": {
+          "paramName": "BD1 Decay",
+          "value": 0.2,
+          "trackId": 4
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 2,
+    "quality": 1,
+    "relevance_reason": "The AI correctly attempts to lower a kick decay parameter, but guesses the track ID and parameter name ('BD1 Decay') instead of identifying the correct 'Kick 3 Main Decay' parameter.",
+    "quality_reason": "Lowering the decay to 0.2 will make the kick punchier, but the execution relies on hallucinated parameter names."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 2,
+    "quality": 1,
+    "total": 4
+  }
+}

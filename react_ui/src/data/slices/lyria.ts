@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { nativeFunction } from '@/data/bridge';
 
 // --- Lyria State Slice ---
 
@@ -22,14 +23,24 @@ export interface LyriaConfigState {
   muteOther: boolean;
 }
 
+export interface LyriaTrackConfig {
+  prompts: LyriaPrompt[];
+  config: LyriaConfigState;
+  quantizeBars: number;  // 0 = off
+}
+
 export interface LyriaState {
   apiKey: string;
   connected: boolean;
   buffering: boolean;
   playing: boolean;
 
+  // Global (legacy) prompts/config — applied to all tracks unless overridden
   prompts: LyriaPrompt[];
   config: LyriaConfigState;
+
+  // Per-track configs (keyed by trackId)
+  perTrackConfigs: Record<number, LyriaTrackConfig>;
 
   // Actions
   setApiKey: (key: string) => void;
@@ -39,6 +50,12 @@ export interface LyriaState {
   setPrompts: (prompts: LyriaPrompt[]) => void;
   addPrompt: (text: string, weight?: number) => void;
   updateConfig: (config: Partial<LyriaConfigState>) => void;
+
+  // Per-track actions
+  setTrackLyriaConfig: (trackId: number, config: Partial<LyriaConfigState>) => void;
+  setTrackLyriaPrompts: (trackId: number, prompts: LyriaPrompt[]) => void;
+  setTrackLyriaQuantize: (trackId: number, bars: number) => void;
+  getTrackLyriaConfig: (trackId: number) => LyriaTrackConfig;
 }
 
 const defaultConfig: LyriaConfigState = {
@@ -56,7 +73,7 @@ const defaultConfig: LyriaConfigState = {
   muteOther: false,
 };
 
-export const useLyriaSlice: StateCreator<LyriaState> = (set) => ({
+export const useLyriaSlice: StateCreator<LyriaState> = (set, get) => ({
   apiKey: '',
   connected: false,
   buffering: false,
@@ -64,6 +81,7 @@ export const useLyriaSlice: StateCreator<LyriaState> = (set) => ({
 
   prompts: [],
   config: { ...defaultConfig },
+  perTrackConfigs: {},
 
   setApiKey: (key) => set({ apiKey: key }),
   setConnected: (connected) => set({ connected }),
@@ -78,6 +96,56 @@ export const useLyriaSlice: StateCreator<LyriaState> = (set) => ({
     set((s) => ({
       config: { ...s.config, ...partial },
     })),
+
+  // Per-track config actions — call through to C++ bridge
+  setTrackLyriaConfig: (trackId, config) => {
+    set((s) => {
+      const existing = s.perTrackConfigs[trackId] ?? {
+        prompts: [],
+        config: { ...defaultConfig },
+        quantizeBars: 0,
+      };
+      const updated: LyriaTrackConfig = {
+        ...existing,
+        config: { ...existing.config, ...config },
+      };
+      return { perTrackConfigs: { ...s.perTrackConfigs, [trackId]: updated } };
+    });
+    const full = get().perTrackConfigs[trackId]?.config ?? defaultConfig;
+    nativeFunction('setLyriaTrackConfig')(trackId, JSON.stringify(full));
+  },
+
+  setTrackLyriaPrompts: (trackId, prompts) => {
+    set((s) => {
+      const existing = s.perTrackConfigs[trackId] ?? {
+        prompts: [],
+        config: { ...defaultConfig },
+        quantizeBars: 0,
+      };
+      return { perTrackConfigs: { ...s.perTrackConfigs, [trackId]: { ...existing, prompts } } };
+    });
+    nativeFunction('setLyriaTrackPrompts')(trackId, JSON.stringify(prompts));
+  },
+
+  setTrackLyriaQuantize: (trackId, bars) => {
+    set((s) => {
+      const existing = s.perTrackConfigs[trackId] ?? {
+        prompts: [],
+        config: { ...defaultConfig },
+        quantizeBars: 0,
+      };
+      return { perTrackConfigs: { ...s.perTrackConfigs, [trackId]: { ...existing, quantizeBars: bars } } };
+    });
+    nativeFunction('setLyriaQuantize')(trackId, bars);
+  },
+
+  getTrackLyriaConfig: (trackId) => {
+    return get().perTrackConfigs[trackId] ?? {
+      prompts: [],
+      config: { ...defaultConfig },
+      quantizeBars: 0,
+    };
+  },
 });
 
 export const LyriaStateID = 'songbird-lyria';

@@ -1,0 +1,34 @@
+{
+  "id": 40,
+  "category": "mix_control",
+  "prompt": "Solo the snare so I can hear only it.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "set_track_mixer",
+        "args": {
+          "volumeDb": 0,
+          "pan": 0,
+          "mute": false,
+          "solo": true,
+          "trackId": 5
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly used the set_track_mixer tool to solo the requested track.",
+    "quality_reason": "The parameters correctly set solo to true without unnecessarily altering volume or pan."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

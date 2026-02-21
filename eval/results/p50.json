@@ -1,0 +1,23 @@
+{
+  "id": 50,
+  "category": "clarification_required",
+  "prompt": "It sounds off. Fix it.",
+  "response": {
+    "text": "To help you fix this, could you clarify what sounds \"off\" to you?\n\nSpecifically:\n1. **Rhythm:** The HiHat pattern is currently only 2 beats long (`p x x x x x x x x`), while the other tracks are 4 beats long. This makes the hats repeat twice as fast as the rest of the loop.\n2. **Harmony:** In the chorus, the chords and melody move to **F major**, but the bass stays on **C**. Is the bass intended to stay on C, or should it follow the chord change?\n3. **Mixing/Sound:** Is it a specific instrument ",
+    "toolCalls": []
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly identified that the request was too vague and asked for clarification without making any tool calls to edit the music.",
+    "quality_reason": "The AI provided excellent, musically informed suggestions of what might be wrong (rhythm mismatch, harmonic clash, mixing issues) to help guide the user's feedback."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

@@ -1,5 +1,6 @@
 #include "BirdLoader.h"
 #include "MacroMapper.h"
+#include "libraries/magenta/LyriaPlugin.h"
 #include "libraries/theory/note_parser.h"
 #include "libraries/sequencing/utils/time_constants.h"
 
@@ -231,6 +232,9 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
     const std::vector<std::vector<int>>& noteGroups,
     const std::vector<int>& velocities,
     const std::map<std::string, std::vector<std::string>>& stepAutomations,
+    const std::vector<int>& timingOffsets,
+    int swingPercent,
+    int humanizeTicks,
     int sequenceLength,
     PatternState& state)
 {
@@ -257,11 +261,34 @@ std::vector<BirdNote> BirdLoader::resolveNotes(
         int durRemaining = durTotal - state.ticksInStep;
 
         if (state.ticksInStep == 0 && durConfig > 0) {
+            // --- Calculate timing offset ---
+            double offset = 0.0;
+
+            // 1. Swing: shift odd-indexed pattern steps
+            if (swingPercent != 50 && state.patIdx % 2 == 1) {
+                // swingPercent 50 = straight, 67 = triplet swing
+                // Offset the odd note by a fraction of the previous step duration
+                offset += durTotal * (swingPercent - 50) / 50.0;
+            }
+
+            // 2. Per-note timing offset (t line)
+            if (!timingOffsets.empty()) {
+                offset += timingOffsets[state.patIdx % timingOffsets.size()];
+            }
+
+            // 3. Humanize jitter
+            if (humanizeTicks > 0) {
+                offset += (rand() % (2 * humanizeTicks + 1)) - humanizeTicks;
+            }
+
+            // Clamp: don't shift before the start of the sequence or past the end
+            int adjustedTicks = std::max(0, std::min(sequenceLength - 1, ticks + (int)offset));
+
             // Note-on: emit all notes in the current group
             for (int pitch : noteGroups[state.noteIdx]) {
                 BirdNote n;
                 n.pitch = pitch;
-                n.beatPos = ticksToBeats(ticks);
+                n.beatPos = ticksToBeats(adjustedTicks);
                 n.duration = ticksToBeats(static_cast<int>(durConfig * 0.9)); // 90% gate
                 n.velocity = velocities[state.velIdx];
                 
@@ -314,11 +341,15 @@ struct UnresolvedLayer {
     std::vector<std::vector<int>> noteGroups;
     std::vector<int> velocities;
     std::map<std::string, std::vector<std::string>> stepAutomations;
+    std::vector<int> timingOffsets;  // per-note tick offsets (t line)
+    int swingPercent = 50;           // 50 = straight, 67 = triplet swing
+    int humanizeTicks = 0;           // random ±ticks jitter
 };
 
 struct UnresolvedChannel {
     int channel = 0;
     std::string name;
+    std::string trackType = "midi"; // default
     std::string plugin;
     std::string fx;
     std::string strip;
@@ -330,18 +361,19 @@ struct UnresolvedChannel {
 // Returns a pair: {Resolved BirdChannel, new PatternState for the next section}
 static std::pair<BirdChannel, BirdLoader::PatternState> resolveChannel(const UnresolvedChannel& uch, int bars, BirdLoader::PatternState state = {}) {
     BirdChannel ch;
-    ch.channel = uch.channel;
-    ch.name = uch.name;
-    ch.plugin = uch.plugin;
-    ch.fx = uch.fx;
-    ch.strip = uch.strip;
+    ch.channel   = uch.channel;
+    ch.name      = uch.name;
+    ch.trackType = uch.trackType.empty() ? "midi" : uch.trackType;
+    ch.plugin    = uch.plugin;
+    ch.fx        = uch.fx;
+    ch.strip     = uch.strip;
     ch.automation = uch.automation;
 
     int seqLen = bars * TICKS_PER_BAR;
     
     // For simplicity, we assume single-layer for continuous patterns right now
     for (auto& layer : uch.layers) {
-        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, layer.stepAutomations, seqLen, state);
+        auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, layer.stepAutomations, layer.timingOffsets, layer.swingPercent, layer.humanizeTicks, seqLen, state);
         ch.notes.insert(ch.notes.end(), resolved.begin(), resolved.end());
     }
     return {ch, state};
@@ -379,6 +411,9 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
     std::vector<std::vector<int>> currentNoteGroups;
     std::vector<int> currentVelocities;
     std::map<std::string, std::vector<std::string>> currentStepAutomations;
+    std::vector<int> currentTimingOffsets;
+    int currentSwing = 50;
+    int currentHumanize = 0;
 
     // Section state
     std::string currentSectionName;  // empty = top-level
@@ -404,11 +439,15 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             layer.noteGroups = currentNoteGroups;
             layer.velocities = currentVelocities;
             layer.stepAutomations = currentStepAutomations;
+            layer.timingOffsets = currentTimingOffsets;
+            layer.swingPercent = currentSwing;
+            layer.humanizeTicks = currentHumanize;
             currentUCh.layers.push_back(std::move(layer));
         }
         currentNoteGroups.clear();
         currentVelocities.clear();
         currentStepAutomations.clear();
+        currentTimingOffsets.clear();
         if (clearPattern)
             currentPattern.clear();
     };
@@ -432,6 +471,9 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         currentNoteGroups.clear();
         currentVelocities.clear();
         currentStepAutomations.clear();
+        currentTimingOffsets.clear();
+        currentSwing = 50;
+        currentHumanize = 0;
     };
 
     // Flush current section
@@ -531,6 +573,18 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
         }
 
+        // --- Track type ---
+        // Syntax: `  type midi` | `  type audio` | `  type gen-audio`
+        // Default is gen-midi (AI-composed bird notation) for backward compatibility.
+        if (tokens[0] == "type" && tokens.size() > 1) {
+            auto& t = tokens[1];
+            if (t == "midi" || t == "audio")
+                currentUCh.trackType = t;
+            else
+                DBG("BirdLoader: Unknown track type '" + juce::String(t) + "', ignoring");
+            continue;
+        }
+
         // --- Pattern ---
         if (tokens[0] == "p") {
             flushLayer(true);
@@ -551,6 +605,29 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         if (tokens[0] == "n") {
             auto groups = parseNotes(tokens, lastNote);
             currentNoteGroups.insert(currentNoteGroups.end(), groups.begin(), groups.end());
+            continue;
+        }
+
+        // --- Swing ---
+        if (tokens[0] == "sw") {
+            if (tokens.size() >= 2) {
+                try { currentSwing = std::stoi(tokens[1]); } catch (...) {}
+            }
+            // Parse optional ~N humanize
+            for (size_t i = 2; i < tokens.size(); i++) {
+                if (!tokens[i].empty() && tokens[i][0] == '~') {
+                    try { currentHumanize = std::stoi(tokens[i].substr(1)); } catch (...) {}
+                }
+            }
+            continue;
+        }
+
+        // --- Per-note timing offsets ---
+        if (tokens[0] == "t") {
+            currentTimingOffsets.clear();
+            for (size_t i = 1; i < tokens.size(); i++) {
+                try { currentTimingOffsets.push_back(std::stoi(tokens[i])); } catch (...) { currentTimingOffsets.push_back(0); }
+            }
             continue;
         }
 
@@ -615,7 +692,7 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             }
         }
 
-        // Skip: sw, m, cc, d, _d, etc. (not yet implemented)
+        // Skip: m, cc, d, _d, etc. (not yet implemented)
     }
 
     // Flush anything remaining
@@ -853,9 +930,9 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         }
 
         bool pluginsMatch = (requiredPlugins == currentPlugins);
-        DBG("BirdLoader: Track '" + juce::String(ch.name) + "' Required: [" + requiredPlugins.joinIntoString(", ") + "] | Current: [" + currentPlugins.joinIntoString(", ") + "] -> Match: " + (pluginsMatch ? "Yes" : "No"));
 
         if (!pluginsMatch) {
+            DBG("BirdLoader: Track '" + juce::String(ch.name) + "' plugin change [" + currentPlugins.joinIntoString(",") + "] -> [" + requiredPlugins.joinIntoString(",") + "], rebuilding");
             // Remove old plugins
             for (auto* p : plugins) {
                 if (dynamic_cast<te::ExternalPlugin*>(p) || dynamic_cast<te::FourOscPlugin*>(p)) {
@@ -931,26 +1008,47 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
                 clipRange, nullptr);
             midiClip = dynamic_cast<te::MidiClip*>(clipBase);
         } else {
-            // Update bound of existing clip
+            // Resize if needed (e.g. bars count changed)
             midiClip->setStart(te::TimePosition(), false, false);
             midiClip->setLength(clipRange.getLength(), false);
             midiClip->setOffset(te::TimeDuration());
-            midiClip->getSequence().clear(nullptr);
             midiClip->setName(juce::String(ch.name));
         }
 
         if (!midiClip) continue;
 
+        // --- Diff MIDI notes: only clear+refill if notes changed ---
+        // This is the hot-path: a notes-only LLM edit costs almost nothing.
         auto& seq = midiClip->getSequence();
+        const auto& existingNotes = seq.getNotes();
+        bool notesChanged = (existingNotes.size() != ch.notes.size());
+        if (!notesChanged) {
+            for (size_t n = 0; n < ch.notes.size() && !notesChanged; ++n) {
+                const auto& existing = *existingNotes[static_cast<int>(n)];
+                const auto& incoming = ch.notes[n];
+                if (existing.getNoteNumber() != incoming.pitch ||
+                    std::abs(existing.getStartBeat().inBeats() - incoming.beatPos) > 1e-6 ||
+                    std::abs(existing.getLengthBeats().inBeats() - incoming.duration) > 1e-6 ||
+                    existing.getVelocity() != incoming.velocity)
+                {
+                    notesChanged = true;
+                }
+            }
+        }
 
-        // Add all resolved notes
-        for (auto& note : ch.notes) {
-            seq.addNote(
-                note.pitch,
-                te::BeatPosition::fromBeats(note.beatPos),
-                te::BeatDuration::fromBeats(note.duration),
-                note.velocity,
-                0, nullptr);
+        if (notesChanged) {
+            seq.clear(nullptr);
+            for (auto& note : ch.notes) {
+                seq.addNote(
+                    note.pitch,
+                    te::BeatPosition::fromBeats(note.beatPos),
+                    te::BeatDuration::fromBeats(note.duration),
+                    note.velocity,
+                    0, nullptr);
+            }
+            DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI updated (" + juce::String((int)ch.notes.size()) + " notes)");
+        } else {
+            DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI unchanged, skipping refill");
         }
 
         // --- Add Sends (Regular Tracks) ---
@@ -1231,8 +1329,29 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
                               juce::String(sendVals[3], 2) + "]";
         }
 
+        // Determine the track type to emit
+        // Priority: parse result trackType > Lyria plugin detection > default "midi"
+        juce::String trackTypeStr = "midi"; // default for BirdLoader-owned tracks
+        if (!isMaster && !isReturn && parseResult && t < static_cast<int>(parseResult->channels.size())) {
+            auto& parsedCh = parseResult->channels[t];
+            if (!parsedCh.trackType.empty())
+                trackTypeStr = juce::String(parsedCh.trackType);
+        } else if (isReturn) {
+            trackTypeStr = "midi"; // returns are always midi
+        }
+        // If a LyriaPlugin is present on this track, override to gen-audio
+        if (!isMaster && !isReturn && track) {
+            for (auto* p : track->pluginList.getPlugins()) {
+                if (dynamic_cast<magenta::LyriaPlugin*>(p)) {
+                    trackTypeStr = "audio";
+                    break;
+                }
+            }
+        }
+
         json += "{\"id\":" + juce::String(t) +
                 ",\"name\":" + juce::JSON::toString(isMaster ? "Master" : track->getName()) +
+                ",\"trackType\":" + juce::JSON::toString(trackTypeStr) +
                 ",\"isReturn\":" + (isReturn ? "true" : "false") +
                 ",\"isMaster\":" + (isMaster ? "true" : "false") +
                 ",\"sends\":" + sendsJson +

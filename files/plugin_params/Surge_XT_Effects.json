@@ -1,0 +1,21 @@
+Plugin:  Surge XT Effects
+Format:  VST3
+Vendor:  Surge Synth Team
+Version: 1.3.4
+
+[
+  {"index":0,"id":"","name":"Input Channel","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":1,"id":"","name":"Delay Time Left","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":2,"id":"","name":"Delay Time Right","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":3,"id":"","name":"Feedback/EQ Feedback","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":4,"id":"","name":"Feedback/EQ Crossfeed","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":5,"id":"","name":"Feedback/EQ Low Cut","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":6,"id":"","name":"Feedback/EQ High Cut","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":7,"id":"","name":"Modulation Rate","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":8,"id":"","name":"Modulation Depth","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":9,"id":"","name":"Output Width","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":10,"id":"","name":"Output Mix","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":11,"id":"","name":"- -","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":12,"id":"","name":"FX Type","default":0,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":13,"id":"","name":"Bypass","default":0,"numSteps":2,"isDiscrete":true,"label":""}
+]

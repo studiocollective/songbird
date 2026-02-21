@@ -1,0 +1,30 @@
+{
+  "id": 44,
+  "category": "sound_design",
+  "prompt": "Add automation so the filter sweeps open from bar 1 to bar 4 of the chorus.",
+  "response": {
+    "text": "I'd like to help you with that filter sweep! However, the Bird syntax tokens currently documented (ch, plugin, arr, sec, cont, p, v, n) do not include a specific token for automation curves or parameter sweeps in the `.bird` file.\n\nTo make sure I use the correct syntax for your project:\n1. Is there a specific token (like `a` or `ctrl`) you'd like me to use for automation?\n2. Or would you like me to use the `set_plugin_param` tool to set the filter to a specific static value for the chorus?\n\n(I'v",
+    "toolCalls": [
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 1
+        }
+      }
+    ]
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 0,
+    "quality": 2,
+    "relevance_reason": "The AI failed to apply the requested automation using the correct syntax and unnecessarily asked for clarification.",
+    "quality_reason": "The AI correctly identified the filter cutoff parameter on the synth as the appropriate target for the sweep."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 0,
+    "quality": 2,
+    "total": 3
+  }
+}

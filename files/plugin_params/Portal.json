@@ -1,0 +1,1298 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "MOD 1 RATE",
+    "default": 0.28,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "MOD 1 HUMANIZE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "MOD 2 RATE",
+    "default": 0.28,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "MOD 2 HUMANIZE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "MACRO 1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "MACRO 2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "MASTER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "GRAIN DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "DENSITY",
+    "default": 0.388889,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "DENSITY RANDOM",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "SIZE",
+    "default": 0.571429,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "GRAIN SIZE RANDOM",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "PITCH",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "PITCH RANDOM",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "SCALE",
+    "default": 0.0625,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "PAN",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "PAN RANDOM",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "STRETCH",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "SPEED",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "RETRIGGER",
+    "default": 0.368421,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "SHAPE",
+    "default": 0.497487,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "OFFSET",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "GRAIN DELAY",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "TIME",
+    "default": 0.611111,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "FEEDBACK",
+    "default": 0.252525,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "LP",
+    "default": 0.82076,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "HP",
+    "default": 0.237584,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "REVERSE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "COUNT",
+    "default": 0.466667,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "SLOT 1 BIT REDUCER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "SLOT 1 BIT REDUCER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "SLOT 1 BIT REDUCER BITS",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "SLOT 1 BIT REDUCER REDUX",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "SLOT 1 BIT REDUCER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "SLOT 1 CHORUS INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "SLOT 1 CHORUS OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "SLOT 1 CHORUS RATE",
+    "default": 0.19868,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "SLOT 1 CHORUS DEPTH",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "SLOT 1 CHORUS FEEDBACK",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "SLOT 1 CHORUS WIDTH",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "SLOT 1 CHORUS DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "SLOT 1 DISTORT INPUT",
+    "default": 0.818182,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "SLOT 1 DISTORT OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "SLOT 1 DISTORT AMOUNT",
+    "default": 0.17411,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "SLOT 1 DISTORT TYPE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "SLOT 1 DISTORT LP",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "SLOT 1 DISTORT HP",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "SLOT 1 DISTORT DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "SLOT 1 FILTER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "SLOT 1 FILTER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "SLOT 1 FILTER CUTOFF",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "SLOT 1 FILTER RESONANCE",
+    "default": 0.111111,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "SLOT 1 FILTER DRIVE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "SLOT 1 FILTER MODE",
+    "default": 0.333333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "SLOT 1 FILTER ENV FOL",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "SLOT 1 FILTER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "SLOT 1 PHASER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 57,
+    "id": "",
+    "name": "SLOT 1 PHASER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 58,
+    "id": "",
+    "name": "SLOT 1 PHASER TYPE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 59,
+    "id": "",
+    "name": "SLOT 1 PHASER FREQ",
+    "default": 0.208318,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 60,
+    "id": "",
+    "name": "SLOT 1 PHASER FEEDBACK",
+    "default": 0.35,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 61,
+    "id": "",
+    "name": "SLOT 1 PHASER STAGES",
+    "default": 0.483871,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 62,
+    "id": "",
+    "name": "SLOT 1 PHASER MOD RATE",
+    "default": 0.308337,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 63,
+    "id": "",
+    "name": "SLOT 1 PHASER MOD AMOUNT",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 64,
+    "id": "",
+    "name": "SLOT 1 PHASER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 65,
+    "id": "",
+    "name": "SLOT 1 REVERB INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 66,
+    "id": "",
+    "name": "SLOT 1 REVERB OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 67,
+    "id": "",
+    "name": "SLOT 1 REVERB SIZE",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 68,
+    "id": "",
+    "name": "SLOT 1 REVERB DAMPING",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 69,
+    "id": "",
+    "name": "SLOT 1 REVERB DRY/WET",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 70,
+    "id": "",
+    "name": "SLOT 1 REVERB WIDTH",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 71,
+    "id": "",
+    "name": "SLOT 1 REVERB FREEZE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 72,
+    "id": "",
+    "name": "SLOT 1 DELAY INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 73,
+    "id": "",
+    "name": "SLOT 1 DELAY OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 74,
+    "id": "",
+    "name": "SLOT 1 DELAY TYPE",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 75,
+    "id": "",
+    "name": "SLOT 1 DELAY LP",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 76,
+    "id": "",
+    "name": "SLOT 1 DELAY HP",
+    "default": 0.211527,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 77,
+    "id": "",
+    "name": "SLOT 1 DELAY FEEDBACK",
+    "default": 0.208333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 78,
+    "id": "",
+    "name": "SLOT 1 DELAY TIME",
+    "default": 0.444444,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 79,
+    "id": "",
+    "name": "SLOT 1 DELAY DRY/WET",
+    "default": 0.33,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 80,
+    "id": "",
+    "name": "SLOT 2 BIT REDUCER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 81,
+    "id": "",
+    "name": "SLOT 2 BIT REDUCER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 82,
+    "id": "",
+    "name": "SLOT 2 BIT REDUCER BITS",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 83,
+    "id": "",
+    "name": "SLOT 2 BIT REDUCER REDUX",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 84,
+    "id": "",
+    "name": "SLOT 2 BIT REDUCER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 85,
+    "id": "",
+    "name": "SLOT 2 CHORUS INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 86,
+    "id": "",
+    "name": "SLOT 2 CHORUS OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 87,
+    "id": "",
+    "name": "SLOT 2 CHORUS RATE",
+    "default": 0.19868,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 88,
+    "id": "",
+    "name": "SLOT 2 CHORUS DEPTH",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 89,
+    "id": "",
+    "name": "SLOT 2 CHORUS FEEDBACK",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 90,
+    "id": "",
+    "name": "SLOT 2 CHORUS WIDTH",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 91,
+    "id": "",
+    "name": "SLOT 2 CHORUS DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 92,
+    "id": "",
+    "name": "SLOT 2 DISTORT INPUT",
+    "default": 0.818182,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 93,
+    "id": "",
+    "name": "SLOT 2 DISTORT OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 94,
+    "id": "",
+    "name": "SLOT 2 DISTORT AMOUNT",
+    "default": 0.17411,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 95,
+    "id": "",
+    "name": "SLOT 2 DISTORT TYPE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 96,
+    "id": "",
+    "name": "SLOT 2 DISTORT LP",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 97,
+    "id": "",
+    "name": "SLOT 2 DISTORT HP",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 98,
+    "id": "",
+    "name": "SLOT 2 DISTORT DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 99,
+    "id": "",
+    "name": "SLOT 2 FILTER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 100,
+    "id": "",
+    "name": "SLOT 2 FILTER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 101,
+    "id": "",
+    "name": "SLOT 2 FILTER CUTOFF",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 102,
+    "id": "",
+    "name": "SLOT 2 FILTER RESONANCE",
+    "default": 0.111111,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 103,
+    "id": "",
+    "name": "SLOT 2 FILTER DRIVE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 104,
+    "id": "",
+    "name": "SLOT 2 FILTER MODE",
+    "default": 0.333333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 105,
+    "id": "",
+    "name": "SLOT 2 FILTER ENV FOL",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 106,
+    "id": "",
+    "name": "SLOT 2 FILTER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 107,
+    "id": "",
+    "name": "SLOT 2 PHASER INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 108,
+    "id": "",
+    "name": "SLOT 2 PHASER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 109,
+    "id": "",
+    "name": "SLOT 2 PHASER TYPE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 110,
+    "id": "",
+    "name": "SLOT 2 PHASER FREQ",
+    "default": 0.208318,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 111,
+    "id": "",
+    "name": "SLOT 2 PHASER FEEDBACK",
+    "default": 0.35,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 112,
+    "id": "",
+    "name": "SLOT 2 PHASER STAGES",
+    "default": 0.483871,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 113,
+    "id": "",
+    "name": "SLOT 2 PHASER MOD RATE",
+    "default": 0.308337,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 114,
+    "id": "",
+    "name": "SLOT 2 PHASER MOD AMOUNT",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 115,
+    "id": "",
+    "name": "SLOT 2 PHASER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 116,
+    "id": "",
+    "name": "SLOT 2 REVERB INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 117,
+    "id": "",
+    "name": "SLOT 2 REVERB OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 118,
+    "id": "",
+    "name": "SLOT 2 REVERB SIZE",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 119,
+    "id": "",
+    "name": "SLOT 2 REVERB DAMPING",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 120,
+    "id": "",
+    "name": "SLOT 2 REVERB DRY/WET",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 121,
+    "id": "",
+    "name": "SLOT 2 REVERB WIDTH",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 122,
+    "id": "",
+    "name": "SLOT 2 REVERB FREEZE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 123,
+    "id": "",
+    "name": "SLOT 2 DELAY INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 124,
+    "id": "",
+    "name": "SLOT 2 DELAY OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 125,
+    "id": "",
+    "name": "SLOT 2 DELAY TYPE",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 126,
+    "id": "",
+    "name": "SLOT 2 DELAY LP",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 127,
+    "id": "",
+    "name": "SLOT 2 DELAY HP",
+    "default": 0.211527,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 128,
+    "id": "",
+    "name": "SLOT 2 DELAY FEEDBACK",
+    "default": 0.208333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 129,
+    "id": "",
+    "name": "SLOT 2 DELAY TIME",
+    "default": 0.444444,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 130,
+    "id": "",
+    "name": "SLOT 2 DELAY DRY/WET",
+    "default": 0.33,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 131,
+    "id": "",
+    "name": "MASTER COMPRESSOR INPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 132,
+    "id": "",
+    "name": "MASTER COMPRESSOR OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 133,
+    "id": "",
+    "name": "MASTER COMPRESSOR GAIN",
+    "default": 0.0833333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 134,
+    "id": "",
+    "name": "MASTER COMPRESSOR THRESHOLD",
+    "default": 0.733333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 135,
+    "id": "",
+    "name": "MASTER COMPRESSOR RATIO",
+    "default": 0.111111,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 136,
+    "id": "",
+    "name": "MASTER COMPRESSOR ATTACK",
+    "default": 0.654197,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 137,
+    "id": "",
+    "name": "MASTER COMPRESSOR RELEASE",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 138,
+    "id": "",
+    "name": "MASTER COMPRESSOR DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 139,
+    "id": "",
+    "name": "MASTER DRY/WET",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 140,
+    "id": "",
+    "name": "MASTER OUTPUT",
+    "default": 0.909091,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 141,
+    "id": "",
+    "name": "MASTER LP CUTOFF",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 142,
+    "id": "",
+    "name": "MASTER HP CUTOFF",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 143,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

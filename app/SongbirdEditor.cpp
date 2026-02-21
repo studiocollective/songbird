@@ -238,7 +238,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
     }
 
     BirdLoader::populateEdit(*edit, result, engine);
-    playbackInfo.reattachAnalyzer(); // Re-insert analyzer AFTER populateEdit adds DS1/Console1
+    playbackInfo.reattachAnalyzer(); // Re-insert analyzer AFTER populateEdit adds plugins
     lastParseResult = result;  // store for JSON serialization
 
     // Load companion state file if any
@@ -678,4 +678,71 @@ void SongbirdEditor::scanForPlugins()
         xml->writeTo(cacheFile);
         DBG("PluginScan: Cache saved to " + cacheFile.getFullPathName());
     }
+}
+
+void SongbirdEditor::scheduleReload(const juce::String& content)
+{
+    // Ensure we parse on the message thread
+    juce::MessageManager::getInstance()->callAsync([this, content]() {
+        loadBirdFile(content);
+    });
+}
+
+void SongbirdEditor::setSidechainSource(int destTrackId, int sourceTrackId)
+{
+    if (!edit) return;
+
+    auto audioTracks = te::getAudioTracks(*edit);
+    
+    te::Track* destTrack = nullptr;
+    if (destTrackId >= 0 && destTrackId < audioTracks.size())
+        destTrack = audioTracks[destTrackId];
+
+    if (!destTrack) return;
+
+    // Let's use bus #1 as the dedicated SC bus for now
+    const int SC_BUS = 1;
+
+    // Helper to auto-set parameters
+    auto autoSetParam = [](te::Plugin* plugin, const juce::String& nameSubstr, float normValue)
+    {
+        for (auto* param : plugin->getAutomatableParameters())
+        {
+            if (param->getParameterName().containsIgnoreCase(nameSubstr))
+            {
+                param->setNormalisedParameter(normValue, juce::sendNotification);
+                DBG("SC Auto-set: " + param->getParameterName() + " → " + juce::String(normValue));
+                return;
+            }
+        }
+        DBG("SC Auto-set: no param matching '" + nameSubstr + "' found (plugin=" + plugin->getName() + ")");
+    };
+
+    bool enabling = (sourceTrackId >= 0);
+    for (auto* plugin : destTrack->pluginList)
+    {
+        if (dynamic_cast<te::VolumeAndPanPlugin*>(plugin)) continue;
+        if (dynamic_cast<te::LevelMeterPlugin*>(plugin))   continue;
+        if (dynamic_cast<te::AuxSendPlugin*>(plugin))      continue;
+        if (dynamic_cast<te::AuxReturnPlugin*>(plugin))    continue;
+
+        // Exact parameter names from: ScanPluginParams "/Library/Audio/Plug-Ins/VST3/Console 1.vst3"
+        // Index 24:  "Compressor"                  – 2 steps  (0=off, 1=on)
+        // Index 31:  "External Sidechain"           – 3 steps  (0=Int, 0.5=Ext 1, 1.0=Ext 2)
+        // Index 119: "Ext. Sidechain to Subsystem"  – 2 steps  (0=off, 1=on)
+        // Index 29:  "Compression"                  – continuous amount/threshold proxy
+        autoSetParam(plugin, "Compressor",                 enabling ? 1.0f : 0.0f);
+        autoSetParam(plugin, "External Sidechain",         enabling ? 0.5f : 0.0f); // 0.5 = Ext 1
+        autoSetParam(plugin, "Ext. Sidechain to Subsystem", enabling ? 1.0f : 0.0f);
+
+        if (enabling)
+        {
+            // Default starting compression amount — user can adjust via sensitivity slider
+            autoSetParam(plugin, "Compression", 0.4f);
+        }
+    }
+
+    DBG("Sidechain: Track " + juce::String(sourceTrackId)
+        + " -> Track " + juce::String(destTrackId)
+        + " via bus " + juce::String(SC_BUS));
 }

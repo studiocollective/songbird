@@ -1,0 +1,23 @@
+{
+  "id": 49,
+  "category": "clarification_required",
+  "prompt": "Add some effects.",
+  "response": {
+    "text": "I'd love to help you add some effects, but to get the sound right, I need a bit more detail.\n\nWhich tracks would you like to process, and what kind of vibe are you going for? For example:\n- Adding **reverb** or **delay** to the Melody or Chords?\n- Adding **distortion** or **saturation** to the Bass?\n- Applying **compression** or **EQ** to the drums?\n\nLet me know what you're thinking!",
+    "toolCalls": []
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly identified the need for clarification and avoided making arbitrary tool calls without specifying tracks or effect types.",
+    "quality_reason": "The AI provided an excellent, musically sound list of examples (e.g., reverb on melody, distortion on bass) to guide the user in specifying their request."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

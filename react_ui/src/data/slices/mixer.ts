@@ -9,7 +9,7 @@ export interface NoteData {
   velocity: number;
 }
 
-export type TrackType = 'midi' | 'audio' | 'generated';
+export type TrackType = 'midi' | 'audio';
 
 export interface AutomationPoint {
   time: number;
@@ -35,6 +35,12 @@ export interface PluginSlot {
   bypassed: boolean;
 }
 
+export interface AudioSource {
+  type: 'hardware' | 'loopback';
+  deviceName?: string;
+  sourceTrackId?: number;
+}
+
 export interface Track {
   id: number;
   name: string;
@@ -52,6 +58,12 @@ export interface Track {
   sends?: number[];
   isReturn?: boolean;
   isMaster?: boolean;
+  sidechainTrackId?: number | null;
+  sidechainSensitivity?: number;
+  // Recording state
+  recordArmed?: boolean;
+  hasRecordedData?: boolean;
+  audioSource?: AudioSource | null;
 }
 
 const defaultTracks: Track[] = [];
@@ -76,6 +88,16 @@ export interface MixerState {
   setPan: (id: number, pan: number) => void;
   setSendLevel: (id: number, bus: number, level: number) => void;
   setTrackName: (id: number, name: string) => void;
+  setSidechainSource: (destId: number, sourceId: number | null) => void;
+
+  // Recording actions
+  setMidiRecordArm: (id: number, armed: boolean) => void;
+  setAudioRecordArm: (id: number, armed: boolean) => void;
+  setAudioSource: (id: number, source: AudioSource | null) => void;
+  addAudioTrack: () => Promise<number>;
+  removeAudioTrack: (id: number) => void;
+  clearRecordedData: (id: number) => void;
+  setSidechainSensitivity: (destId: number, value: number) => void;
 
   // Plugin actions
   setInstrument: (id: number, pluginId: string | null, pluginName: string | null) => void;
@@ -161,6 +183,24 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, name } : t)),
     })),
+  setSidechainSource: (destId, sourceId) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === destId ? { ...t, sidechainTrackId: sourceId } : t
+      ),
+    }));
+    nativeFunction('setSidechainSource')(destId, sourceId ?? -1);
+  },
+  setSidechainSensitivity: (destId, value) => {
+    const clamped = Math.max(0, Math.min(1, value));
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === destId ? { ...t, sidechainSensitivity: clamped } : t
+      ),
+    }));
+    // Console 1 param 29: "Compression" = threshold/amount (higher = more aggressive)
+    nativeFunction('setPluginParam')(destId, 'Compression', clamped);
+  },
 
   // Plugin actions
   setInstrument: (id, pluginId, pluginName) => {
@@ -219,6 +259,48 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       tracks: s.tracks.map((t) => (t.id === trackId ? { ...t, notes } : t)),
     })),
   setSections: (sections, totalBars) => set({ sections, totalBars }),
+
+  // --- Recording ---
+  setMidiRecordArm: (id, armed) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, recordArmed: armed } : t)),
+    }));
+    nativeFunction('setMidiRecordArm')(id, armed);
+  },
+  setAudioRecordArm: (id, armed) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, recordArmed: armed } : t)),
+    }));
+    nativeFunction('setAudioRecordArm')(id, armed);
+  },
+  setAudioSource: (id, source) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, audioSource: source } : t)),
+    }));
+    if (source?.type === 'hardware')
+      nativeFunction('setAudioRecordSource')(id, 'hardware', source.deviceName ?? '');
+    else if (source?.type === 'loopback')
+      nativeFunction('setAudioRecordSource')(id, 'loopback', source.sourceTrackId ?? -1);
+  },
+  addAudioTrack: async () => {
+    const result = await nativeFunction('addAudioTrack')();
+    const data = typeof result === 'string' ? JSON.parse(result) : result;
+    return data?.trackId ?? -1;
+  },
+  removeAudioTrack: (id) => {
+    nativeFunction('removeAudioTrack')(id);
+    set((s) => ({ tracks: s.tracks.filter((t) => t.id !== id) }));
+  },
+  clearRecordedData: (id) => {
+    const track = get().tracks.find((t) => t.id === id);
+    if (!track) return;
+    if (track.type === 'midi') nativeFunction('clearRecordedMidi')(id);
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === id ? { ...t, hasRecordedData: false, recordArmed: false } : t
+      ),
+    }));
+  },
 });
 
 

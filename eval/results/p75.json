@@ -1,0 +1,32 @@
+{
+  "id": 75,
+  "category": "vibe",
+  "prompt": "Make the verse sparse and the chorus full — strip back the verse to just bass and kick, then bring everything in for the chorus.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "update_bird_file",
+        "args": {
+          "content": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 2 Bass\n    p q _q q _q\n    n 36\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n"
+        }
+      }
+    ]
+  },
+  "birdContent": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 2 Bass\n    p q _q q _q\n    n 36\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n",
+  "validationResult": {
+    "isValid": true
+  },
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI successfully populated the verse with only bass and kick, and brought in all defined channels for the chorus.",
+    "quality_reason": "The arrangement effectively creates the requested contrast between a sparse verse and a dense chorus with coherent musical patterns."
+  },
+  "scores": {
+    "validity": 3,
+    "relevance": 4,
+    "quality": 3,
+    "total": 10
+  }
+}

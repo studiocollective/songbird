@@ -162,25 +162,28 @@ export function PhaseCorrelationMeter() {
 }
 
 /**
- * SpectrumAnalyzer — 64-band EQ visualizer using DOM manipulation.
+ * SpectrumAnalyzer — 16-band real FFT visualizer using DOM manipulation.
  */
 export function SpectrumAnalyzer() {
   const barsRef = useRef<(SVGRectElement | null)[]>([]);
+  const NUM_BANDS = 16;
+  const BAR_WIDTH = 6;
+  const GAP = 1.5;
+  const SVG_W = NUM_BANDS * (BAR_WIDTH + GAP) - GAP; // ~118
+  const SVG_H = 48;
 
   useEffect(() => {
     const unsub = useMeterStore.subscribe((state) => {
       const spectrum = state.spectrum;
       if (!spectrum || spectrum.length === 0) return;
 
-      for (let i = 0; i < spectrum.length; i++) {
+      for (let i = 0; i < Math.min(NUM_BANDS, spectrum.length); i++) {
         const bar = barsRef.current[i];
         if (bar) {
-          // sqrt-scale so quiet signals are visible, cap at full height
           const val = Math.sqrt(Math.max(0, spectrum[i]));
-          const h = Math.max(1, val * 40);
+          const h = Math.max(1, val * SVG_H);
           bar.setAttribute('height', String(h));
-          bar.setAttribute('y', String(40 - h));
-          // Solid green, red only at full clip (val >= 0.95)
+          bar.setAttribute('y', String(SVG_H - h));
           const color = val >= 0.95 ? 'rgb(239,68,68)' : 'rgb(52,211,153)';
           bar.setAttribute('fill', color);
         }
@@ -192,16 +195,17 @@ export function SpectrumAnalyzer() {
   return (
     <div className={wrapper}>
       <span className={label}>SPECTRUM</span>
-      <div className="w-[128px] h-[40px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded flex items-end overflow-hidden">
-        <svg width="128" height="40" viewBox="0 0 128 40" className="w-full h-full">
-          {Array.from({ length: 64 }).map((_, i) => (
+      <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded p-1 flex items-end overflow-hidden">
+        <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`}>
+          {Array.from({ length: NUM_BANDS }).map((_, i) => (
             <rect
               key={i}
               ref={(el) => { barsRef.current[i] = el; }}
-              x={i * 2}
-              y="39"
-              width="1.5"
-              height="1"
+              x={i * (BAR_WIDTH + GAP)}
+              y={SVG_H - 1}
+              width={BAR_WIDTH}
+              height={1}
+              rx={1}
               fill="hsl(var(--muted-foreground))"
               opacity="0.8"
             />

@@ -1,0 +1,515 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "band solo on",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "selected band",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "sidechain solo on",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "mode",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "depth",
+    "default": 0.583333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "sharpness",
+    "default": 0.46,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "selectivity",
+    "default": 0.36,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "attack",
+    "default": 0.1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "release",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "low cut on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "low cut q",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "low cut freq",
+    "default": 0.450728,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "low cut balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "low cut slope",
+    "default": 0.333333,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "band1 on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "band1 freq",
+    "default": 0.566323,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "band1 sens",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "band1 q",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "band1 balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "band1 mode",
+    "default": 0.2,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "band2 on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "band2 freq",
+    "default": 0.69897,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "band2 sens",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "band2 q",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "band2 balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "band2 mode",
+    "default": 0.2,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "band3 on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "band3 freq",
+    "default": 0.799313,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "band3 sens",
+    "default": 0.75,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "band3 q",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "band3 balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "band3 mode",
+    "default": 0.2,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "band4 on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "band4 freq",
+    "default": 0.867353,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "band4 sens",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "band4 q",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "band4 balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "band4 mode",
+    "default": 0.2,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "high cut on",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "high cut q",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "high cut freq",
+    "default": 0.967697,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "high cut balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "high cut slope",
+    "default": 0.333333,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "stereo mode",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "stereo link",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "stereo balance",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "offline oversample",
+    "default": 1,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "offline resolution",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "oversample",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "resolution",
+    "default": 0.333333,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "mix",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "trim",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "delta",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "sidechain",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "input trim",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

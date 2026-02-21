@@ -1,0 +1,83 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Sustain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "Sustain Band",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Punch",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Punch Band",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Punch Type",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Crossover Freq",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Output Level",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Clip",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

@@ -1,0 +1,848 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "MS Mode",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Channel",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Ganged",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Analyzer",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Output Gain Ch.1",
+    "default": 0.84252,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Solo Ch.1",
+    "default": 0,
+    "numSteps": 8,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Output Gain Ch.2",
+    "default": 0.84252,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Solo Ch.2",
+    "default": 0,
+    "numSteps": 8,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "Filter Type 1 Ch.1",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "Frequency 1 Ch.1",
+    "default": 0.023622,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "Q 1 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "Slope 1 Ch.1",
+    "default": 0.166667,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "Boost 1 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "Filter On/Off 1 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "Filter Type 2 Ch.1",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "Frequency 2 Ch.1",
+    "default": 0.165354,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "Q 2 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Slope 2 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "Boost 2 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Filter On/Off 2 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Filter Type 3 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Frequency 3 Ch.1",
+    "default": 0.362205,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "Q 3 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "Slope 3 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "Boost 3 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "Filter On/Off 3 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "Filter Type 4 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "Frequency 4 Ch.1",
+    "default": 0.543307,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "Q 4 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "Slope 4 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "Boost 4 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "Filter On/Off 4 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "Filter Type 5 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "Frequency 5 Ch.1",
+    "default": 0.708661,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "Q 5 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "Slope 5 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "Boost 5 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "Filter On/Off 5 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "Filter Type 6 Ch.1",
+    "default": 0.25,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "Frequency 6 Ch.1",
+    "default": 0.858268,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "Q 6 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "Slope 6 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "Boost 6 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "Filter On/Off 6 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "Filter Type 7 Ch.1",
+    "default": 0.75,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "Frequency 7 Ch.1",
+    "default": 0.952756,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "Q 7 Ch.1",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "Slope 7 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "Boost 7 Ch.1",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "Filter On/Off 7 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "Filter Type 1 Ch.2",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "Frequency 1 Ch.2",
+    "default": 0.023622,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "Q 1 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "Slope 1 Ch.2",
+    "default": 0.166667,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "Boost 1 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "Filter On/Off 1 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 57,
+    "id": "",
+    "name": "Filter Type 2 Ch.2",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 58,
+    "id": "",
+    "name": "Frequency 2 Ch.2",
+    "default": 0.165354,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 59,
+    "id": "",
+    "name": "Q 2 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 60,
+    "id": "",
+    "name": "Slope 2 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 61,
+    "id": "",
+    "name": "Boost 2 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 62,
+    "id": "",
+    "name": "Filter On/Off 2 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 63,
+    "id": "",
+    "name": "Filter Type 3 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 64,
+    "id": "",
+    "name": "Frequency 3 Ch.2",
+    "default": 0.362205,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 65,
+    "id": "",
+    "name": "Q 3 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 66,
+    "id": "",
+    "name": "Slope 3 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 67,
+    "id": "",
+    "name": "Boost 3 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 68,
+    "id": "",
+    "name": "Filter On/Off 3 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 69,
+    "id": "",
+    "name": "Filter Type 4 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 70,
+    "id": "",
+    "name": "Frequency 4 Ch.2",
+    "default": 0.543307,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 71,
+    "id": "",
+    "name": "Q 4 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 72,
+    "id": "",
+    "name": "Slope 4 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 73,
+    "id": "",
+    "name": "Boost 4 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 74,
+    "id": "",
+    "name": "Filter On/Off 4 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 75,
+    "id": "",
+    "name": "Filter Type 5 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 76,
+    "id": "",
+    "name": "Frequency 5 Ch.2",
+    "default": 0.708661,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 77,
+    "id": "",
+    "name": "Q 5 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 78,
+    "id": "",
+    "name": "Slope 5 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 79,
+    "id": "",
+    "name": "Boost 5 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 80,
+    "id": "",
+    "name": "Filter On/Off 5 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 81,
+    "id": "",
+    "name": "Filter Type 6 Ch.2",
+    "default": 0.25,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 82,
+    "id": "",
+    "name": "Frequency 6 Ch.2",
+    "default": 0.858268,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 83,
+    "id": "",
+    "name": "Q 6 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 84,
+    "id": "",
+    "name": "Slope 6 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 85,
+    "id": "",
+    "name": "Boost 6 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 86,
+    "id": "",
+    "name": "Filter On/Off 6 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 87,
+    "id": "",
+    "name": "Filter Type 7 Ch.2",
+    "default": 0.75,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 88,
+    "id": "",
+    "name": "Frequency 7 Ch.2",
+    "default": 0.952756,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 89,
+    "id": "",
+    "name": "Q 7 Ch.2",
+    "default": 0.07874,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 90,
+    "id": "",
+    "name": "Slope 7 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 91,
+    "id": "",
+    "name": "Boost 7 Ch.2",
+    "default": 0.511811,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 92,
+    "id": "",
+    "name": "Filter On/Off 7 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 93,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

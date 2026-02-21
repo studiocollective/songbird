@@ -1,0 +1,1550 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "MS Mode",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Dither",
+    "default": 0,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "EQ Mode",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Channel",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Ganged",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Peak Meter Type",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Set Number of Overs",
+    "default": 0.133333,
+    "numSteps": 16,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Peak Auto Reset",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "Dyn Low Latency",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "Output Gain Ch.1",
+    "default": 0.84252,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "Solo Ch.1",
+    "default": 0,
+    "numSteps": 8,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "Filter Type 1 Ch.1",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "Frequency 1 Ch.1",
+    "default": 0.023622,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "Q 1 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "Slope 1 Ch.1",
+    "default": 0.166667,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "Boost 1 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "Dynamic Peak 1 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Threshold 1 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "Attack 1 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Release 1 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Ratio 1 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Filter On/Off 1 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "Filter Type 2 Ch.1",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "Frequency 2 Ch.1",
+    "default": 0.165354,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "Q 2 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "Slope 2 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "Boost 2 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "Dynamic Peak 2 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "Threshold 2 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "Attack 2 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "Release 2 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "Ratio 2 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "Filter On/Off 2 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "Filter Type 3 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "Frequency 3 Ch.1",
+    "default": 0.362205,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "Q 3 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "Slope 3 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "Boost 3 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "Dynamic Peak 3 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "Threshold 3 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "Attack 3 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "Release 3 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "Ratio 3 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "Filter On/Off 3 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "Filter Type 4 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "Frequency 4 Ch.1",
+    "default": 0.543307,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "Q 4 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "Slope 4 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "Boost 4 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "Dynamic Peak 4 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "Threshold 4 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "Attack 4 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "Release 4 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "Ratio 4 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "Filter On/Off 4 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "Filter Type 5 Ch.1",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 57,
+    "id": "",
+    "name": "Frequency 5 Ch.1",
+    "default": 0.708661,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 58,
+    "id": "",
+    "name": "Q 5 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 59,
+    "id": "",
+    "name": "Slope 5 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 60,
+    "id": "",
+    "name": "Boost 5 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 61,
+    "id": "",
+    "name": "Dynamic Peak 5 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 62,
+    "id": "",
+    "name": "Threshold 5 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 63,
+    "id": "",
+    "name": "Attack 5 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 64,
+    "id": "",
+    "name": "Release 5 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 65,
+    "id": "",
+    "name": "Ratio 5 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 66,
+    "id": "",
+    "name": "Filter On/Off 5 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 67,
+    "id": "",
+    "name": "Filter Type 6 Ch.1",
+    "default": 0.25,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 68,
+    "id": "",
+    "name": "Frequency 6 Ch.1",
+    "default": 0.858268,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 69,
+    "id": "",
+    "name": "Q 6 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 70,
+    "id": "",
+    "name": "Slope 6 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 71,
+    "id": "",
+    "name": "Boost 6 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 72,
+    "id": "",
+    "name": "Dynamic Peak 6 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 73,
+    "id": "",
+    "name": "Threshold 6 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 74,
+    "id": "",
+    "name": "Attack 6 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 75,
+    "id": "",
+    "name": "Release 6 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 76,
+    "id": "",
+    "name": "Ratio 6 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 77,
+    "id": "",
+    "name": "Filter On/Off 6 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 78,
+    "id": "",
+    "name": "Filter Type 7 Ch.1",
+    "default": 0.75,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 79,
+    "id": "",
+    "name": "Frequency 7 Ch.1",
+    "default": 0.952756,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 80,
+    "id": "",
+    "name": "Q 7 Ch.1",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 81,
+    "id": "",
+    "name": "Slope 7 Ch.1",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 82,
+    "id": "",
+    "name": "Boost 7 Ch.1",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 83,
+    "id": "",
+    "name": "Dynamic Peak 7 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 84,
+    "id": "",
+    "name": "Threshold 7 Ch.1",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 85,
+    "id": "",
+    "name": "Attack 7 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 86,
+    "id": "",
+    "name": "Release 7 Ch.1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 87,
+    "id": "",
+    "name": "Ratio 7 Ch.1",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 88,
+    "id": "",
+    "name": "Filter On/Off 7 Ch.1",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 89,
+    "id": "",
+    "name": "Output Gain Ch.2",
+    "default": 0.84252,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 90,
+    "id": "",
+    "name": "Solo Ch.2",
+    "default": 0,
+    "numSteps": 8,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 91,
+    "id": "",
+    "name": "Filter Type 1 Ch.2",
+    "default": 1,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 92,
+    "id": "",
+    "name": "Frequency 1 Ch.2",
+    "default": 0.023622,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 93,
+    "id": "",
+    "name": "Q 1 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 94,
+    "id": "",
+    "name": "Slope 1 Ch.2",
+    "default": 0.166667,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 95,
+    "id": "",
+    "name": "Boost 1 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 96,
+    "id": "",
+    "name": "Dynamic Peak 1 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 97,
+    "id": "",
+    "name": "Threshold 1 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 98,
+    "id": "",
+    "name": "Attack 1 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 99,
+    "id": "",
+    "name": "Release 1 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 100,
+    "id": "",
+    "name": "Ratio 1 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 101,
+    "id": "",
+    "name": "Filter On/Off 1 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 102,
+    "id": "",
+    "name": "Filter Type 2 Ch.2",
+    "default": 0,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 103,
+    "id": "",
+    "name": "Frequency 2 Ch.2",
+    "default": 0.165354,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 104,
+    "id": "",
+    "name": "Q 2 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 105,
+    "id": "",
+    "name": "Slope 2 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 106,
+    "id": "",
+    "name": "Boost 2 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 107,
+    "id": "",
+    "name": "Dynamic Peak 2 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 108,
+    "id": "",
+    "name": "Threshold 2 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 109,
+    "id": "",
+    "name": "Attack 2 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 110,
+    "id": "",
+    "name": "Release 2 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 111,
+    "id": "",
+    "name": "Ratio 2 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 112,
+    "id": "",
+    "name": "Filter On/Off 2 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 113,
+    "id": "",
+    "name": "Filter Type 3 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 114,
+    "id": "",
+    "name": "Frequency 3 Ch.2",
+    "default": 0.362205,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 115,
+    "id": "",
+    "name": "Q 3 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 116,
+    "id": "",
+    "name": "Slope 3 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 117,
+    "id": "",
+    "name": "Boost 3 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 118,
+    "id": "",
+    "name": "Dynamic Peak 3 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 119,
+    "id": "",
+    "name": "Threshold 3 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 120,
+    "id": "",
+    "name": "Attack 3 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 121,
+    "id": "",
+    "name": "Release 3 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 122,
+    "id": "",
+    "name": "Ratio 3 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 123,
+    "id": "",
+    "name": "Filter On/Off 3 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 124,
+    "id": "",
+    "name": "Filter Type 4 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 125,
+    "id": "",
+    "name": "Frequency 4 Ch.2",
+    "default": 0.543307,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 126,
+    "id": "",
+    "name": "Q 4 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 127,
+    "id": "",
+    "name": "Slope 4 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 128,
+    "id": "",
+    "name": "Boost 4 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 129,
+    "id": "",
+    "name": "Dynamic Peak 4 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 130,
+    "id": "",
+    "name": "Threshold 4 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 131,
+    "id": "",
+    "name": "Attack 4 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 132,
+    "id": "",
+    "name": "Release 4 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 133,
+    "id": "",
+    "name": "Ratio 4 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 134,
+    "id": "",
+    "name": "Filter On/Off 4 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 135,
+    "id": "",
+    "name": "Filter Type 5 Ch.2",
+    "default": 0.5,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 136,
+    "id": "",
+    "name": "Frequency 5 Ch.2",
+    "default": 0.708661,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 137,
+    "id": "",
+    "name": "Q 5 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 138,
+    "id": "",
+    "name": "Slope 5 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 139,
+    "id": "",
+    "name": "Boost 5 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 140,
+    "id": "",
+    "name": "Dynamic Peak 5 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 141,
+    "id": "",
+    "name": "Threshold 5 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 142,
+    "id": "",
+    "name": "Attack 5 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 143,
+    "id": "",
+    "name": "Release 5 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 144,
+    "id": "",
+    "name": "Ratio 5 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 145,
+    "id": "",
+    "name": "Filter On/Off 5 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 146,
+    "id": "",
+    "name": "Filter Type 6 Ch.2",
+    "default": 0.25,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 147,
+    "id": "",
+    "name": "Frequency 6 Ch.2",
+    "default": 0.858268,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 148,
+    "id": "",
+    "name": "Q 6 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 149,
+    "id": "",
+    "name": "Slope 6 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 150,
+    "id": "",
+    "name": "Boost 6 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 151,
+    "id": "",
+    "name": "Dynamic Peak 6 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 152,
+    "id": "",
+    "name": "Threshold 6 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 153,
+    "id": "",
+    "name": "Attack 6 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 154,
+    "id": "",
+    "name": "Release 6 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 155,
+    "id": "",
+    "name": "Ratio 6 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 156,
+    "id": "",
+    "name": "Filter On/Off 6 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 157,
+    "id": "",
+    "name": "Filter Type 7 Ch.2",
+    "default": 0.75,
+    "numSteps": 5,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 158,
+    "id": "",
+    "name": "Frequency 7 Ch.2",
+    "default": 0.952756,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 159,
+    "id": "",
+    "name": "Q 7 Ch.2",
+    "default": 0.07874,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 160,
+    "id": "",
+    "name": "Slope 7 Ch.2",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 161,
+    "id": "",
+    "name": "Boost 7 Ch.2",
+    "default": 0.511811,
+    "numSteps": 128,
+    "isDiscrete": true,
+    "label": "dB"
+  },
+  {
+    "index": 162,
+    "id": "",
+    "name": "Dynamic Peak 7 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 163,
+    "id": "",
+    "name": "Threshold 7 Ch.2",
+    "default": 0.5,
+    "numSteps": 121,
+    "isDiscrete": true,
+    "label": "dBFS"
+  },
+  {
+    "index": 164,
+    "id": "",
+    "name": "Attack 7 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 165,
+    "id": "",
+    "name": "Release 7 Ch.2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 166,
+    "id": "",
+    "name": "Ratio 7 Ch.2",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 167,
+    "id": "",
+    "name": "Filter On/Off 7 Ch.2",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 168,
+    "id": "",
+    "name": "Meter Text",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 169,
+    "id": "",
+    "name": "Dynamic Controls",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 170,
+    "id": "",
+    "name": "Analyzer",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 171,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

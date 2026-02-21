@@ -1,0 +1,305 @@
+{
+  "description": "Songbird LLM eval set — 75 natural language prompts representing real composer/producer requests",
+  "prompts": [
+
+    { "id": 1, "category": "composition_melody",
+      "prompt": "Write a 4-bar major pentatonic melody on a lead synth, starting on C4.",
+      "expects": "update_bird_file", "notes": "Should produce a p/n pattern with C pentatonic notes (C D E G A)" },
+
+    { "id": 2, "category": "composition_melody",
+      "prompt": "Add a counter-melody that harmonizes a third above the main lead line.",
+      "expects": "update_bird_file", "notes": "Adds a new channel with notes offset by +4 semitones (major 3rd)" },
+
+    { "id": 3, "category": "composition_melody",
+      "prompt": "Create a descending chromatic run from G5 to C5 in 16th notes.",
+      "expects": "update_bird_file", "notes": "Pattern of 16th notes (x) descending from G5 (79) to C5 (72)" },
+
+    { "id": 4, "category": "composition_melody",
+      "prompt": "Compose an 8-bar melody in the key of A minor that builds tension before a chorus.",
+      "expects": "update_bird_file", "notes": "Should use notes from A natural minor: A B C D E F G" },
+
+    { "id": 5, "category": "composition_melody",
+      "prompt": "Write a simple 4-bar hook with a repeating motif — something catchy at 120 BPM.",
+      "expects": "update_bird_file", "notes": "Should use rhythmic repetition (cont or similar)" },
+
+    { "id": 6, "category": "composition_melody",
+      "prompt": "Duplicate the lead melody and shift it up an octave to layer it.",
+      "expects": "update_bird_file", "notes": "Adds a second lead channel with n values +12 from original" },
+
+    { "id": 7, "category": "composition_melody",
+      "prompt": "Create a call-and-response pattern between two melodic phrases in the verse.",
+      "expects": "update_bird_file", "notes": "Alternating phrases, e.g. 4 beats each" },
+
+    { "id": 8, "category": "composition_melody",
+      "prompt": "Write a pentatonic blues lick in E minor that could serve as a turnaround.",
+      "expects": "update_bird_file", "notes": "E minor pentatonic: E G A Bb B D" },
+
+    { "id": 9, "category": "composition_melody",
+      "prompt": "Make the lead melody play the same notes but in triplet rhythm.",
+      "expects": "update_bird_file", "notes": "Should modify the 'p' pattern to use triplet durations" },
+
+    { "id": 10, "category": "composition_melody",
+      "prompt": "Add a 2-bar melodic fill at the end of the verse before the chorus hits.",
+      "expects": "update_bird_file", "notes": "Should extend or add fill pattern in the verse section" },
+
+    { "id": 11, "category": "composition_harmony",
+      "prompt": "Add a ii-V-I chord progression in C major using whole notes.",
+      "expects": "update_bird_file", "notes": "Dm7 - G7 - Cmaj7, whole note duration (w)" },
+
+    { "id": 12, "category": "composition_harmony",
+      "prompt": "Create a minor 1-4-5 progression in A minor (Am - Dm - Em) in 4/4.",
+      "expects": "update_bird_file", "notes": "Each chord 1 bar, notes: Am=57+60+64, Dm=62+65+69, Em=52+55+59" },
+
+    { "id": 13, "category": "composition_harmony",
+      "prompt": "Write a four-chord pop progression (I-V-vi-IV) in G major.",
+      "expects": "update_bird_file", "notes": "G - D - Em - C, one chord per bar" },
+
+    { "id": 14, "category": "composition_harmony",
+      "prompt": "Add lush jazz chords — use 7ths and 9ths — to the chord track.",
+      "expects": "update_bird_file", "notes": "Should extend triads to 4+ note voicings" },
+
+    { "id": 15, "category": "composition_harmony",
+      "prompt": "Create a descending bass line that outlines a I-VII-VI-V progression in E.",
+      "expects": "update_bird_file", "notes": "E D C B bass line, quarter notes" },
+
+    { "id": 16, "category": "composition_harmony",
+      "prompt": "Add a suspended 4th chord (sus4) that resolves to the major chord.",
+      "expects": "update_bird_file", "notes": "e.g. Csus4 (C F G) resolving to C major (C E G)" },
+
+    { "id": 17, "category": "composition_harmony",
+      "prompt": "Write a walking bass line that moves chromatically between chord roots.",
+      "expects": "update_bird_file", "notes": "Quarter note bass with chromatic passing tones" },
+
+    { "id": 18, "category": "composition_harmony",
+      "prompt": "Create a piano stab pattern — short staccato chords on the off-beats.",
+      "expects": "update_bird_file", "notes": "Short note values with rests, syncopated" },
+
+    { "id": 19, "category": "composition_drums",
+      "prompt": "Write a trap hi-hat pattern with 16th-note rolls that speed up mid-bar.",
+      "expects": "update_bird_file", "notes": "16th note (x) hi-hat pattern with velocity variation" },
+
+    { "id": 20, "category": "composition_drums",
+      "prompt": "Create a classic four-on-the-floor kick pattern with a snare on 2 and 4.",
+      "expects": "update_bird_file", "notes": "Kick q q q q, snare on beats 2 and 4" },
+
+    { "id": 21, "category": "composition_drums",
+      "prompt": "Add a drum fill at the very end of the verse before the chorus.",
+      "expects": "update_bird_file", "notes": "Short 1-bar fill, busy 16th note pattern on snare/kick" },
+
+    { "id": 22, "category": "composition_drums",
+      "prompt": "Write a breakbeat pattern — something chopped and syncopated like a hip-hop break.",
+      "expects": "update_bird_file", "notes": "Syncopated kick/snare, 16th notes, varied velocity" },
+
+    { "id": 23, "category": "composition_drums",
+      "prompt": "Create a sparse, minimal kick pattern — just kick on beat 1 and 3.",
+      "expects": "update_bird_file", "notes": "p q _q q _q with n for kick" },
+
+    { "id": 24, "category": "composition_drums",
+      "prompt": "Add ghost notes to the snare — very quiet hits between the main snare hits.",
+      "expects": "update_bird_file", "notes": "Additional snare hits with low velocity (v ~20-30)" },
+
+    { "id": 25, "category": "composition_drums",
+      "prompt": "Create a bossa nova rhythm — syncopated pattern with kick and rimshot.",
+      "expects": "update_bird_file", "notes": "Characteristic bossa nova pattern: kick on 1 and and of 2" },
+
+    { "id": 26, "category": "composition_drums",
+      "prompt": "Write an open hi-hat that hits every other bar for a half-time feel.",
+      "expects": "update_bird_file", "notes": "Open hat every 2 bars" },
+
+    { "id": 27, "category": "arrangement",
+      "prompt": "Extend the chorus from 4 bars to 8 bars.",
+      "expects": "update_bird_file", "notes": "arr line: chorus 8 instead of chorus 4" },
+
+    { "id": 28, "category": "arrangement",
+      "prompt": "Add a 2-bar intro before the verse.",
+      "expects": "update_bird_file", "notes": "Adds intro 2 before verse in arr, creates sec intro" },
+
+    { "id": 29, "category": "arrangement",
+      "prompt": "Add an outro section that's 4 bars long.",
+      "expects": "update_bird_file", "notes": "Adds outro 4 at end of arr, creates sec outro" },
+
+    { "id": 30, "category": "arrangement",
+      "prompt": "Swap the order of the bridge and second chorus.",
+      "expects": "update_bird_file", "notes": "Reorders arr line entries" },
+
+    { "id": 31, "category": "arrangement",
+      "prompt": "Add a pre-chorus section between verse and chorus — 2 bars.",
+      "expects": "update_bird_file", "notes": "Adds 'pre 2' between verse and chorus in arr" },
+
+    { "id": 32, "category": "arrangement",
+      "prompt": "Create a breakdown section where only the bass plays.",
+      "expects": "update_bird_file", "notes": "New sec breakdown with only bass ch populated" },
+
+    { "id": 33, "category": "mix_control",
+      "prompt": "Lower the kick drum volume by 6 dB.",
+      "expects": "set_track_mixer", "notes": "trackId should be the kick track, volumeDb -6 relative" },
+
+    { "id": 34, "category": "mix_control",
+      "prompt": "Pan the lead synth 40% to the right.",
+      "expects": "set_track_mixer", "notes": "pan = 0.4" },
+
+    { "id": 35, "category": "mix_control",
+      "prompt": "Mute all drum tracks so I can hear only the bass and melody.",
+      "expects": "set_track_mixer", "notes": "mute=true for all drum tracks" },
+
+    { "id": 36, "category": "mix_control",
+      "prompt": "Turn up the bass by 3 dB.",
+      "expects": "set_track_mixer", "notes": "Bass track volumeDb increase by 3" },
+
+    { "id": 37, "category": "mix_control",
+      "prompt": "Set the BPM to 140.",
+      "expects": "set_bpm", "notes": "bpm=140" },
+
+    { "id": 38, "category": "mix_control",
+      "prompt": "Slow the tempo down to 95 BPM for a more relaxed feel.",
+      "expects": "set_bpm", "notes": "bpm=95" },
+
+    { "id": 39, "category": "mix_control",
+      "prompt": "Pan the rhythm guitar hard left and add another panned hard right.",
+      "expects": "set_track_mixer", "notes": "pan=-1.0 for track, mention second track at pan=1.0" },
+
+    { "id": 40, "category": "mix_control",
+      "prompt": "Solo the snare so I can hear only it.",
+      "expects": "set_track_mixer", "notes": "solo=true for snare track" },
+
+    { "id": 41, "category": "sound_design",
+      "prompt": "Make the synth brighter — open up the filter cutoff.",
+      "expects": "set_plugin_param or get_plugin_params", "notes": "Should call get_plugin_params first, then set Cutoff Frequency" },
+
+    { "id": 42, "category": "sound_design",
+      "prompt": "Add more reverb tail to the pads — increase the decay time.",
+      "expects": "set_plugin_param", "notes": "ValhallaRoom Decay parameter" },
+
+    { "id": 43, "category": "sound_design",
+      "prompt": "Make the kick punchier by shortening the decay.",
+      "expects": "set_plugin_param", "notes": "Kick 3 Main Decay parameter lower value" },
+
+    { "id": 44, "category": "sound_design",
+      "prompt": "Add automation so the filter sweeps open from bar 1 to bar 4 of the chorus.",
+      "expects": "update_bird_file", "notes": "Bird file automation: brightness ramp 0.0 1.0" },
+
+    { "id": 45, "category": "sound_design",
+      "prompt": "Widen the stereo image of the synth pad.",
+      "expects": "set_plugin_param", "notes": "Widener Width or Amount parameter" },
+
+    { "id": 46, "category": "sound_design",
+      "prompt": "Add a sidechain compression effect — duck the pads when the kick hits.",
+      "expects": "clarification or update_bird_file", "notes": "Ambiguous — sidechaining may not be fully supported, LLM should clarify or note limitation" },
+
+    { "id": 47, "category": "clarification_required",
+      "prompt": "Make it better.",
+      "expects": "clarification", "notes": "Ambiguous — LLM must ask what 'better' means before making any edits" },
+
+    { "id": 48, "category": "clarification_required",
+      "prompt": "Change the chords.",
+      "expects": "clarification", "notes": "No direction specified — LLM must ask which chords, to what" },
+
+    { "id": 49, "category": "clarification_required",
+      "prompt": "Add some effects.",
+      "expects": "clarification", "notes": "No track or effect type specified" },
+
+    { "id": 50, "category": "clarification_required",
+      "prompt": "It sounds off. Fix it.",
+      "expects": "clarification", "notes": "Cannot act without knowing what's wrong — must ask" },
+
+    { "id": 51, "category": "note_length",
+      "prompt": "Change the lead melody from quarter notes to half notes so it feels more spacious.",
+      "expects": "update_bird_file", "notes": "p values should change from q to h (half note implies w split, use w and rest, or two-note groupings); notes stay the same" },
+
+    { "id": 52, "category": "note_length",
+      "prompt": "Make the chord pads sustain for 2 bars instead of 1 bar per chord.",
+      "expects": "update_bird_file", "notes": "In the arrangement, the section length or note duration should double — chord p values use longer durations" },
+
+    { "id": 53, "category": "note_length",
+      "prompt": "Turn the chord hits into staccato 16th notes — really short and punchy.",
+      "expects": "update_bird_file", "notes": "p pattern should use x (16th) followed by rest _ for each chord hit" },
+
+    { "id": 54, "category": "note_length",
+      "prompt": "Make the bass line alternate between long whole notes and quick 16th note runs.",
+      "expects": "update_bird_file", "notes": "Mix of w and x values in the p pattern for bass" },
+
+    { "id": 55, "category": "note_length",
+      "prompt": "Convert the melody from 16th notes to dotted 8th notes for a swung feel.",
+      "expects": "update_bird_file", "notes": "Dotted feel means alternating longer and shorter durations — e.g. q x pattern" },
+
+    { "id": 56, "category": "note_length",
+      "prompt": "Have the snare hit on beat 3 as a whole-bar backbeat, not just a quarter note snap.",
+      "expects": "update_bird_file", "notes": "Snare pattern: _ _ q _ (rest for 1+2, quarter snare on 3, rest on 4)" },
+
+    { "id": 57, "category": "chord_rhythm",
+      "prompt": "Write the chords as an arpeggio — each note of the chord plays one after another as 8th notes ascending.",
+      "expects": "update_bird_file", "notes": "Instead of chord clusters in n, write individual notes in sequence with 8th note p values" },
+
+    { "id": 58, "category": "chord_rhythm",
+      "prompt": "Create a syncopated chord pattern — hit the chord just before beat 1 (anticipation) and hold it through the bar.",
+      "expects": "update_bird_file", "notes": "Last 16th of previous bar or use held note pattern; the chord anticipates the downbeat" },
+
+    { "id": 59, "category": "chord_rhythm",
+      "prompt": "Write a reggae-style chord pattern — stabs on the off-beats (upstrokes on the and of every beat).",
+      "expects": "update_bird_file", "notes": "Pattern: _ x _ x _ x _ x (8th rests on beats, 8th chords on off-beats)" },
+
+    { "id": 60, "category": "chord_rhythm",
+      "prompt": "Create a chord pattern where the root plays on beat 1 and the full chord hits on beat 2.",
+      "expects": "update_bird_file", "notes": "Split chord: first n is root note, second n entry is full chord voicing, different p slots" },
+
+    { "id": 61, "category": "chord_rhythm",
+      "prompt": "Add rhythmic variation to the pad chords — long in bar 1, short stabs in bar 2, creating a 2-bar phrase.",
+      "expects": "update_bird_file", "notes": "2-bar pattern alternating w (whole note) in bar 1 and syncopated x hits in bar 2" },
+
+    { "id": 62, "category": "chord_rhythm",
+      "prompt": "Write the chords as descending arpeggios — from highest to lowest note in 16th notes.",
+      "expects": "update_bird_file", "notes": "Reverse order of notes in the n sequence, x pattern" },
+
+    { "id": 63, "category": "chord_rhythm",
+      "prompt": "Create a chord pattern that alternates between playing the full chord and a single bass note note each bar.",
+      "expects": "update_bird_file", "notes": "Bar 1: full chord with all notes; bar 2: only root note" },
+
+    { "id": 64, "category": "chord_rhythm",
+      "prompt": "Make the chord track play a Albert bass pattern — alternating root and fifth in quarter notes.",
+      "expects": "update_bird_file", "notes": "Root (e.g. C2=36) and fifth (G2=43) alternating: p q q q q, n 36 43 36 43" },
+
+    { "id": 65, "category": "chord_rhythm",
+      "prompt": "Give the chords a flamenco strum feel — a fast 16th-note strummed pattern from low to high notes.",
+      "expects": "update_bird_file", "notes": "Each chord note played sequentially in very fast succession — x x x x pattern ascending" },
+
+    { "id": 66, "category": "humanization",
+      "prompt": "Add velocity variation to the hi-hats so they feel less robotic — mix loud and soft hits.",
+      "expects": "update_bird_file", "notes": "v values should vary: mix of high (100-110) and low (40-60) velocity across the 16th note hi-hat pattern" },
+
+    { "id": 67, "category": "humanization",
+      "prompt": "The snare hits all feel the same volume. Add some subtle velocity variation to make it sound more human.",
+      "expects": "update_bird_file", "notes": "Snare v values should vary slightly: e.g. v 90 85 95 80 rather than v 90 90 90 90" },
+
+    { "id": 68, "category": "humanization",
+      "prompt": "Add some dynamic variation to the melody — let some notes be louder on the phrase peaks and softer in between.",
+      "expects": "update_bird_file", "notes": "v values should follow a contour: louder on melodic peaks, softer on passing tones. Use explicit v line" },
+
+    { "id": 69, "category": "humanization",
+      "prompt": "Make the bass line feel more alive by varying the velocity between notes — harder on the downbeats, softer off-beats.",
+      "expects": "update_bird_file", "notes": "v pattern: strong on beat 1, weaker on beats 2-4 and off-beats" },
+
+    { "id": 70, "category": "humanization",
+      "prompt": "Add subtle pitch variation to the chord pads — use slight chord voicing inversions across bars so it doesn't feel static.",
+      "expects": "update_bird_file", "notes": "Could shuffle note order or use +12/-12 offsets on some notes across pattern repetitions" },
+
+    { "id": 71, "category": "vibe",
+      "prompt": "This sounds too stiff and quantized. Add some rhythmic looseness — some notes slightly early or late.",
+      "expects": "update_bird_file", "notes": "Should use sw (swing) and/or t (timing offsets) to add humanization. E.g. sw 55 ~3 for light swing with jitter, or t with small offsets" },
+
+    { "id": 72, "category": "vibe",
+      "prompt": "The music feels repetitive. Add variation in the second verse — change up the melody slightly.",
+      "expects": "update_bird_file", "notes": "Second verse (if it exists, or create it) should have melodic variation: different notes or rhythm at the end of phrases" },
+
+    { "id": 73, "category": "vibe",
+      "prompt": "Make the chorus feel more energetic — add more notes, higher velocities, and denser rhythms than the verse.",
+      "expects": "update_bird_file", "notes": "Chorus sec should have busier patterns (more x notes), higher v values (100-120), and more active parts" },
+
+    { "id": 74, "category": "vibe",
+      "prompt": "The arrangement sounds too mechanical. Add a 1-bar variation every 4 bars to break the loop.",
+      "expects": "update_bird_file", "notes": "Could mean adding a fill section, or using a 4-bar arrangement unit with slight variation in the last bar" },
+
+    { "id": 75, "category": "vibe",
+      "prompt": "Make the verse sparse and the chorus full — strip back the verse to just bass and kick, then bring everything in for the chorus.",
+      "expects": "update_bird_file", "notes": "Verse sec: only bass and kick channels populated. Chorus sec: all channels. Tests sparse vs dense arrangement contrast" }
+  ]
+}

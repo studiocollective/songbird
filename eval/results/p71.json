@@ -1,0 +1,75 @@
+{
+  "id": 71,
+  "category": "vibe",
+  "prompt": "This sounds too stiff and quantized. Add some rhythmic looseness — some notes slightly early or late.",
+  "response": {
+    "text": "",
+    "toolCalls": [
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 1
+        }
+      },
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 2
+        }
+      },
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 3
+        }
+      },
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 4
+        }
+      },
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 5
+        }
+      },
+      {
+        "name": "get_plugin_params",
+        "args": {
+          "trackId": 6
+        }
+      },
+      {
+        "name": "validate_bird_file",
+        "args": {
+          "content": "ch 1 Melody\n  plugin mini\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    t -10 5 10 -5\n"
+        }
+      },
+      {
+        "name": "update_bird_file",
+        "args": {
+          "content": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 95 82 105 88\n    t -15 25 -10 30\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n    v 100 92\n    t 10 20\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n    v 85 78\n    t 25 40\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 110 105\n    t 0 8\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 100 115\n    t 25 15\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n    v 70 45 80 50 75 48 85 55\n    t 0 35 0 40 0 30 0 45\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n    v 105 90 115 95\n    t -20 30 -15 40\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n    v 105 95 100\n    t 10 25 15\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n    v 90 85\n    t 20 35\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 110 105\n    t 0 8\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 100 115\n    t 25 15\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n    v 70 45 80 50 75 48 85 55\n    t 0 35 0 40 0 30 0 45\n"
+        }
+      }
+    ]
+  },
+  "birdContent": "ch 1 Melody\n  plugin mini\n  strip console1\n\nch 2 Bass\n  plugin bass\n  strip console1\n\nch 3 Chords\n  plugin jup8\n  strip console1\n\nch 4 Kick\n  plugin kick\n\nch 5 Snare\n  plugin drums\n\nch 6 HiHat\n  plugin drums\n\narr verse 4 chorus 4\n\nsec verse\n  ch 1 Melody\n    p q q q q\n    n 60 62 64 65\n    v 95 82 105 88\n    t -15 25 -10 30\n\n  ch 2 Bass\n    p q _q q _q\n    n 36\n    v 100 92\n    t 10 20\n\n  ch 3 Chords\n    p w w\n    n 48 52 55\n    v 85 78\n    t 25 40\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 110 105\n    t 0 8\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 100 115\n    t 25 15\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n    v 70 45 80 50 75 48 85 55\n    t 0 35 0 40 0 30 0 45\n\nsec chorus\n  ch 1 Melody\n    p q q q q\n    n 65 67 69 72\n    v 105 90 115 95\n    t -20 30 -15 40\n\n  ch 2 Bass\n    p q q _q q\n    n 36\n    v 105 95 100\n    t 10 25 15\n\n  ch 3 Chords\n    p w w\n    n 53 57 60\n    v 90 85\n    t 20 35\n\n  ch 4 Kick\n    p q _q q _q\n    n 36\n    v 110 105\n    t 0 8\n\n  ch 5 Snare\n    p _q q _q q\n    n 38\n    v 100 115\n    t 25 15\n\n  ch 6 HiHat\n    p x x x x x x x x\n    n 42\n    v 70 45 80 50 75 48 85 55\n    t 0 35 0 40 0 30 0 45\n",
+  "validationResult": {
+    "isValid": false,
+    "error": "Line 34: Alignment error — 'v' has 2 values but pattern has 4"
+  },
+  "judgment": {
+    "relevance": 0,
+    "quality": 0,
+    "relevance_reason": "The AI hallucinated a 't' command for timing instead of acknowledging the language's grid-locked limitation and suggesting velocity variations as a workaround.",
+    "quality_reason": "The resulting Bird file is invalid because it uses a non-existent 't' parameter for note timing."
+  },
+  "scores": {
+    "validity": 0,
+    "relevance": 0,
+    "quality": 0,
+    "total": 0
+  }
+}

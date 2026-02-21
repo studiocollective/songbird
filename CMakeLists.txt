@@ -45,6 +45,8 @@ target_sources(SongbirdPlayer PRIVATE
     app/StateSync.cpp
     app/WebViewBridge.cpp
     app/LyriaManager.cpp
+    app/MidiRecorder.cpp
+    app/AudioRecorder.cpp
     app/PluginManager.cpp
     app/PlaybackInfo.cpp
     app/BirdLoader.cpp
@@ -94,3 +96,28 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(SongbirdPlayer PRIVATE
         "-framework WebKit")
 endif()
+
+# ============================================================================
+# Developer utility: scan a VST3/AU plugin and dump all parameter names
+# Build:  cmake --build build --target ScanPluginParams
+# Run:    ./build/ScanPluginParams_artefacts/ScanPluginParams "/Library/Audio/Plug-Ins/VST3/Console 1.vst3"
+# ============================================================================
+juce_add_console_app(ScanPluginParams PRODUCT_NAME "ScanPluginParams")
+target_sources(ScanPluginParams PRIVATE tools/scan_plugin_params.cpp)
+target_compile_features(ScanPluginParams PRIVATE cxx_std_20)
+target_compile_definitions(ScanPluginParams PRIVATE
+    JUCE_PLUGINHOST_VST3=1
+    JUCE_USE_CURL=0
+    JUCE_WEB_BROWSER=0
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    JUCE_APPLICATION_NAME_STRING="ScanPluginParams"
+    JUCE_APPLICATION_VERSION_STRING="1.0")
+target_link_libraries(ScanPluginParams PRIVATE
+    juce::juce_audio_processors
+    juce::juce_audio_devices
+    juce::juce_events
+    juce::juce_recommended_warning_flags)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_compile_options(ScanPluginParams PRIVATE "-fno-aligned-allocation")
+endif()
+

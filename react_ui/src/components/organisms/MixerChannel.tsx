@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { TrackColorDot, MuteSoloButtons, LevelMeter, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
 import { useMeterStore } from '@/data/meters';
-import type { PluginSlot } from '@/data/slices/mixer';
+import type { PluginSlot, Track } from '@/data/slices/mixer';
 
 interface MixerChannelProps {
   trackId: number;
@@ -18,10 +18,13 @@ interface MixerChannelProps {
   channelStrip: PluginSlot;
   isReturn?: boolean;
   isMaster?: boolean;
+  sidechainTrackId?: number | null;
+  trackList?: Track[];
+  sidechainSensitivity?: number;
 }
 
 export function MixerChannel({
-  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false
+  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false, sidechainTrackId, trackList, sidechainSensitivity
 }: MixerChannelProps) {
   const level = useMeterStore((s) => {
     if (isMaster) return Math.max(s.master.left, s.master.right);
@@ -40,7 +43,7 @@ export function MixerChannel({
         </span>
       </div>
 
-      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} />
+      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} />
 
       <div className={msWrapper}>
         {!isMaster && <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />}

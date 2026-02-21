@@ -112,6 +112,99 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("getTrackNotes", [this](auto&, auto complete) {
             complete(getTrackNotesJSON());
         })
+        // Enumerate all automatable parameters on a track's plugins (for AI tool use)
+        .withNativeFunction("getPluginParams", [this](auto& args, auto complete) {
+            if (!edit || args.size() == 0) { complete("[]"); return; }
+            int trackId = static_cast<int>(args[0]);
+            auto audioTracks = te::getAudioTracks(*edit);
+            if (trackId < 0 || trackId >= audioTracks.size()) { complete("[]"); return; }
+            auto* track = audioTracks[trackId];
+            if (!track) { complete("[]"); return; }
+
+            juce::Array<juce::var> result;
+            for (auto* plugin : track->pluginList.getPlugins()) {
+                // Skip utility plugins
+                if (dynamic_cast<te::VolumeAndPanPlugin*>(plugin)) continue;
+                if (dynamic_cast<te::LevelMeterPlugin*>(plugin)) continue;
+                if (dynamic_cast<te::AuxSendPlugin*>(plugin)) continue;
+                if (dynamic_cast<te::AuxReturnPlugin*>(plugin)) continue;
+
+                auto params = plugin->getAutomatableParameters();
+                if (params.isEmpty()) continue;
+
+                juce::Array<juce::var> paramList;
+                for (auto* param : params) {
+                    auto range = param->getValueRange();
+                    float norm = param->getCurrentNormalisedValue();
+
+                    auto* obj = new juce::DynamicObject();
+                    obj->setProperty("id",           param->paramID);
+                    obj->setProperty("name",         param->getParameterName());
+                    obj->setProperty("value",        norm);
+                    obj->setProperty("displayValue", param->getCurrentValueAsString());
+                    obj->setProperty("min",          range.getStart());
+                    obj->setProperty("max",          range.getEnd());
+                    paramList.add(juce::var(obj));
+                }
+
+                auto* pluginObj = new juce::DynamicObject();
+                pluginObj->setProperty("plugin", plugin->getName());
+                pluginObj->setProperty("params", paramList);
+                result.add(juce::var(pluginObj));
+            }
+            complete(juce::JSON::toString(juce::var(result)));
+        })
+        // Set a plugin parameter by name/id (value is normalized 0.0–1.0)
+        .withNativeFunction("setPluginParam", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 3) { complete("{\"success\":false,\"error\":\"Bad args\"}"); return; }
+            int trackId       = static_cast<int>(args[0]);
+            juce::String name = args[1].toString();
+            float normValue   = juce::jlimit(0.0f, 1.0f, static_cast<float>(args[2]));
+
+            auto audioTracks = te::getAudioTracks(*edit);
+            if (trackId < 0 || trackId >= audioTracks.size()) {
+                complete("{\"success\":false,\"error\":\"Track not found\"}"); return;
+            }
+            auto* track = audioTracks[trackId];
+
+            juce::MessageManager::callAsync([this, track, name, normValue, complete = std::move(complete)]() mutable {
+                for (auto* plugin : track->pluginList.getPlugins()) {
+                    if (dynamic_cast<te::VolumeAndPanPlugin*>(plugin)) continue;
+                    if (dynamic_cast<te::LevelMeterPlugin*>(plugin)) continue;
+                    if (dynamic_cast<te::AuxSendPlugin*>(plugin)) continue;
+                    if (dynamic_cast<te::AuxReturnPlugin*>(plugin)) continue;
+
+                    for (auto* param : plugin->getAutomatableParameters()) {
+                        bool match = param->paramID.equalsIgnoreCase(name)
+                                  || param->getParameterName().equalsIgnoreCase(name)
+                                  || param->getParameterName().containsIgnoreCase(name);
+                        if (!match) continue;
+
+                        param->setNormalisedParameter(normValue, juce::sendNotification);
+                        DBG("PluginParam: Set '" + name + "' on '" + plugin->getName()
+                            + "' norm=" + juce::String(normValue));
+                        complete("{\"success\":true,\"plugin\":\"" + plugin->getName()
+                               + "\",\"param\":\"" + param->getParameterName()
+                               + "\",\"value\":" + juce::String(normValue) + "}");
+                        return;
+                    }
+                }
+                complete("{\"success\":false,\"error\":\"Parameter not found: " + name + "\"}");
+            });
+        })
+        // Set sidechain source track for a channel strip compressor
+        // Args: (destTrackId: int, sourceTrackId: int)  — sourceTrackId = -1 clears sidechain
+        .withNativeFunction("setSidechainSource", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 2) { complete("{\"success\":false,\"error\":\"Bad args\"}"); return; }
+            int destTrackId   = static_cast<int>(args[0]);
+            int sourceTrackId = static_cast<int>(args[1]);
+            logToJS("Sidechain: dest=" + juce::String(destTrackId) + " src=" + juce::String(sourceTrackId));
+            juce::MessageManager::callAsync([this, destTrackId, sourceTrackId, complete = std::move(complete)]() mutable {
+                setSidechainSource(destTrackId, sourceTrackId);
+                complete("{\"success\":true}");
+            });
+        })
+
         // Read current .bird file content (for AI chat context)
         .withNativeFunction("readBird", [this](auto&, auto complete) {
             if (currentBirdFile.existsAsFile())
@@ -126,11 +219,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 juce::MessageManager::callAsync([this, path]() {
                     auto file = juce::File(path);
                     currentBirdFile = file;
-                    loadBirdFile(file);
-                    if (webView) {
-                        auto json = getTrackNotesJSON();
-                        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
-                    }
+                    loadBirdFile(file); // full synchronous load for explicit file-open
                 });
             }
             complete("ok");
@@ -139,14 +228,66 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("updateBird", [this](auto& args, auto complete) {
             if (args.size() > 0 && currentBirdFile.existsAsFile()) {
                 juce::String content = args[0].toString();
-                juce::MessageManager::callAsync([this, content]() {
-                    currentBirdFile.replaceWithText(content);
-                    DBG("BirdUpdate: Updated " + currentBirdFile.getFullPathName());
-                    loadBirdFile(currentBirdFile);
-                });
+                // Write to disk synchronously (fast), then schedule a debounced
+                // background parse + apply so the main thread is never blocked.
+                currentBirdFile.replaceWithText(content);
+                DBG("BirdUpdate: Wrote " + currentBirdFile.getFullPathName() + ", scheduling reload");
+                scheduleReload(content);
             }
             complete("ok");
         })
+        // Set mixer state for a single track (AI-driven mix control)
+        // volume_db: float (-60 to +12), pan: float (-1.0 to 1.0), mute/solo: bool
+        .withNativeFunction("setTrackMixer", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 5) { complete("{\"success\":false,\"error\":\"Bad args\"}"); return; }
+            int    trackId   = static_cast<int>(args[0]);
+            float  volumeDb  = static_cast<float>(args[1]);
+            float  pan       = juce::jlimit(-1.0f, 1.0f, static_cast<float>(args[2]));
+            bool   mute      = static_cast<bool>(args[3]);
+            bool   solo      = static_cast<bool>(args[4]);
+
+            juce::MessageManager::callAsync([this, trackId, volumeDb, pan, mute, solo, complete = std::move(complete)]() mutable {
+                auto audioTracks = te::getAudioTracks(*edit);
+                te::AudioTrack* track = nullptr;
+
+                if (trackId == (int)audioTracks.size())
+                    track = dynamic_cast<te::AudioTrack*>(edit->getMasterTrack());
+                else if (trackId >= 0 && trackId < (int)audioTracks.size())
+                    track = audioTracks[trackId];
+
+                if (!track) { complete("{\"success\":false,\"error\":\"Track not found\"}"); return; }
+
+                if (auto vol = track->getVolumePlugin()) {
+                    vol->setVolumeDb(volumeDb);
+                    vol->setPan(pan);
+                }
+                track->setMute(mute);
+                track->setSolo(solo);
+
+                DBG("MixerSet: track=" + juce::String(trackId) + " vol=" + juce::String(volumeDb)
+                    + "dB pan=" + juce::String(pan) + " mute=" + (mute ? "Y" : "N") + " solo=" + (solo ? "Y" : "N"));
+
+                // Re-emit trackNotes so React mixer panel reflects the change
+                if (webView) {
+                    auto json = BirdLoader::getTrackNotesJSON(*edit, &lastParseResult);
+                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+                }
+
+                complete("{\"success\":true}");
+            });
+        })
+        // Set project BPM
+        .withNativeFunction("setBpm", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 1) { complete("{\"success\":false}"); return; }
+            double bpm = static_cast<double>(args[0]);
+            if (bpm < 20.0 || bpm > 300.0) { complete("{\"success\":false,\"error\":\"BPM out of range 20-300\"}"); return; }
+            juce::MessageManager::callAsync([this, bpm, complete = std::move(complete)]() mutable {
+                edit->tempoSequence.getTempos()[0]->setBpm(bpm);
+                DBG("Transport: BPM set to " + juce::String(bpm));
+                complete("{\"success\":true,\"bpm\":" + juce::String(bpm) + "}");
+            });
+        })
+
         // Export to MIDI (Sheet Music)
         .withNativeFunction("exportSheetMusic", [this](auto& args, auto complete) {
             juce::MessageManager::callAsync([this]() {
@@ -206,15 +347,14 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                         targetFile.replaceWithText(content);
                         DBG("BirdSave: Updated " + targetFile.getFullPathName());
                     } else {
-                        // Create if not exists (including parent dirs if needed)
                         targetFile.create();
                         targetFile.replaceWithText(content);
                         DBG("BirdSave: Created " + targetFile.getFullPathName());
                     }
-                    
-                    // Hot-reload: immediately load the updated file into the engine
+
+                    // Hot-reload: schedule debounced background reload
                     currentBirdFile = targetFile;
-                    loadBirdFile(targetFile);
+                    scheduleReload(content);
                 });
             }
             complete("ok");
@@ -360,5 +500,142 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 DBG("ApiKey: saved to Songbird Player settings");
             }
             complete("ok");
+        })
+
+        // ====================================================================
+        // MIDI Recording
+        // ====================================================================
+
+        .withNativeFunction("listMidiInputs", [this](auto&, auto complete) {
+            auto devices = MidiRecorder::listMidiDevices();
+            juce::Array<juce::var> arr;
+            for (auto& d : devices)
+                arr.add(juce::var(d));
+            complete(juce::JSON::toString(juce::var(arr)));
+        })
+
+        .withNativeFunction("setMidiInputDevice", [this](auto& args, auto complete) {
+            if (args.size() > 0 && midiRecorder) {
+                juce::String name = args[0].toString();
+                bool ok = midiRecorder->openDevice(name);
+                complete(ok ? "{\"success\":true}" : "{\"success\":false}");
+            } else complete("{\"success\":false}");
+        })
+
+        .withNativeFunction("setMidiRecordArm", [this](auto& args, auto complete) {
+            { complete("{\"success\":false}"); return; }
+            int  trackId = static_cast<int>(args[0]);
+            bool armed   = static_cast<bool>(args[1]);
+            juce::MessageManager::callAsync([this, trackId, armed, complete = std::move(complete)]() mutable {
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId < 0 || trackId >= (int)audioTracks.size())
+                { complete("{\"success\":false}"); return; }
+                auto* track = audioTracks[trackId];
+                if (armed) {
+                    double beatNow = edit->tempoSequence.toBeats(edit->getTransport().getPosition()).inBeats();
+                    midiRecorder->startRecording(track, beatNow);
+                    midiRecordTrackId = trackId;
+                } else {
+                    midiRecorder->stopRecording();
+                    midiRecordTrackId = -1;
+                }
+                complete("{\"success\":true}");
+            });
+        })
+
+        .withNativeFunction("clearRecordedMidi", [this](auto& args, auto complete) {
+            int trackId = static_cast<int>(args[0]);
+            juce::MessageManager::callAsync([this, trackId]() {
+                auto tracks = te::getAudioTracks(*edit);
+                if (trackId >= 0 && trackId < (int)tracks.size()) {
+                    for (auto* clip : tracks[trackId]->getClips())
+                        clip->state.getParent().removeChild(clip->state, nullptr);
+                    BirdLoader::populateEdit(*edit, lastParseResult, engine);
+                    if (webView)
+                        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+                }
+            });
+            complete("{\"success\":true}");
+        })
+
+        // ====================================================================
+        // Audio Tracks
+        // ====================================================================
+
+        .withNativeFunction("listAudioInputs", [](auto&, auto complete) {
+            auto names = AudioRecorder::listAudioInputs();
+            juce::Array<juce::var> arr;
+            for (auto& n : names) arr.add(juce::var(n));
+            complete(juce::JSON::toString(juce::var(arr)));
+        })
+
+        .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
+                int id = audioRecorder->addAudioTrack();
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+                complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
+            });
+        })
+
+        .withNativeFunction("removeAudioTrack", [this](auto& args, auto complete) {
+            int trackId = static_cast<int>(args[0]);
+            juce::MessageManager::callAsync([this, trackId]() {
+                audioRecorder->removeAudioTrack(trackId);
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+            });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("setAudioRecordSource", [this](auto& args, auto complete) {
+            int trackId = static_cast<int>(args[0]);
+            juce::String type = args[1].toString();
+            juce::MessageManager::callAsync([this, trackId, type, args, complete = std::move(complete)]() mutable {
+                if (type == "hardware")
+                    audioRecorder->setHardwareInputSource(trackId, args.size() > 2 ? args[2].toString() : "");
+                else if (type == "loopback")
+                    audioRecorder->setLoopbackSource(trackId, args.size() > 2 ? (int)args[2] : -1);
+                complete("{\"success\":true}");
+            });
+        })
+
+        .withNativeFunction("setAudioRecordArm", [this](auto& args, auto complete) {
+            int  trackId = static_cast<int>(args[0]);
+            bool armed   = static_cast<bool>(args[1]);
+            juce::MessageManager::callAsync([this, trackId, armed, complete = std::move(complete)]() mutable {
+                if (armed) audioRecorder->startRecording(trackId);
+                else       audioRecorder->stopRecording(trackId);
+                complete("{\"success\":true}");
+            });
+        })
+
+        // ====================================================================
+        // Per-track Lyria control
+        // ====================================================================
+
+        .withNativeFunction("setLyriaTrackConfig", [this](auto& args, auto complete) {
+            if (args.size() < 2) { complete("{\"success\":false}"); return; }
+            int trackId = static_cast<int>(args[0]);
+            auto config = juce::JSON::parse(args[1].toString());
+            juce::MessageManager::callAsync([this, trackId, config]() { setLyriaTrackConfig(trackId, config); });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("setLyriaTrackPrompts", [this](auto& args, auto complete) {
+            if (args.size() < 2) { complete("{\"success\":false}"); return; }
+            int trackId = static_cast<int>(args[0]);
+            auto prompts = juce::JSON::parse(args[1].toString());
+            juce::MessageManager::callAsync([this, trackId, prompts]() { setLyriaTrackPrompts(trackId, prompts); });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("setLyriaQuantize", [this](auto& args, auto complete) {
+            if (args.size() < 2) { complete("{\"success\":false}"); return; }
+            int trackId = static_cast<int>(args[0]);
+            int bars    = static_cast<int>(args[1]);
+            juce::MessageManager::callAsync([this, trackId, bars]() { setLyriaQuantize(trackId, bars); });
+            complete("{\"success\":true}");
         });
 }
+

@@ -1,0 +1,23 @@
+{
+  "id": 30,
+  "category": "arrangement",
+  "prompt": "Swap the order of the bridge and second chorus.",
+  "response": {
+    "text": "I'm sorry, but I don't see a \"bridge\" or a \"second chorus\" in your current project. The arrangement is currently set to `arr verse 4 chorus 4`.\n\nWould you like me to:\n1. Swap the **Verse** and **Chorus**?\n2. Create a bridge and a second chorus first, then arrange them? \n\nPlease let me know how you'd like to proceed!",
+    "toolCalls": []
+  },
+  "birdContent": null,
+  "validationResult": null,
+  "judgment": {
+    "relevance": 4,
+    "quality": 3,
+    "relevance_reason": "The AI correctly asked for clarification instead of making random edits since the requested sections did not exist in the current arrangement.",
+    "quality_reason": "The response is clear, polite, and offers helpful logical alternatives to proceed."
+  },
+  "scores": {
+    "validity": 1,
+    "relevance": 4,
+    "quality": 3,
+    "total": 8
+  }
+}

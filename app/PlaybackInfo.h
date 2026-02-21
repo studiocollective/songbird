@@ -13,7 +13,7 @@ namespace te = tracktion;
  * Events emitted:
  *   "audioLevels"        — [[dBL, dBR], ...] per track + master
  *   "transportPosition"  — { position, bar, looping, loopLength, loopBars }
- *   "stereoAnalysis"     — { width: 0-1, correlation: -1..+1 }
+ *   "stereoAnalysis"     — { width, correlation, balance, spectrum: [...] }
  */
 class PlaybackInfo : public juce::Timer
 {
@@ -36,15 +36,14 @@ private:
     // Per-track level metering clients
     std::vector<std::unique_ptr<te::LevelMeasurer::Client>> trackClients;
 
-    // Custom Master Analyzer
-    te::Plugin::Ptr analyzerPlugin;
-
     // Stereo analysis
     float stereoWidth = 0.0f;        // 0..1 (mono..wide)
     float phaseCorrelation = 1.0f;   // -1..+1 (out of phase..mono)
     float stereoBalance = 0.0f;      // -1..+1 (full left..full right)
-    int stereoFrameCount = 0;
-    
+
+    // Master Analyzer Plugin
+    te::Plugin::Ptr analyzerPlugin;
+
     // FFT processing
     static constexpr int fftOrder = 10;
     static constexpr int fftSize = 1 << fftOrder;
@@ -52,6 +51,8 @@ private:
     float fftData[fftSize * 2] = { 0.0f };
     int fifoIndex = 0;
     bool nextFFTBlockReady = false;
+
+    // Spectrum — 16 bands derived from real FFT
     std::vector<float> spectrumMagnitudes;
 
 public:

@@ -1,0 +1,72 @@
+ch 1 Melody
+  plugin mini
+  strip console1
+
+ch 2 Bass
+  plugin bass
+  strip console1
+
+ch 3 Chords
+  plugin jup8
+  strip console1
+
+ch 4 Kick
+  plugin kick
+
+ch 5 Snare
+  plugin drums
+
+ch 6 HiHat
+  plugin drums
+
+arr verse 4 chorus 4
+
+sec verse
+  ch 1 Melody
+    p q q q q
+    n 60 62 64 65
+
+  ch 2 Bass
+    p q _q q _q
+    n 36
+
+  ch 3 Chords
+    p w w
+    n 48 52 55
+
+  ch 4 Kick
+    p q _q q _q
+    n 36
+
+  ch 5 Snare
+    p _q q _q q
+    n 38
+
+  ch 6 HiHat
+    p x x x x x x x x
+    n 42
+
+sec chorus
+  ch 1 Melody
+    p q q q q
+    n 65 67 69 72
+
+  ch 2 Bass
+    p q q _q q
+    n 36
+
+  ch 3 Chords
+    p w w
+    n 53 57 60
+
+  ch 4 Kick
+    p q _q q _q
+    n 36
+
+  ch 5 Snare
+    p _q q _q q
+    n 38
+
+  ch 6 HiHat
+    p x x x x x x x x
+    n 42

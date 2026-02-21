@@ -48,6 +48,160 @@ const VALIDATE_TOOL = {
   }],
 };
 
+// Tool declaration for reading live plugin parameter list
+const GET_PLUGIN_PARAMS_TOOL = {
+  functionDeclarations: [{
+    name: 'get_plugin_params',
+    description: 'Returns the full list of automatable parameters for all plugins loaded on a track. Call this before set_plugin_param to discover exact parameter names and their current values. Returns an array of { plugin, params: [{id, name, value (0-1), displayValue}] }.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId: {
+          type: 'NUMBER',
+          description: 'Zero-based track index (same as the track order in the bird file, starting from 0)',
+        },
+      },
+      required: ['trackId'],
+    },
+  }],
+};
+
+// Tool declaration for setting a plugin parameter directly
+const SET_PLUGIN_PARAM_TOOL = {
+  functionDeclarations: [{
+    name: 'set_plugin_param',
+    description: 'Immediately sets a plugin parameter to a specific value. The value must be normalized between 0.0 and 1.0. Use get_plugin_params first to discover the exact parameter name. Returns { success, plugin, param, value } or { success: false, error }.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId: {
+          type: 'NUMBER',
+          description: 'Zero-based track index',
+        },
+        paramName: {
+          type: 'STRING',
+          description: 'The parameter name or ID (case-insensitive, substring match). Use the exact name from get_plugin_params for reliability.',
+        },
+        value: {
+          type: 'NUMBER',
+          description: 'Normalized value between 0.0 (minimum) and 1.0 (maximum)',
+        },
+      },
+      required: ['trackId', 'paramName', 'value'],
+    },
+  }],
+};
+
+// Tool: set mixer state for a single track
+const SET_TRACK_MIXER_TOOL = {
+  functionDeclarations: [{
+    name: 'set_track_mixer',
+    description: 'Sets the volume, pan, mute, and solo state for a single track. Use this when the user asks to adjust the mix (e.g. "lower the kick", "pan the synth left", "mute the drums"). Track index is the same as position in the bird file (0-based).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId:  { type: 'NUMBER', description: 'Zero-based track index' },
+        volumeDb: { type: 'NUMBER', description: 'Volume in dB. 0 = unity gain, -6 = half, -inf = silent. Typical range: -60 to +6.' },
+        pan:      { type: 'NUMBER', description: 'Pan position: -1.0 = full left, 0 = centre, 1.0 = full right' },
+        mute:     { type: 'BOOLEAN', description: 'Whether the track should be muted' },
+        solo:     { type: 'BOOLEAN', description: 'Whether the track should be soloed' },
+      },
+      required: ['trackId', 'volumeDb', 'pan', 'mute', 'solo'],
+    },
+  }],
+};
+
+// Tool: set project BPM
+const SET_BPM_TOOL = {
+  functionDeclarations: [{
+    name: 'set_bpm',
+    description: 'Changes the project tempo. Use when the user asks to change speed, BPM, or tempo.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        bpm: { type: 'NUMBER', description: 'Beats per minute, between 20 and 300' },
+      },
+      required: ['bpm'],
+    },
+  }],
+};
+
+// Tool: set Lyria generated track config (temperature, density, brightness, BPM, etc.)
+const SET_LYRIA_TRACK_CONFIG_TOOL = {
+  functionDeclarations: [{
+    name: 'set_lyria_track_config',
+    description: 'Sets the generation config for a Lyria AI music track. Use this when the user asks to change the mood, energy, density, or style of a generated track. Does not affect MIDI tracks.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId: { type: 'NUMBER', description: 'Zero-based track index of the Lyria generated track' },
+        config: {
+          type: 'OBJECT',
+          description: 'Lyria config fields to set. All fields are optional.',
+          properties: {
+            temperature:   { type: 'NUMBER', description: 'Creativity / randomness (0.0–2.0, default 1.0)' },
+            guidance:      { type: 'NUMBER', description: 'Prompt adherence (1.0–6.0, default 3.0)' },
+            topK:          { type: 'NUMBER', description: 'Top-K sampling (default 250)' },
+            density:       { type: 'NUMBER', description: 'Note density 0.0 (sparse) to 1.0 (dense)' },
+            useDensity:    { type: 'BOOLEAN', description: 'Whether to use the density parameter' },
+            brightness:    { type: 'NUMBER', description: 'Brightness / timbre 0.0 (dark) to 1.0 (bright)' },
+            useBrightness: { type: 'BOOLEAN', description: 'Whether to use the brightness parameter' },
+            muteBass:      { type: 'BOOLEAN', description: 'Mute the bass stem from Lyria output' },
+            muteDrums:     { type: 'BOOLEAN', description: 'Mute the drums stem from Lyria output' },
+            muteOther:     { type: 'BOOLEAN', description: 'Mute the other stem from Lyria output' },
+            bpm:           { type: 'NUMBER', description: 'Override BPM for this track' },
+            useBpm:        { type: 'BOOLEAN', description: 'Whether to enforce the BPM override' },
+          },
+        },
+      },
+      required: ['trackId', 'config'],
+    },
+  }],
+};
+
+// Tool: set Lyria track prompts
+const SET_LYRIA_TRACK_PROMPTS_TOOL = {
+  functionDeclarations: [{
+    name: 'set_lyria_track_prompts',
+    description: 'Sets the text prompts for a Lyria AI music track. Each prompt is a short descriptive phrase with an associated weight. Use this to steer the musical style of a generated track.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId: { type: 'NUMBER', description: 'Zero-based track index of the Lyria generated track' },
+        prompts: {
+          type: 'ARRAY',
+          description: 'Array of prompts — each has a text description and a weight between 0.0 and 1.0',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              text:   { type: 'STRING', description: 'Short descriptive phrase, e.g. "jazz piano", "uplifting melodic house"' },
+              weight: { type: 'NUMBER', description: 'Relative influence of this prompt (default 1.0)' },
+            },
+            required: ['text'],
+          },
+        },
+      },
+      required: ['trackId', 'prompts'],
+    },
+  }],
+};
+
+// Tool: quantize Lyria track to bar grid
+const SET_LYRIA_QUANTIZE_TOOL = {
+  functionDeclarations: [{
+    name: 'set_lyria_quantize',
+    description: 'Sets bar-boundary quantization for a Lyria track. When set, the Lyria stream is restarted only on bar boundaries so it stays in sync with the grid. Use bars=0 to disable.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        trackId: { type: 'NUMBER', description: 'Zero-based track index of the Lyria generated track' },
+        bars:    { type: 'NUMBER', description: 'Number of bars between allowed restart points. 0 = off, 1 = every bar, 2 = every 2 bars, etc.' },
+      },
+      required: ['trackId', 'bars'],
+    },
+  }],
+};
+
 const MODELS = [
   'gemini-3-flash-preview',
   'gemini-3.1-pro-preview',
@@ -117,7 +271,13 @@ export class GeminiService {
 
     // Step 1: Streaming call with tool declarations
     const initialResponse = await this.executeStreamRequest(
-      model, apiKey, systemPrompt, contents, onToolCall ? [BIRD_TOOL, VALIDATE_TOOL] : undefined, onChunk, generationConfig, signal
+      model, apiKey, systemPrompt, contents,
+      onToolCall
+        ? [BIRD_TOOL, VALIDATE_TOOL, GET_PLUGIN_PARAMS_TOOL, SET_PLUGIN_PARAM_TOOL,
+           SET_TRACK_MIXER_TOOL, SET_BPM_TOOL,
+           SET_LYRIA_TRACK_CONFIG_TOOL, SET_LYRIA_TRACK_PROMPTS_TOOL, SET_LYRIA_QUANTIZE_TOOL]
+        : undefined,
+      onChunk, generationConfig, signal
     );
 
     if (initialResponse.error) {

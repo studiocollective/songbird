@@ -125,8 +125,15 @@ export function ChatPanel() {
         // Tool call handler: Gemini calls update_bird_file → we save via C++
         async (call) => {
           if (call.name === 'update_bird_file') {
-            setToolUseLabel('Updating bird file…');
             const content = call.args.content as string;
+            // Validate before writing — invalid content must never trigger a C++ reload
+            const validation = validateBirdSyntax(content);
+            if (!validation.isValid) {
+              console.warn('[Chat] update_bird_file blocked: invalid syntax —', validation.error);
+              setToolUseLabel(null);
+              return { success: false, error: `Bird syntax error: ${validation.error}. Please fix and try again.` };
+            }
+            setToolUseLabel('Updating bird file…');
             console.log('[Chat] Tool call: update_bird_file, saving...');
             await Juce.getNativeFunction('updateBird')(content);
             return { success: true };
@@ -136,6 +143,58 @@ export function ChatPanel() {
             const result = validateBirdSyntax(content);
             console.log(`[Chat] Tool call: validate_bird_file -> ${result.isValid ? 'OK' : result.error}`);
             return result;
+          } else if (call.name === 'get_plugin_params') {
+            const trackId = call.args.trackId as number;
+            setToolUseLabel(`Reading plugin params…`);
+            console.log(`[Chat] Tool call: get_plugin_params(trackId=${trackId})`);
+            const raw = await Juce.getNativeFunction('getPluginParams')(trackId);
+            try {
+              return JSON.parse(raw as string);
+            } catch {
+              return { error: 'Failed to parse plugin params' };
+            }
+          } else if (call.name === 'set_plugin_param') {
+            const { trackId, paramName, value } = call.args as { trackId: number; paramName: string; value: number };
+            setToolUseLabel(`Setting ${paramName}…`);
+            console.log(`[Chat] Tool call: set_plugin_param(track=${trackId}, param="${paramName}", value=${value})`);
+            const raw = await Juce.getNativeFunction('setPluginParam')(trackId, paramName, value);
+            try {
+              return JSON.parse(raw as string);
+            } catch {
+              return { success: false, error: 'Failed to parse response' };
+            }
+          } else if (call.name === 'set_track_mixer') {
+            const { trackId, volumeDb, pan, mute, solo } = call.args as {
+              trackId: number; volumeDb: number; pan: number; mute: boolean; solo: boolean;
+            };
+            setToolUseLabel(`Adjusting mix…`);
+            console.log(`[Chat] Tool call: set_track_mixer(track=${trackId}, vol=${volumeDb}dB, pan=${pan}, mute=${mute}, solo=${solo})`);
+            const raw = await Juce.getNativeFunction('setTrackMixer')(trackId, volumeDb, pan, mute, solo);
+            try { return JSON.parse(raw as string); } catch { return { success: false }; }
+          } else if (call.name === 'set_bpm') {
+            const { bpm } = call.args as { bpm: number };
+            setToolUseLabel(`Setting BPM to ${bpm}…`);
+            console.log(`[Chat] Tool call: set_bpm(${bpm})`);
+            const raw = await Juce.getNativeFunction('setBpm')(bpm);
+            try { return JSON.parse(raw as string); } catch { return { success: false }; }
+          } else if (call.name === 'set_lyria_track_config') {
+            const { trackId, config } = call.args as { trackId: number; config: object };
+            setToolUseLabel(`Configuring Lyria track ${trackId}…`);
+            console.log(`[Chat] Tool call: set_lyria_track_config(track=${trackId})`);
+            const raw = await Juce.getNativeFunction('setLyriaTrackConfig')(trackId, JSON.stringify(config));
+            try { return JSON.parse(raw as string); } catch { return { success: false }; }
+          } else if (call.name === 'set_lyria_track_prompts') {
+            const { trackId, prompts } = call.args as { trackId: number; prompts: object[] };
+            setToolUseLabel(`Setting Lyria prompts for track ${trackId}…`);
+            console.log(`[Chat] Tool call: set_lyria_track_prompts(track=${trackId}, count=${prompts.length})`);
+            const raw = await Juce.getNativeFunction('setLyriaTrackPrompts')(trackId, JSON.stringify(prompts));
+            try { return JSON.parse(raw as string); } catch { return { success: false }; }
+          } else if (call.name === 'set_lyria_quantize') {
+            const { trackId, bars } = call.args as { trackId: number; bars: number };
+            setToolUseLabel(`Setting Lyria quantization for track ${trackId} to ${bars} bar(s)…`);
+            console.log(`[Chat] Tool call: set_lyria_quantize(track=${trackId}, bars=${bars})`);
+            const raw = await Juce.getNativeFunction('setLyriaQuantize')(trackId, bars);
+            try { return JSON.parse(raw as string); } catch { return { success: false }; }
           }
           return { error: 'Unknown tool' };
         },

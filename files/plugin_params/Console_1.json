@@ -1,0 +1,1172 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Input Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "High Cut",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Low Cut",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Filters to Sidechain",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Phase Invert",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Shape",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Gate",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Ratio",
+    "default": 0,
+    "numSteps": 10001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Release",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "s"
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "Sustain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "Punch",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "EQ",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "Type",
+    "default": 0,
+    "numSteps": 10001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "Frequency",
+    "default": 0.34,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "Frequency",
+    "default": 0.35,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "Q",
+    "default": 0.3,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Frequency",
+    "default": 0.6,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "Q",
+    "default": 0.3,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Type",
+    "default": 0,
+    "numSteps": 10001,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Frequency",
+    "default": 0.7,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "Compressor",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "Ratio",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "Wet/Dry",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "Attack",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "Release",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "Compression",
+    "default": 0.6,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "Order",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "External Sidechain",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "Drive",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "Character",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "Pan",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 35,
+    "id": "",
+    "name": "Solo",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 36,
+    "id": "",
+    "name": "Mute",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 37,
+    "id": "",
+    "name": "Volume",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 38,
+    "id": "",
+    "name": "Solo Safe",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 39,
+    "id": "",
+    "name": "Internal Change Counter",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Changes"
+  },
+  {
+    "index": 40,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 41,
+    "id": "",
+    "name": "Width",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 42,
+    "id": "",
+    "name": "Tape/Pre",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 43,
+    "id": "",
+    "name": "Filter",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 44,
+    "id": "",
+    "name": "Slope",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB/oct."
+  },
+  {
+    "index": 45,
+    "id": "",
+    "name": "Slope",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB/oct."
+  },
+  {
+    "index": 46,
+    "id": "",
+    "name": "Shape 1 Sustain Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 47,
+    "id": "",
+    "name": "Shape 1 Punch Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 48,
+    "id": "",
+    "name": "Range",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 49,
+    "id": "",
+    "name": "Shape",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 50,
+    "id": "",
+    "name": "Depth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 51,
+    "id": "",
+    "name": "Shape 2 Sustain Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 52,
+    "id": "",
+    "name": "Mono In",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 53,
+    "id": "",
+    "name": "Swap L/R",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 54,
+    "id": "",
+    "name": "Pan",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "deg"
+  },
+  {
+    "index": 55,
+    "id": "",
+    "name": "Shape 2 Punch Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 56,
+    "id": "",
+    "name": "Shape 2 Release",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 57,
+    "id": "",
+    "name": "Shape 2 Release Shift",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 58,
+    "id": "",
+    "name": "Q",
+    "default": 0.45,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 59,
+    "id": "",
+    "name": "EQ 1 Low Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 60,
+    "id": "",
+    "name": "EQ 1 Low Frequency Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 61,
+    "id": "",
+    "name": "EQ 1 Low Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 62,
+    "id": "",
+    "name": "EQ 1 Low Type Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 63,
+    "id": "",
+    "name": "EQ 1 Low Mid Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 64,
+    "id": "",
+    "name": "EQ 1 Low Mid Frequency Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 65,
+    "id": "",
+    "name": "EQ 1 Low Mid Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 66,
+    "id": "",
+    "name": "EQ 1 High Mid Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 67,
+    "id": "",
+    "name": "EQ 1 High Mid Frequency Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 68,
+    "id": "",
+    "name": "EQ 1 High Mid Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 69,
+    "id": "",
+    "name": "Q",
+    "default": 0.1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 70,
+    "id": "",
+    "name": "EQ 1 High Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 71,
+    "id": "",
+    "name": "EQ 1 High Frequency Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 72,
+    "id": "",
+    "name": "EQ 1 High Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 73,
+    "id": "",
+    "name": "EQ 1 High Type Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 74,
+    "id": "",
+    "name": "EQ",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 75,
+    "id": "",
+    "name": "Q",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 76,
+    "id": "",
+    "name": "EQ 2 Low Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 77,
+    "id": "",
+    "name": "Freq.",
+    "default": 0.291204,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 78,
+    "id": "",
+    "name": "Slope",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 79,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 80,
+    "id": "",
+    "name": "EQ 2 Low Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 81,
+    "id": "",
+    "name": "Type",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 82,
+    "id": "",
+    "name": "EQ 2 Low Type Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 83,
+    "id": "",
+    "name": "Q 1",
+    "default": 0.181442,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 84,
+    "id": "",
+    "name": "Q 2",
+    "default": 0.319686,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 85,
+    "id": "",
+    "name": "Freq. 1",
+    "default": 0.503679,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 86,
+    "id": "",
+    "name": "Freq. 2",
+    "default": 0.359217,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 87,
+    "id": "",
+    "name": "Gain 1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 88,
+    "id": "",
+    "name": "Gain 2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 89,
+    "id": "",
+    "name": "Q 1",
+    "default": 0.181442,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 90,
+    "id": "",
+    "name": "Q 2",
+    "default": 0.319686,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 91,
+    "id": "",
+    "name": "Freq. 1",
+    "default": 0.698883,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 92,
+    "id": "",
+    "name": "Freq. 2",
+    "default": 0.825649,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 93,
+    "id": "",
+    "name": "Gain 1",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 94,
+    "id": "",
+    "name": "Gain 2",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 95,
+    "id": "",
+    "name": "Q",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 96,
+    "id": "",
+    "name": "EQ 2 High Q Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 97,
+    "id": "",
+    "name": "Freq.",
+    "default": 0.891764,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 98,
+    "id": "",
+    "name": "Slope",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB/Oct"
+  },
+  {
+    "index": 99,
+    "id": "",
+    "name": "Gain",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 100,
+    "id": "",
+    "name": "EQ 2 High Gain Shift",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 101,
+    "id": "",
+    "name": "Type",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 102,
+    "id": "",
+    "name": "EQ 2 High Type Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 103,
+    "id": "",
+    "name": "Comp 1 Attack Shift",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 104,
+    "id": "",
+    "name": "Comp 1 Ratio Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 105,
+    "id": "",
+    "name": "Make-Up",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 106,
+    "id": "",
+    "name": "Compressor",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 107,
+    "id": "",
+    "name": "Attack",
+    "default": 0.4,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "ms"
+  },
+  {
+    "index": 108,
+    "id": "",
+    "name": "Range",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 109,
+    "id": "",
+    "name": "Ratio",
+    "default": 0.333,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ":1"
+  },
+  {
+    "index": 110,
+    "id": "",
+    "name": "Knee",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 111,
+    "id": "",
+    "name": "Release",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "s"
+  },
+  {
+    "index": 112,
+    "id": "",
+    "name": "Wet/Dry",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 113,
+    "id": "",
+    "name": "Compression",
+    "default": 0.2,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 114,
+    "id": "",
+    "name": "Make-Up",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 115,
+    "id": "",
+    "name": "Drive",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 116,
+    "id": "",
+    "name": "Drive Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 117,
+    "id": "",
+    "name": "Character Shift",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 118,
+    "id": "",
+    "name": "Filters to",
+    "default": 0,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 119,
+    "id": "",
+    "name": "Ext. Sidechain to Subsystem",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 120,
+    "id": "",
+    "name": "Slot0",
+    "default": 0,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 121,
+    "id": "",
+    "name": "Slot1",
+    "default": 0.125,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 122,
+    "id": "",
+    "name": "Slot2",
+    "default": 0.375,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 123,
+    "id": "",
+    "name": "Slot3",
+    "default": 0.25,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 124,
+    "id": "",
+    "name": "Slot4",
+    "default": 0.625,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 125,
+    "id": "",
+    "name": "Slot5",
+    "default": 0.75,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 126,
+    "id": "",
+    "name": "Slot6",
+    "default": 0.5,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 127,
+    "id": "",
+    "name": "Slot7",
+    "default": 0.875,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 128,
+    "id": "",
+    "name": "Slot8",
+    "default": 1,
+    "numSteps": 9,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 129,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

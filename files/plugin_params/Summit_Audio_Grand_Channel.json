@@ -1,0 +1,317 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "Low Freq",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "Low Bandwidth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "Low Gain",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "Low Boost Cut",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "Low Type",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "Low Mid Freq",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "Low Mid Bandwidth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "Low Mid Gain",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "Low Mid Boost Cut",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "High Mid Freq",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "kHz"
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "High Mid Bandwidth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "High Mid Gain",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "High Mid Boost Cut",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "High Freq",
+    "default": 0,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": "kHz"
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "High Bandwidth",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "High Gain",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "High Boost Cut",
+    "default": 0,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "High Type",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Low Cut",
+    "default": 0,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": "Hz"
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "High Cut",
+    "default": 0,
+    "numSteps": 4,
+    "isDiscrete": true,
+    "label": "kHz"
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Output Volume",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "EQ Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Comp Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 23,
+    "id": "",
+    "name": "Comp Before EQ",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 24,
+    "id": "",
+    "name": "Gain Reduction",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 25,
+    "id": "",
+    "name": "Gain",
+    "default": 0.25,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "dB"
+  },
+  {
+    "index": 26,
+    "id": "",
+    "name": "Attack",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 27,
+    "id": "",
+    "name": "Release",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 28,
+    "id": "",
+    "name": "Comp Low Cut",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "Hz"
+  },
+  {
+    "index": 29,
+    "id": "",
+    "name": "Comp Low Cut Select",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 30,
+    "id": "",
+    "name": "Saturation",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 31,
+    "id": "",
+    "name": "Parallel Inject",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": "%"
+  },
+  {
+    "index": 32,
+    "id": "",
+    "name": "Sidechain",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 33,
+    "id": "",
+    "name": "Meter",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 34,
+    "id": "",
+    "name": "Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

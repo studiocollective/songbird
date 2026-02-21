@@ -1,0 +1,209 @@
+[
+  {
+    "index": 0,
+    "id": "",
+    "name": "L Meter",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 1,
+    "id": "",
+    "name": "L Input",
+    "default": 0.8,
+    "numSteps": 21,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 2,
+    "id": "",
+    "name": "L Thresh",
+    "default": 0.149872,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 3,
+    "id": "",
+    "name": "L TimeCnst",
+    "default": 0.8,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 4,
+    "id": "",
+    "name": "L SC Filt",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 5,
+    "id": "",
+    "name": "L Bal",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 6,
+    "id": "",
+    "name": "L DC Thr",
+    "default": 0.86084,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 7,
+    "id": "",
+    "name": "L Output",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 8,
+    "id": "",
+    "name": "R Meter",
+    "default": 0.5,
+    "numSteps": 3,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 9,
+    "id": "",
+    "name": "R Input",
+    "default": 0.8,
+    "numSteps": 21,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 10,
+    "id": "",
+    "name": "R Thresh",
+    "default": 0.149872,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 11,
+    "id": "",
+    "name": "R TimeCnst",
+    "default": 0.8,
+    "numSteps": 6,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 12,
+    "id": "",
+    "name": "R SC Filt",
+    "default": 0,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 13,
+    "id": "",
+    "name": "R Bal",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 14,
+    "id": "",
+    "name": "R DC Thr",
+    "default": 0.86084,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 15,
+    "id": "",
+    "name": "R Output",
+    "default": 0.5,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 16,
+    "id": "",
+    "name": "AGC Matrix",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 17,
+    "id": "",
+    "name": "SC Link",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 18,
+    "id": "",
+    "name": "Ctrl Link",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 19,
+    "id": "",
+    "name": "Mix",
+    "default": 1,
+    "numSteps": 2147483647,
+    "isDiscrete": false,
+    "label": ""
+  },
+  {
+    "index": 20,
+    "id": "",
+    "name": "Headroom",
+    "default": 0.5,
+    "numSteps": 7,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 21,
+    "id": "",
+    "name": "Power",
+    "default": 1,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  },
+  {
+    "index": 22,
+    "id": "",
+    "name": "Master Bypass",
+    "default": 0,
+    "numSteps": 2,
+    "isDiscrete": true,
+    "label": ""
+  }
+]

@@ -1,0 +1,32 @@
+
+              Timers:
+                       General@info
+                        Errors@warn
+                       Sockets@warn
+                 ServerSockets@warn
+                 ClientSockets@warn
+                         Mixer@info
+                        Engine@info
+                        Plugin@info
+                         Async@warn
+                      MIDISync@warn
+                          UAPW@info
+                          HBGF@info
+Plugin:  UADx 1176LN Rev E Compressor
+Format:  VST3
+Vendor:  Universal Audio (UADx)
+Version: 1.3.13
+
+[
+  {"index":0,"id":"","name":"Input","default":0.199982,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":1,"id":"","name":"Output","default":0.625916,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":2,"id":"","name":"Attack","default":0.5,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":3,"id":"","name":"Release","default":0.665955,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":4,"id":"","name":"Ratio","default":0.1,"numSteps":11,"isDiscrete":true,"label":""},
+  {"index":5,"id":"","name":"Meter","default":1,"numSteps":4,"isDiscrete":true,"label":""},
+  {"index":6,"id":"","name":"SC Filter","default":0,"numSteps":2,"isDiscrete":true,"label":""},
+  {"index":7,"id":"","name":"Mix","default":1,"numSteps":2147483647,"isDiscrete":false,"label":""},
+  {"index":8,"id":"","name":"Headroom","default":0.5,"numSteps":7,"isDiscrete":true,"label":""},
+  {"index":9,"id":"","name":"Power","default":1,"numSteps":2,"isDiscrete":true,"label":""},
+  {"index":10,"id":"","name":"Master Bypass","default":0,"numSteps":2,"isDiscrete":true,"label":""}
+]

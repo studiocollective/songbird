@@ -76,6 +76,9 @@ export function MixerPanel() {
                 fx={track.fx}
                 channelStrip={track.channelStrip}
                 isReturn={track.isReturn}
+                sidechainTrackId={track.sidechainTrackId}
+                sidechainSensitivity={track.sidechainSensitivity}
+                trackList={tracks}
               />
             ))}
           </div>
@@ -100,6 +103,9 @@ export function MixerPanel() {
                 fx={track.fx}
                 channelStrip={track.channelStrip}
                 isReturn={track.isReturn}
+                sidechainTrackId={track.sidechainTrackId}
+                sidechainSensitivity={track.sidechainSensitivity}
+                trackList={tracks}
               />
             ))}
           </div>

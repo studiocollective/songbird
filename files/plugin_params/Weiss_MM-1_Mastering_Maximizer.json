@@ -1,0 +1,14 @@
+Plugin:  Weiss MM-1 Mastering Maximizer
+Format:  VST3
+Vendor:  Softube
+Version: 2.5.38
+
+[
+  {"index":0,"id":"","name":"Amount","default":0.5,"numSteps":2147483647,"isDiscrete":false,"label":"%"},
+  {"index":1,"id":"","name":"Parallel Mix","default":1,"numSteps":2147483647,"isDiscrete":false,"label":"%"},
+  {"index":2,"id":"","name":"Limiter Gain","default":0.5,"numSteps":2147483647,"isDiscrete":false,"label":"dB"},
+  {"index":3,"id":"","name":"Bypass","default":0,"numSteps":2,"isDiscrete":true,"label":""},
+  {"index":4,"id":"","name":"Style","default":0.5,"numSteps":5,"isDiscrete":true,"label":""},
+  {"index":5,"id":"","name":"Out Trim","default":0,"numSteps":101,"isDiscrete":true,"label":"dBFS"},
+  {"index":6,"id":"","name":"Bypass","default":0,"numSteps":2,"isDiscrete":true,"label":""}
+]
