@@ -39,24 +39,30 @@ public:
     bool canUndo() const;
     bool canRedo() const;
 
+    // Return structure for undo/redo
+    struct ChangedFile {
+        juce::String filename;
+        bool isSoftReloadOnly = false; // True if ONLY patterns/velocities changed in a .bird file
+    };
+
     /** Undo: restores files from the previous commit.
-     *  Returns true if files were restored (caller should reload engine).
+     *  Returns the list of files changed (caller uses this for fast-path reloads).
      */
-    bool undo();
+    juce::Array<ChangedFile> undo();
 
     /** Redo: restores files from the next commit (after undo).
-     *  Returns true if files were restored (caller should reload engine).
+     *  Returns the list of files changed.
      */
-    bool redo();
+    juce::Array<ChangedFile> redo();
 
     // ------------------------------------------------------------------
     // LLM Revert
     // ------------------------------------------------------------------
 
     /** Revert to the state before the last LLM commit.
-     *  Returns true if files were restored.
+     *  Returns the list of files changed.
      */
-    bool revertLastLLM();
+    juce::Array<ChangedFile> revertLastLLM();
 
     // ------------------------------------------------------------------
     // History
@@ -84,7 +90,8 @@ private:
 
     void initRepo();
     juce::String runGit(const juce::StringArray& args) const;
+    juce::String runGitInternal(const juce::StringArray& fullArgs) const;
     bool restoreFilesFromCommit(const juce::String& commitHash);
     juce::String getCommitHash(int offset) const;
-    int getCommitCount() const;
+    juce::Array<ChangedFile> parseDiffOutput(const juce::String& diffText);
 };

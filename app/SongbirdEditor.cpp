@@ -335,25 +335,9 @@ void SongbirdEditor::loadEditState()
                 juce::String savedName = savedPluginVT.getProperty("name", "").toString();
                 if (savedName != liveName) continue;
 
-                // Found a match — copy the saved state child onto the live plugin
-                auto savedPluginState = savedPluginVT.getChildWithName("STATE");
-                if (savedPluginState.isValid())
-                {
-                    auto& liveState = extPlugin->state;
-                    liveState.removeChild(liveState.getChildWithName("STATE"), nullptr);
-                    liveState.addChild(savedPluginState.createCopy(), -1, nullptr);
-                    DBG("EditState: Restored plugin '" + liveName + "' on track '" + track->getName() + "'");
-                }
-
-                // Also copy any top-level properties that hold parameter values
-                // (some plugins store params as ValueTree properties rather than STATE blob)
-                for (int propIdx = 0; propIdx < savedPluginVT.getNumProperties(); propIdx++)
-                {
-                    auto propName = savedPluginVT.getPropertyName(propIdx);
-                    if (propName == juce::Identifier("type") || propName == juce::Identifier("name"))
-                        continue;
-                    extPlugin->state.setProperty(propName, savedPluginVT.getProperty(propName), nullptr);
-                }
+                // Use Tracktion's proper API to safely ingest the restored state
+                extPlugin->restorePluginStateFromValueTree(savedPluginVT);
+                DBG("EditState: Restored plugin '" + liveName + "' on track '" + track->getName() + "'");
                 break;
             }
         }
@@ -377,16 +361,67 @@ void SongbirdEditor::undoProject()
 {
     if (!edit) return;
     saveEditState();  // flush current plugin state before undo
-    if (projectState.undo())
+    
+    auto changedFiles = projectState.undo();
+    if (!changedFiles.isEmpty())
     {
-        loadBirdFile(currentBirdFile);
+        bool needsHeavyReload = false;
+        bool needsSoftReload = false;
+        bool stateXmlChanged = false;
+        
+        for (auto& f : changedFiles) {
+            if (f.filename.endsWith(".bird")) {
+                // if (f.isSoftReloadOnly) {
+                //     needsSoftReload = true;
+                // } else {
+                //     needsHeavyReload = true;
+                // }
+                // FORCE SOFT RELOAD
+                needsSoftReload = true;
+            }
+            if (f.filename.endsWith(".edit.xml")) {
+                stateXmlChanged = true;
+            }
+        }
+
+        if (needsHeavyReload) {
+            loadBirdFile(currentBirdFile);
+        } else {
+            if (needsSoftReload) {
+                DBG("Undo: Light Update activated (Track/MIDI data changed)");
+                
+                // Parse the new .bird state silently
+                auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                if (result.error.empty()) {
+                    // Update the running edit without destroying plugins
+                    BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                } else {
+                    DBG("Undo Light Update error: " + juce::String(result.error));
+                }
+            }
+            
+            if (stateXmlChanged) {
+                DBG("Undo: Fast path activated (plugin state changed)");
+                loadEditState();
+            } else if (!needsSoftReload) {
+                DBG("Undo: Fast path activated (only mixer state changed)");
+            }
+            
+            loadStateCache(); 
+            for (auto& pair : stateCache)
+            {
+                handleStateUpdate(pair.first, pair.second);
+            }
+        }
+        
         // Push restored state back to React UI
         if (webView)
         {
-            auto json = getTrackNotesJSON();
-            webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
-            // Push each restored stateCache entry to the React UI
-            // Unwrap the Zustand persist wrapper: {"state":{...}} → {...}
+            if (needsHeavyReload || needsSoftReload) {
+                auto json = getTrackNotesJSON();
+                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            }
+            
             for (auto& pair : stateCache)
             {
                 auto parsed = juce::JSON::parse(pair.second);
@@ -402,13 +437,64 @@ void SongbirdEditor::undoProject()
 void SongbirdEditor::redoProject()
 {
     if (!edit) return;
-    if (projectState.redo())
+    
+    auto changedFiles = projectState.redo();
+    if (!changedFiles.isEmpty())
     {
-        loadBirdFile(currentBirdFile);
+        bool needsHeavyReload = false;
+        bool needsSoftReload = false;
+        bool stateXmlChanged = false;
+        
+        for (auto& f : changedFiles) {
+            if (f.filename.endsWith(".bird")) {
+                // if (f.isSoftReloadOnly) {
+                //     needsSoftReload = true;
+                // } else {
+                //     needsHeavyReload = true;
+                // }
+                // FORCE SOFT RELOAD
+                needsSoftReload = true;
+            }
+            if (f.filename.endsWith(".edit.xml")) {
+                stateXmlChanged = true;
+            }
+        }
+
+        if (needsHeavyReload) {
+            loadBirdFile(currentBirdFile);
+        } else {
+            if (needsSoftReload) {
+                DBG("Redo: Light Update activated (Track/MIDI data changed)");
+                
+                auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                if (result.error.empty()) {
+                    BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                } else {
+                    DBG("Redo Light Update error: " + juce::String(result.error));
+                }
+            }
+            
+            if (stateXmlChanged) {
+                DBG("Redo: Fast path activated (plugin state changed)");
+                loadEditState();
+            } else if (!needsSoftReload) {
+                DBG("Redo: Fast path activated (only mixer state changed)");
+            }
+            
+            loadStateCache(); 
+            for (auto& pair : stateCache)
+            {
+                handleStateUpdate(pair.first, pair.second);
+            }
+        }
+        
         if (webView)
         {
-            auto json = getTrackNotesJSON();
-            webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            if (needsHeavyReload || needsSoftReload) {
+                auto json = getTrackNotesJSON();
+                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            }
+            
             for (auto& pair : stateCache)
             {
                 auto parsed = juce::JSON::parse(pair.second);
@@ -425,13 +511,64 @@ void SongbirdEditor::revertLLM()
 {
     if (!edit) return;
     saveEditState();  // flush current plugin state before revert
-    if (projectState.revertLastLLM())
+    
+    auto changedFiles = projectState.revertLastLLM();
+    if (!changedFiles.isEmpty())
     {
-        loadBirdFile(currentBirdFile);
+        bool needsHeavyReload = false;
+        bool needsSoftReload = false;
+        bool stateXmlChanged = false;
+        
+        for (auto& f : changedFiles) {
+            if (f.filename.endsWith(".bird")) {
+                // if (f.isSoftReloadOnly) {
+                //     needsSoftReload = true;
+                // } else {
+                //     needsHeavyReload = true;
+                // }
+                // FORCE SOFT RELOAD
+                needsSoftReload = true;
+            }
+            if (f.filename.endsWith(".edit.xml")) {
+                stateXmlChanged = true;
+            }
+        }
+
+        if (needsHeavyReload) {
+            loadBirdFile(currentBirdFile);
+        } else {
+            if (needsSoftReload) {
+                DBG("RevertLLM: Light Update activated (Track/MIDI data changed)");
+                
+                auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                if (result.error.empty()) {
+                    BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                } else {
+                    DBG("RevertLLM Light Update error: " + juce::String(result.error));
+                }
+            }
+            
+            if (stateXmlChanged) {
+                DBG("RevertLLM: Fast path activated (plugin state changed)");
+                loadEditState();
+            } else if (!needsSoftReload) {
+                DBG("RevertLLM: Fast path activated (only mixer state changed)");
+            }
+            
+            loadStateCache(); 
+            for (auto& pair : stateCache)
+            {
+                handleStateUpdate(pair.first, pair.second);
+            }
+        }
+        
         if (webView)
         {
-            auto json = getTrackNotesJSON();
-            webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            if (needsHeavyReload || needsSoftReload) {
+                auto json = getTrackNotesJSON();
+                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            }
+            
             for (auto& pair : stateCache)
             {
                 auto parsed = juce::JSON::parse(pair.second);

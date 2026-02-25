@@ -879,7 +879,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
     // Pre-look-up Console 1 description once
     auto console1Desc = findPluginByName(engine, CONSOLE_1.pluginName);
     if (console1Desc)
-        DBG("BirdLoader: Found Console 1 — " + console1Desc->fileOrIdentifier);
+        DBG("BirdLoader: Found Console 1 - " + console1Desc->fileOrIdentifier);
 
     // Create a track per channel
     for (size_t i = 0; i < result.channels.size(); i++) {
@@ -1105,6 +1105,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
             
             if (targetParam) {
                 auto& curve = targetParam->getCurve();
+                curve.clear(nullptr);
                 
                 // Write points
                 for (auto& pt : points) {

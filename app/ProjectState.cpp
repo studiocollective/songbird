@@ -128,59 +128,44 @@ void ProjectState::commit(const juce::String& message, Source source, bool inclu
 {
     if (!initialized) return;
 
-    // Stage all files
-    runGit({ "add", "-A" });
-
-    // Optionally unstage .edit.xml
-    if (!includeEditXml)
-    {
-        // Use explicit path pattern — find any .edit.xml files and unstage them
-        auto editFile = projectDir.getChildFile(
-            projectDir.findChildFiles(juce::File::findFiles, false, "*.edit.xml")
-                .isEmpty() ? "" : "dummy");
-        // Simpler: just use git reset for the specific file pattern
-        runGit({ "reset", "HEAD", "--", "*.edit.xml" });
-    }
-
-    // Check if there's anything to commit
-    auto status = runGit({ "status", "--porcelain" });
-    if (status.isEmpty())
-    {
-        DBG("ProjectState: Nothing to commit");
-        return;
-    }
-
     auto fullMessage = sourceTag(source) + " " + message;
-    runGit({ "commit", "-m", fullMessage });
+    
+    // Combine add and commit into a single shell sub-process to save fork time.
+    // We use --allow-empty to avoid needing a separate 'status' check process.
+    juce::StringArray commitCmd;
+    commitCmd.add("/bin/sh");
+    commitCmd.add("-c");
+    
+    juce::String script = "git add -A";
+    if (!includeEditXml)
+        script += " && git reset HEAD -- *.edit.xml";
+    
+    script += " && git commit -m " + juce::JSON::toString(fullMessage) + " --allow-empty";
+    
+    commitCmd.add(script);
+    runGitInternal(commitCmd);
 
-    // Reset undo position — new commit invalidates redo history
     undoPosition = 0;
-
-    DBG("ProjectState: Committed — " + fullMessage);
+    DBG("ProjectState: Committed - " + fullMessage);
 }
 
 //==============================================================================
 // Undo / Redo
 //==============================================================================
 
-int ProjectState::getCommitCount() const
-{
-    auto result = runGit({ "rev-list", "--count", "HEAD" });
-    return result.getIntValue();
-}
-
 juce::String ProjectState::getCommitHash(int offset) const
 {
     if (offset < 0) return {};
-    if (offset == 0)
-        return runGit({ "rev-parse", "--verify", "HEAD" });
-    auto ref = "HEAD~" + juce::String(offset);
+    auto ref = "HEAD" + (offset == 0 ? "" : "~" + juce::String(offset));
     return runGit({ "rev-parse", "--verify", ref });
 }
 
 bool ProjectState::canUndo() const
 {
-    return initialized && (undoPosition + 1) < getCommitCount();
+    if (!initialized) return false;
+    // Faster check than rev-list --count: just see if HEAD~1 exists
+    auto res = runGit({ "rev-parse", "--verify", "HEAD~" + juce::String(undoPosition + 1) });
+    return res.isNotEmpty();
 }
 
 bool ProjectState::canRedo() const
@@ -190,126 +175,159 @@ bool ProjectState::canRedo() const
 
 bool ProjectState::restoreFilesFromCommit(const juce::String& commitHash)
 {
-    if (commitHash.isEmpty())
-    {
-        DBG("ProjectState: Empty commit hash, can't restore");
-        return false;
-    }
+    if (commitHash.isEmpty()) return false;
 
-    // Use git checkout to restore the working directory to a specific commit's state
-    // This is simpler and more reliable than git show for each file
-    auto result = runGit({ "checkout", commitHash, "--", "." });
+    // Use -f to overwrite and clear index in one fork
+    runGit({ "checkout", "-f", commitHash, "--", "." });
     DBG("ProjectState: Restored files from " + commitHash.substring(0, 8));
-
-    // Unstage the changes so they don't affect future commits
-    runGit({ "reset", "HEAD" });
-
     return true;
 }
 
-bool ProjectState::undo()
+juce::Array<ProjectState::ChangedFile> ProjectState::undo()
 {
-    if (!canUndo())
+    if (!initialized) return {};
+
+    // 1. Snapshot current state (1 process)
+    commit("Save before undo", Autosave);
+
+    // 2. Diff and Restore (Combined command = 1 process)
+    // We run diff first to get the hotswap info, then immediately checkout.
+    auto ref = "HEAD~" + juce::String(undoPosition + 1);
+    
+    juce::StringArray undoCmd;
+    undoCmd.add("/bin/sh");
+    undoCmd.add("-c");
+    undoCmd.add("git diff -U0 HEAD " + ref + " && git checkout -f " + ref + " -- .");
+    
+    auto output = runGitInternal(undoCmd);
+    if (output.startsWith("fatal:")) 
     {
-        DBG("ProjectState: Cannot undo (position=" + juce::String(undoPosition) + 
-            ", commits=" + juce::String(getCommitCount()) + ")");
-        return false;
+        DBG("ProjectState: Cannot undo (ref " + ref + " missing)");
+        return {};
     }
 
-    // Before first undo, save current state so redo can get back here
-    if (undoPosition == 0)
-    {
-        runGit({ "add", "-A" });
-        auto status = runGit({ "status", "--porcelain" });
-        if (status.isNotEmpty())
-        {
-            runGit({ "commit", "-m", "[auto] Save before undo" });
-        }
-    }
-
+    auto changedFiles = parseDiffOutput(output);
     undoPosition++;
-    auto hash = getCommitHash(undoPosition);
-    if (hash.isEmpty())
-    {
-        DBG("ProjectState: Could not get hash for HEAD~" + juce::String(undoPosition));
-        undoPosition--;
-        return false;
-    }
-
-    bool ok = restoreFilesFromCommit(hash);
-    if (ok) DBG("ProjectState: Undo → position " + juce::String(undoPosition));
-    return ok;
+    
+    return changedFiles;
 }
 
-bool ProjectState::redo()
+// Internal helper that allows direct access to the process runner
+juce::String ProjectState::runGitInternal(const juce::StringArray& fullArgs) const
 {
-    if (!canRedo())
+    DBG("ProjectState: Executing: " + fullArgs.joinIntoString(" "));
+
+    juce::ChildProcess process;
+    if (process.start(fullArgs))
     {
-        DBG("ProjectState: Cannot redo (position=" + juce::String(undoPosition) + ")");
-        return false;
+        auto output = process.readAllProcessOutput();
+        process.waitForProcessToFinish(5000);
+        return output.trim();
+    }
+    return {};
+}
+
+juce::Array<ProjectState::ChangedFile> ProjectState::parseDiffOutput(const juce::String& diffText)
+{
+    juce::Array<ChangedFile> changedFiles;
+    if (diffText.isEmpty()) return changedFiles;
+
+    juce::StringArray lines;
+    lines.addTokens(diffText, "\n", "");
+
+    ChangedFile* currentFile = nullptr;
+    for (const auto& line : lines) {
+        if (line.startsWith("diff --git")) {
+            auto parts = juce::StringArray::fromTokens(line, " ", "");
+            if (parts.size() >= 3) {
+                juce::String bPath = parts[parts.size()-1];
+                if (bPath.startsWith("b/")) bPath = bPath.substring(2);
+                
+                ChangedFile cf;
+                cf.filename = bPath;
+                cf.isSoftReloadOnly = bPath.endsWith(".bird");
+                changedFiles.add(cf);
+                currentFile = &changedFiles.getReference(changedFiles.size() - 1);
+            }
+        }
+        else if (currentFile && currentFile->filename.endsWith(".bird") && (line.startsWith("+") || line.startsWith("-"))) {
+            if (!line.startsWith("+++") && !line.startsWith("---")) {
+                juce::String content = line.substring(1).trimStart();
+                if (content.startsWith("plugin ") || content.startsWith("fx ") || content.startsWith("strip ")) {
+                    currentFile->isSoftReloadOnly = false;
+                }
+            }
+        }
+    }
+    return changedFiles;
+}
+
+juce::Array<ProjectState::ChangedFile> ProjectState::redo()
+{
+    if (!initialized || !canRedo()) return {};
+
+    // For redo, we don't commit current state but we do need the diff info and restoration.
+    auto ref = "HEAD~" + juce::String(undoPosition - 1);
+    
+    juce::StringArray redoCmd;
+    redoCmd.add("/bin/sh");
+    redoCmd.add("-c");
+    redoCmd.add("git diff -U0 HEAD " + ref + " && git checkout -f " + ref + " -- .");
+    
+    auto output = runGitInternal(redoCmd);
+    if (output.startsWith("fatal:")) 
+    {
+        DBG("ProjectState: Cannot redo (ref " + ref + " missing)");
+        return {};
     }
 
+    auto changedFiles = parseDiffOutput(output);
     undoPosition--;
-    auto hash = getCommitHash(undoPosition);
-    if (hash.isEmpty())
-    {
-        undoPosition++;
-        return false;
-    }
-
-    bool ok = restoreFilesFromCommit(hash);
-    if (ok) DBG("ProjectState: Redo → position " + juce::String(undoPosition));
-    return ok;
+    
+    return changedFiles;
 }
 
 //==============================================================================
 // LLM Revert
 //==============================================================================
 
-bool ProjectState::revertLastLLM()
+juce::Array<ProjectState::ChangedFile> ProjectState::revertLastLLM()
 {
-    if (!initialized) return false;
+    if (!initialized) return {};
 
-    // Walk through commits to find the last [LLM] and restore the commit before it
-    auto log = runGit({ "log", "--oneline", "-n", "50" });
-    juce::StringArray lines;
-    lines.addTokens(log, "\n", "");
+    // 1. Snapshot or Reset context
+    if (undoPosition == 0) {
+        commit("Save before revert", Autosave);
+    } else {
+        undoPosition = 0;
+        restoreFilesFromCommit(getCommitHash(0));
+    }
 
-    DBG("ProjectState: Searching for LLM commit in " + juce::String(lines.size()) + " entries");
-
-    for (int i = 0; i < lines.size(); i++)
-    {
-        if (lines[i].contains("[LLM]"))
-        {
-            DBG("ProjectState: Found LLM commit at index " + juce::String(i) + ": " + lines[i]);
-            // Found LLM commit — we want the state BEFORE it (i.e., the commit after it in the list = i+1)
-            if (i + 1 < lines.size())
-            {
-                auto prevLine = lines[i + 1];
-                auto hash = prevLine.upToFirstOccurrenceOf(" ", false, false);
-                if (hash.isNotEmpty())
-                {
-                    // Save current state first
-                    commit("Save before LLM revert", Autosave);
-
-                    bool ok = restoreFilesFromCommit(hash);
-                    if (ok)
-                    {
-                        // Commit the reverted state
-                        runGit({ "add", "-A" });
-                        runGit({ "commit", "-m", "[user] Reverted LLM change" });
-                        undoPosition = 0;
-                        DBG("ProjectState: Reverted to pre-LLM state " + hash.substring(0, 8));
-                    }
-                    return ok;
-                }
-            }
+    // 2. Find the most recent LLM commit
+    auto history = getHistory(50);
+    juce::String targetRef;
+    for (const auto& entry : history) {
+        if (entry.source == LLM) {
+            targetRef = entry.hash + "^";
             break;
         }
     }
 
-    DBG("ProjectState: No LLM commit found to revert");
-    return false;
+    if (targetRef.isEmpty()) return {};
+
+    // 3. Diff, Restore, and Snapshot Reversion (Combined pass)
+    juce::StringArray revertCmd;
+    revertCmd.add("/bin/sh");
+    revertCmd.add("-c");
+    
+    juce::String script = "git diff -U0 HEAD " + targetRef + " && git checkout -f " + targetRef + " -- . && git reset --soft HEAD && git commit -a -m \"[user] Reverted last AI change\"";
+    revertCmd.add(script);
+    
+    auto output = runGitInternal(revertCmd);
+    auto changedFiles = parseDiffOutput(output);
+    
+    undoPosition = 0;
+    return changedFiles;
 }
 
 //==============================================================================
