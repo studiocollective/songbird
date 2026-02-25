@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<EDIT appVersion="Unknown" projectID="0/3d67e87" creationTime="1771981457762"
-      lastSignificantChange="19c9253916c">
+<EDIT appVersion="Unknown" projectID="0/e9d92a" creationTime="1771997881122"
+      lastSignificantChange="19c93503138">
   <TRANSPORT loopPoint1="0.0" loopPoint2="32.0" looping="1"/>
   <PITCHSEQUENCE>
     <PITCH startBeat="0.0" pitch="60"/>
@@ -263,7 +263,7 @@
       <DEVICE name="(default audio output)"/>
     </OUTPUTDEVICES>
   </TRACK>
-  <TRACK id="1027" name="bass">
+  <TRACK id="1027" name="bass" mute="0" solo="0">
     <MODIFIERS/>
     <CLIPSLOTS/>
     <MIDICLIP name="bass" start="0.0" length="32.0" offset="0.0" id="1032"
@@ -579,7 +579,8 @@
         <POINT t="23.875" v="0.2000000029802322" c="0.0"/>
       </AUTOMATIONCURVE>
     </PLUGIN>
-    <PLUGIN type="volume" id="1028" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1028" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1029" enabled="1"/>
@@ -608,7 +609,7 @@
       <DEVICE name="(default audio output)"/>
     </OUTPUTDEVICES>
   </TRACK>
-  <TRACK id="1037" name="drums">
+  <TRACK id="1037" name="drums" mute="0" solo="0">
     <MODIFIERS/>
     <CLIPSLOTS/>
     <MIDICLIP name="drums" start="0.0" length="32.0" offset="0.0" id="1042"
@@ -824,7 +825,8 @@
             enabled="1" remapOnTempoChange="1">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
-    <PLUGIN type="volume" id="1038" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1038" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1039" enabled="1"/>
@@ -853,7 +855,7 @@
       <DEVICE name="(default audio output)"/>
     </OUTPUTDEVICES>
   </TRACK>
-  <TRACK id="1047" name="lead">
+  <TRACK id="1047" name="lead" mute="0" solo="0">
     <MODIFIERS/>
     <CLIPSLOTS/>
     <MIDICLIP name="lead" start="0.0" length="32.0" offset="0.0" id="1052"
@@ -933,7 +935,8 @@
             enabled="1" remapOnTempoChange="1">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
-    <PLUGIN type="volume" id="1048" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1048" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1049" enabled="1"/>
@@ -962,7 +965,7 @@
       <DEVICE name="(default audio output)"/>
     </OUTPUTDEVICES>
   </TRACK>
-  <TRACK id="1057" name="chords">
+  <TRACK id="1057" name="chords" mute="0" solo="0">
     <MODIFIERS/>
     <CLIPSLOTS/>
     <MIDICLIP name="chords" start="0.0" length="32.0" offset="0.0" id="1063"
@@ -1042,7 +1045,8 @@
             enabled="1" remapOnTempoChange="1">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
-    <PLUGIN type="volume" id="1058" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1058" enabled="1" remapOnTempoChange="1" volume="0.6877996921539307"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1059" enabled="1"/>
@@ -1076,7 +1080,7 @@
       <DEVICE name="(default audio output)"/>
     </OUTPUTDEVICES>
   </TRACK>
-  <TRACK id="1068" name="Return 1">
+  <TRACK id="1068" name="Return 1" mute="0" solo="0">
     <MODIFIERS/>
     <OUTPUTDEVICES>
       <DEVICE name="(default audio output)"/>
@@ -1084,7 +1088,8 @@
     <CLIPSLOTS/>
     <PLUGIN type="auxreturn" windowLocked="1" id="1071" enabled="1" remapOnTempoChange="1"
             busNum="0"/>
-    <PLUGIN type="volume" id="1069" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1069" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1070" enabled="1"/>
@@ -1094,7 +1099,7 @@
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
   </TRACK>
-  <TRACK id="1073" name="Return 2">
+  <TRACK id="1073" name="Return 2" mute="0" solo="0">
     <MODIFIERS/>
     <OUTPUTDEVICES>
       <DEVICE name="(default audio output)"/>
@@ -1102,7 +1107,8 @@
     <CLIPSLOTS/>
     <PLUGIN type="auxreturn" windowLocked="1" id="1076" enabled="1" remapOnTempoChange="1"
             busNum="1"/>
-    <PLUGIN type="volume" id="1074" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1074" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1075" enabled="1"/>
@@ -1112,7 +1118,7 @@
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
   </TRACK>
-  <TRACK id="1078" name="Return 3">
+  <TRACK id="1078" name="Return 3" mute="0" solo="0">
     <MODIFIERS/>
     <OUTPUTDEVICES>
       <DEVICE name="(default audio output)"/>
@@ -1120,7 +1126,8 @@
     <CLIPSLOTS/>
     <PLUGIN type="auxreturn" windowLocked="1" id="1081" enabled="1" remapOnTempoChange="1"
             busNum="2"/>
-    <PLUGIN type="volume" id="1079" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1079" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1080" enabled="1"/>
@@ -1130,7 +1137,7 @@
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
   </TRACK>
-  <TRACK id="1083" name="Return 4">
+  <TRACK id="1083" name="Return 4" mute="0" solo="0">
     <MODIFIERS/>
     <OUTPUTDEVICES>
       <DEVICE name="(default audio output)"/>
@@ -1138,7 +1145,8 @@
     <CLIPSLOTS/>
     <PLUGIN type="auxreturn" windowLocked="1" id="1086" enabled="1" remapOnTempoChange="1"
             busNum="3"/>
-    <PLUGIN type="volume" id="1084" enabled="1" remapOnTempoChange="1">
+    <PLUGIN type="volume" id="1084" enabled="1" remapOnTempoChange="1" volume="0.6060978770256042"
+            pan="0.0">
       <MODIFIERASSIGNMENTS/>
     </PLUGIN>
     <PLUGIN type="level" id="1085" enabled="1"/>
