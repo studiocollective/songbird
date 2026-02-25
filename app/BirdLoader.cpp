@@ -836,8 +836,9 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
 
 // --- Populate te::Edit ---
 
-void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine) {
-    // Stash existing track settings by name
+void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine, std::function<void(const juce::String&, float)> progressCallback)
+{
+    // Clear existing tracks settings by name
     struct TrackState {
         float volume = 1.0f;
         float pan = 0.0f;
@@ -889,6 +890,9 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         if (!track) continue;
 
         track->setName(juce::String(ch.name));
+        
+        float trackProgress = static_cast<float>(i) / static_cast<float>(result.channels.size() + 2);
+        if (progressCallback) progressCallback("Loading track: " + juce::String(ch.name), trackProgress);
 
         // Restore track settings if we had them
         if (previousStates.find(track->getName()) != previousStates.end()) {
@@ -942,6 +946,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
             // Add instrument plugin based on bird file `plugin` keyword
             if (pluginInfo.pluginId.isNotEmpty()) {
+                if (progressCallback) progressCallback("Loading instrument: " + pluginInfo.pluginName, trackProgress + 0.05f);
                 if (auto foundDesc = findPluginByName(engine, pluginInfo.pluginName)) {
                     auto extPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc);
                     if (extPlugin) {
@@ -964,9 +969,10 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
             if (!ch.fx.empty()) {
                 auto fxInfo = pluginFromKeyword(ch.fx);
                 if (fxInfo.pluginId.isNotEmpty()) {
+                    if (progressCallback) progressCallback("Loading FX: " + fxInfo.pluginName, trackProgress + 0.1f);
                     if (auto foundDesc = findPluginByName(engine, fxInfo.pluginName)) {
                         if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
-                            track->pluginList.insertPlugin(*fxPlugin, -1, nullptr); 
+                            track->pluginList.insertPlugin(*fxPlugin, -1, nullptr);
                             DBG("BirdLoader: Added FX '" + foundDesc->name + "' to track '" + juce::String(ch.name) + "'");
                         }
                     }
@@ -977,9 +983,10 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
             if (!ch.strip.empty()) {
                 auto stripInfo = pluginFromKeyword(ch.strip);
                 if (stripInfo.pluginId.isNotEmpty()) {
+                    if (progressCallback) progressCallback("Loading strip: " + stripInfo.pluginName, trackProgress + 0.15f);
                     if (auto foundDesc = findPluginByName(engine, stripInfo.pluginName)) {
                         if (auto stripPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
-                            track->pluginList.insertPlugin(*stripPlugin, -1, nullptr); 
+                            track->pluginList.insertPlugin(*stripPlugin, -1, nullptr);
                             DBG("BirdLoader: Added Strip '" + foundDesc->name + "' to track '" + juce::String(ch.name) + "'");
                         }
                     }
@@ -1155,6 +1162,10 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         if (!track) continue;
 
         track->setName("Return " + juce::String(r + 1));
+        
+        float trackProgress = static_cast<float>(numRegularTracks) / static_cast<float>(numRegularTracks + 2) + 
+                              (static_cast<float>(r) / 4.0f) * (1.0f / static_cast<float>(numRegularTracks + 2));
+        if (progressCallback) progressCallback("Loading Return " + juce::String(r + 1), trackProgress);
 
         // Restore track settings if we had them
         if (previousStates.find(track->getName()) != previousStates.end()) {
@@ -1206,6 +1217,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
                 if (auto foundDesc = findPluginByName(engine, fxToAdd.pluginName)) {
                     if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
                         track->pluginList.insertPlugin(*fxPlugin, -1, nullptr); 
+                        if (progressCallback) progressCallback("Loading Return FX: " + foundDesc->name, trackProgress + 0.05f);
                         DBG("BirdLoader: Added Return FX '" + foundDesc->name + "' to 'Return " + juce::String(r + 1) + "'");
                     }
                 }
@@ -1215,6 +1227,8 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
     // --- Create/Configure Master Track ---
     if (auto* master = edit.getMasterTrack()) {
+        float masterProgress = static_cast<float>(numRegularTracks + 1) / static_cast<float>(numRegularTracks + 2);
+        if (progressCallback) progressCallback("Loading Master Chain", masterProgress);
         const std::vector<PluginInfo> masterFX = { WEISS_DS1, CONSOLE_1 };
         
         for (const auto& fx : masterFX) {
@@ -1231,6 +1245,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
                 if (auto foundDesc = findPluginByName(engine, fx.pluginName)) {
                     if (auto fxPlugin = edit.getPluginCache().createNewPlugin(te::ExternalPlugin::xmlTypeName, *foundDesc)) {
                         master->pluginList.insertPlugin(*fxPlugin, -1, nullptr);
+                        if (progressCallback) progressCallback("Loading Master FX: " + foundDesc->name, masterProgress + 0.1f);
                         DBG("BirdLoader: Added Master FX '" + foundDesc->name + "'");
                     }
                 }

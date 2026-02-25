@@ -71,9 +71,10 @@ addStateListener('stereoAnalysis', (data: unknown) => {
     // Debug: log every ~30 events (~1 second at 30Hz)
     if (++_debugFrame % 30 === 0) {
       const s = d.spectrum ?? [];
-      console.log('[stereoAnalysis] width:', d.width.toFixed(3),
-        '| correlation:', d.correlation.toFixed(3),
-        '| spectrum[0..7]:', s.slice(0, 8).map((v: number) => v.toFixed(3)).join(', '));
+      void s;
+      // console.log('[stereoAnalysis] width:', d.width.toFixed(3),
+      //   '| correlation:', d.correlation.toFixed(3),
+      //   '| spectrum[0..7]:', s.slice(0, 8).map((v: number) => v.toFixed(3)).join(', '));
     }
   } catch {
     // ignore

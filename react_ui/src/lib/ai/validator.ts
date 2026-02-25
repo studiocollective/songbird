@@ -2,6 +2,12 @@
  * Simple structural validator for .bird files.
  * This does not perform full semantic resolution (like C++), 
  * but catches common LLM hallucinations and syntax formatting errors.
+ * 
+ * Key rule: In C++, velocity (v) and notes (n) CYCLE over the pattern.
+ * So `v 80 60` with `p q q q q` is valid — velocities repeat as 80 60 80 60.
+ * We only reject if the count is > 1 AND not a divisor/multiple of pattern length
+ * that makes musical sense. For safety, we allow any count for v and n since
+ * the C++ engine handles cycling gracefully.
  */
 
 export function validateBirdSyntax(content: string): { isValid: boolean, error?: string } {
@@ -12,7 +18,7 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
     // Tracking defined globals to ensure sections aren't referencing missing channels
     const definedChannels = new Set<string>();
     
-    // Arrays for tracking pattern alignment
+    // Track current pattern length for reference (not for strict enforcement of v/n)
     let currentPatternLength = 0;
     
     for (let i = 0; i < lines.length; i++) {
@@ -33,7 +39,7 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
                 definedChannels.add(chName);
             }
             currentChannel = chName;
-            currentPatternLength = 0; // Reset alignment tracking
+            currentPatternLength = 0;
         }
         
         else if (cmd === 'sec') {
@@ -53,10 +59,14 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
             }
         }
         
-        // --- Pattern Alignment Checks ---
+        // --- Commands valid inside channel blocks, no alignment check ---
+        else if (cmd === 'sw' || cmd === 't' || cmd === 'cont' || cmd === 'type') {
+            continue;
+        }
+        
+        // --- Pattern & Note/Velocity lines ---
         else if (cmd === 'p' || cmd === 'v' || cmd === 'n' || isMacro(cmd)) {
             if (inGlobal) {
-                // Ignore if it's the continuous `[macro] ramp` global format
                 if (isMacro(cmd) && tokens[1] === 'ramp') continue;
                 return { isValid: false, error: `Line ${i+1}: Cannot define patterns ('${cmd}') in the global space. Move this into a 'sec' block.` };
             }
@@ -67,21 +77,14 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
                 return { isValid: false, error: `Line ${i+1}: Channel '${currentChannel}' is used in a section but wasn't defined in the global block at the top.` };
             }
             
-            // Check alignment
-            const paramCount = tokens.length - 1; // minus the command token
+            const paramCount = tokens.length - 1;
             if (cmd === 'p') {
                 currentPatternLength = paramCount;
-            } else if (cmd === 'v' || cmd === 'n' || isMacro(cmd)) {
-                if (currentPatternLength > 0 && paramCount > 0 && paramCount !== currentPatternLength) {
-                    if (cmd !== 'n' || (cmd === 'n' && paramCount !== currentPatternLength)) {
-                         // Note blocks can have varying sizes if making chords vertically, but simple check for now: 
-                         // If it's a single value it repeats, otherwise it should match pattern length.
-                         if (paramCount !== 1) {
-                             return { isValid: false, error: `Line ${i+1}: Alignment error. Length of '${cmd}' (${paramCount}) does not match the length of the 'p' pattern (${currentPatternLength}).` };
-                         }
-                    }
-                }
             }
+            // v and n are NOT strictly validated for count — C++ cycles them.
+            // We only track p length for reference. The C++ engine handles
+            // mismatched v/n lengths gracefully by cycling (modulo).
+            // Macros also cycle, so we don't validate those either.
         }
         
         // Check for Markdown hallucination
@@ -89,6 +92,9 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
             return { isValid: false, error: `Line ${i+1}: Found markdown formatting in the file. Do not include \`\`\`bird inside the file contents.` };
         }
     }
+    
+    // Suppress unused variable warning
+    void currentPatternLength;
     
     return { isValid: true };
 }

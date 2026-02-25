@@ -10,10 +10,13 @@ import { validateBirdSyntax } from '@/lib/ai/validator';
 export function ChatPanel() {
   const {
     chatOpen, chatMessages, chatInput, apiKey, selectedModel,
-    isThinking, isStreaming, toolUseLabel,
+    isThinking, isStreaming, thinkingText, toolUseLabel,
+    activeThreadId, threads, threadMenuOpen,
     setChatInput, setApiKey, setSelectedModel,
     addMessage, updateLastMessage,
-    setThinking, setStreaming, setToolUseLabel,
+    setThinking, setStreaming, setThinkingText, setToolUseLabel,
+    newThread, switchThread, deleteThread, toggleThreadMenu,
+    persistCurrentThread, getRecentSummaries, setThreadSummary,
   } = useChatStore();
   const [tempKey, setTempKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(true);
@@ -74,6 +77,28 @@ export function ChatPanel() {
     abortRef.current?.abort();
   };
 
+  const handleNewThread = async () => {
+    // Auto-summarize the old thread before creating new one
+    const oldThread = threads.find(t => t.id === activeThreadId);
+    if (oldThread && oldThread.messages.length > 0 && !oldThread.summary && apiKey) {
+      // Fire and forget — don't block the UI
+      const msgs = oldThread.messages.map(m => `${m.role}: ${m.content}`).join('\n').slice(0, 2000);
+      const threadId = oldThread.id;
+      GeminiService.streamMessage(
+        apiKey,
+        [{ role: 'user', content: `Summarize this conversation in 1-2 sentences (max 100 words). Focus on what was accomplished:\n\n${msgs}` }],
+        'You are a summarizer. Output only the summary, nothing else.',
+        { onChunk: () => {} },
+        selectedModel,
+      ).then(result => {
+        if (result.content) {
+          setThreadSummary(threadId, result.content.trim());
+        }
+      }).catch(() => {});
+    }
+    newThread();
+  };
+
   const handleSend = async (messageOverride?: string) => {
     const text = (messageOverride ?? chatInput).trim();
     if (!text || !apiKey) return;
@@ -105,47 +130,64 @@ export function ChatPanel() {
         console.warn('[Chat] Failed to read bird file:', e);
       }
 
+      // Human-readable labels for tool calls
+      const TOOL_LABELS: Record<string, string> = {
+        update_bird_file: 'Updating bird file…',
+        validate_bird_file: 'Validating grammar…',
+        get_plugin_params: 'Reading plugin params…',
+        set_plugin_param: 'Setting plugin param…',
+        set_track_mixer: 'Adjusting mix…',
+        set_bpm: 'Setting BPM…',
+        set_lyria_track_config: 'Configuring Lyria…',
+        set_lyria_track_prompts: 'Setting Lyria prompts…',
+        set_lyria_quantize: 'Quantizing Lyria…',
+      };
+
       const result = await GeminiService.streamMessage(
         apiKey,
-        // Pass current history (without any not-yet-added assistant message)
         useChatStore.getState().chatMessages,
-        buildSystemPrompt(currentBird),
-        (_delta, accumulated) => {
-          if (!hasReceivedText) {
-            // First chunk arrives — switch from thinking to streaming, add assistant message
-            hasReceivedText = true;
-            setThinking(false);
-            setStreaming(true);
-            addMessage('assistant', accumulated);
-          } else {
-            updateLastMessage(accumulated);
-          }
+        buildSystemPrompt(currentBird, getRecentSummaries()),
+        {
+          onChunk: (_delta, accumulated) => {
+            // Clear thinking text once real text arrives
+            if (!hasReceivedText) {
+              hasReceivedText = true;
+              setThinking(false);
+              setStreaming(true);
+              setThinkingText('');
+              addMessage('assistant', accumulated);
+            } else {
+              updateLastMessage(accumulated);
+            }
+          },
+          onThought: (_delta, accumulated) => {
+            setThinkingText(accumulated);
+          },
+          onFunctionCall: (name) => {
+            setToolUseLabel(TOOL_LABELS[name] || `Running ${name}…`);
+          },
         },
         selectedModel,
-        // Tool call handler: Gemini calls update_bird_file → we save via C++
+        // Tool call handler
         async (call) => {
           if (call.name === 'update_bird_file') {
             const content = call.args.content as string;
-            // Validate before writing — invalid content must never trigger a C++ reload
             const validation = validateBirdSyntax(content);
             if (!validation.isValid) {
               console.warn('[Chat] update_bird_file blocked: invalid syntax —', validation.error);
               setToolUseLabel(null);
               return { success: false, error: `Bird syntax error: ${validation.error}. Please fix and try again.` };
             }
-            setToolUseLabel('Updating bird file…');
             console.log('[Chat] Tool call: update_bird_file, saving...');
             await Juce.getNativeFunction('updateBird')(content);
             return { success: true };
           } else if (call.name === 'validate_bird_file') {
-            setToolUseLabel('Validating grammar…');
             const content = call.args.content as string;
             const result = validateBirdSyntax(content);
             console.log(`[Chat] Tool call: validate_bird_file -> ${result.isValid ? 'OK' : result.error}`);
             return result;
           } else if (call.name === 'get_plugin_params') {
             const trackId = call.args.trackId as number;
-            setToolUseLabel(`Reading plugin params…`);
             console.log(`[Chat] Tool call: get_plugin_params(trackId=${trackId})`);
             const raw = await Juce.getNativeFunction('getPluginParams')(trackId);
             try {
@@ -155,7 +197,6 @@ export function ChatPanel() {
             }
           } else if (call.name === 'set_plugin_param') {
             const { trackId, paramName, value } = call.args as { trackId: number; paramName: string; value: number };
-            setToolUseLabel(`Setting ${paramName}…`);
             console.log(`[Chat] Tool call: set_plugin_param(track=${trackId}, param="${paramName}", value=${value})`);
             const raw = await Juce.getNativeFunction('setPluginParam')(trackId, paramName, value);
             try {
@@ -167,31 +208,26 @@ export function ChatPanel() {
             const { trackId, volumeDb, pan, mute, solo } = call.args as {
               trackId: number; volumeDb: number; pan: number; mute: boolean; solo: boolean;
             };
-            setToolUseLabel(`Adjusting mix…`);
             console.log(`[Chat] Tool call: set_track_mixer(track=${trackId}, vol=${volumeDb}dB, pan=${pan}, mute=${mute}, solo=${solo})`);
             const raw = await Juce.getNativeFunction('setTrackMixer')(trackId, volumeDb, pan, mute, solo);
             try { return JSON.parse(raw as string); } catch { return { success: false }; }
           } else if (call.name === 'set_bpm') {
             const { bpm } = call.args as { bpm: number };
-            setToolUseLabel(`Setting BPM to ${bpm}…`);
             console.log(`[Chat] Tool call: set_bpm(${bpm})`);
             const raw = await Juce.getNativeFunction('setBpm')(bpm);
             try { return JSON.parse(raw as string); } catch { return { success: false }; }
           } else if (call.name === 'set_lyria_track_config') {
             const { trackId, config } = call.args as { trackId: number; config: object };
-            setToolUseLabel(`Configuring Lyria track ${trackId}…`);
             console.log(`[Chat] Tool call: set_lyria_track_config(track=${trackId})`);
             const raw = await Juce.getNativeFunction('setLyriaTrackConfig')(trackId, JSON.stringify(config));
             try { return JSON.parse(raw as string); } catch { return { success: false }; }
           } else if (call.name === 'set_lyria_track_prompts') {
             const { trackId, prompts } = call.args as { trackId: number; prompts: object[] };
-            setToolUseLabel(`Setting Lyria prompts for track ${trackId}…`);
             console.log(`[Chat] Tool call: set_lyria_track_prompts(track=${trackId}, count=${prompts.length})`);
             const raw = await Juce.getNativeFunction('setLyriaTrackPrompts')(trackId, JSON.stringify(prompts));
             try { return JSON.parse(raw as string); } catch { return { success: false }; }
           } else if (call.name === 'set_lyria_quantize') {
             const { trackId, bars } = call.args as { trackId: number; bars: number };
-            setToolUseLabel(`Setting Lyria quantization for track ${trackId} to ${bars} bar(s)…`);
             console.log(`[Chat] Tool call: set_lyria_quantize(track=${trackId}, bars=${bars})`);
             const raw = await Juce.getNativeFunction('setLyriaQuantize')(trackId, bars);
             try { return JSON.parse(raw as string); } catch { return { success: false }; }
@@ -229,8 +265,10 @@ export function ChatPanel() {
     } finally {
       setThinking(false);
       setStreaming(false);
+      setThinkingText('');
       setToolUseLabel(null);
       abortRef.current = null;
+      persistCurrentThread();
 
       // Drain the queue — send the next message if one was queued
       setMessageQueue(q => {
@@ -260,7 +298,7 @@ export function ChatPanel() {
         <div className={panelInner}>
           <div className={header}>
              <div className={statusDot} />
-             <span className={headerTitle}>Songbird Copilot</span>
+             <span className="text-xs font-medium text-[hsl(var(--foreground))]">Songbird Copilot</span>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
              <div className="text-4xl">🔑</div>
@@ -278,9 +316,6 @@ export function ChatPanel() {
              <button onClick={handleSetKey} className={sendBtn + " w-full"}>
                Save Key
              </button>
-             <p className="text-[10px] text-[hsl(var(--muted-foreground))] opacity-50">
-               Stored locally in your browser.
-             </p>
           </div>
         </div>
       </div>
@@ -293,7 +328,21 @@ export function ChatPanel() {
         {/* Header */}
         <div className={header}>
           <div className={statusDot} />
-          <span className={headerTitle}>Songbird Copilot</span>
+          <button
+            onClick={toggleThreadMenu}
+            className={headerTitleBtn}
+            title="Thread history"
+          >
+            {threads.find(t => t.id === activeThreadId)?.title || 'New Chat'}
+            <span className="text-[8px] ml-1 opacity-50">▼</span>
+          </button>
+          <button
+            onClick={handleNewThread}
+            className={newThreadBtn}
+            title="New thread"
+          >
+            ✚
+          </button>
           <select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
@@ -303,6 +352,37 @@ export function ChatPanel() {
             <option value="gemini-3.1-pro-preview">Pro</option>
           </select>
         </div>
+
+        {/* Thread dropdown */}
+        {threadMenuOpen && (
+          <div className={threadDropdown}>
+            {threads.map(t => (
+              <div
+                key={t.id}
+                className={cn(threadItem, t.id === activeThreadId && threadItemActive)}
+              >
+                <button
+                  className={threadItemBtn}
+                  onClick={() => switchThread(t.id)}
+                >
+                  <span className="truncate">{t.title}</span>
+                  <span className={threadDate}>
+                    {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </span>
+                </button>
+                {threads.length > 1 && (
+                  <button
+                    className={threadDeleteBtn}
+                    onClick={(e) => { e.stopPropagation(); deleteThread(t.id); }}
+                    title="Delete thread"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Messages */}
         <div className={messagesScroll}>
@@ -330,9 +410,13 @@ export function ChatPanel() {
 
           {chatMessages.map((msg, i) => (
             <div key={i} className={msg.role === 'user' ? userOuter : assistantOuter}>
-              <div className={cn(bubble, msg.role === 'user' ? userBubble : assistantBubble)}>
+              {msg.role === 'user' ? (
+                <div className={userBubble}>
+                  <MarkdownRenderer content={msg.content} />
+                </div>
+              ) : (
                 <MarkdownRenderer content={msg.content} />
-              </div>
+              )}
             </div>
           ))}
 
@@ -346,18 +430,28 @@ export function ChatPanel() {
             </div>
           )}
 
-          {/* Thinking indicator — only while waiting for first text */}
+          {/* Thinking indicator — collapsible */}
           {isThinking && (
             <div className={assistantOuter}>
-              <div className={thinkingContainer}>
-                <span className={thinkingIcon}>✨</span>
-                <span className={thinkingText}>Thinking</span>
-                <span className={thinkingDots}>
-                  <span className={dot1}>.</span>
-                  <span className={dot2}>.</span>
-                  <span className={dot3}>.</span>
-                </span>
-              </div>
+              {thinkingText ? (
+                <details className={thinkingDetails} open>
+                  <summary className={thinkingSummary}>
+                    <span className={thinkingIcon}>✨</span>
+                    <span className={thinkingLabel}>Thinking…</span>
+                  </summary>
+                  <div className={thinkingContent}>{thinkingText}</div>
+                </details>
+              ) : (
+                <div className={thinkingContainer}>
+                  <span className={thinkingIcon}>✨</span>
+                  <span className={thinkingLabel}>Thinking</span>
+                  <span className={thinkingDots}>
+                    <span className={dot1}>.</span>
+                    <span className={dot2}>.</span>
+                    <span className={dot3}>.</span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -416,15 +510,37 @@ const panel = `
 const panelInner = `w-80 h-full flex flex-col`;
 
 // --- Header ---
-const header = `h-10 shrink-0 border-b border-[hsl(var(--border))] flex items-center px-3`;
-const statusDot = `w-2 h-2 rounded-full bg-[hsl(var(--progress))] mr-2`;
-const headerTitle = `text-xs font-medium text-[hsl(var(--foreground))]`;
+const header = `h-10 shrink-0 border-b border-[hsl(var(--border))] flex items-center px-3 gap-1`;
+const statusDot = `w-2 h-2 rounded-full bg-[hsl(var(--progress))] shrink-0`;
+const headerTitleBtn = `
+  text-xs font-medium text-[hsl(var(--foreground))]
+  hover:text-[hsl(var(--muted-foreground))] transition-colors
+  truncate max-w-[120px] cursor-pointer bg-transparent border-none p-0`;
+const newThreadBtn = `
+  text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors cursor-pointer bg-transparent border-none p-0 ml-1 shrink-0`;
 const modelSelect = `
   ml-auto text-[10px] bg-transparent text-[hsl(var(--muted-foreground))]
   border border-[hsl(var(--border))] rounded px-1.5 py-0.5
   cursor-pointer outline-none
   hover:text-[hsl(var(--foreground))] hover:border-[hsl(var(--muted-foreground))]
   transition-colors`;
+// --- Thread dropdown ---
+const threadDropdown = `
+  border-b border-[hsl(var(--border))] bg-[hsl(var(--card))]
+  max-h-48 overflow-y-auto`;
+const threadItem = `
+  flex items-center gap-1 hover:bg-[hsl(var(--accent))] transition-colors`;
+const threadItemActive = `bg-[hsl(var(--accent))]/50`;
+const threadItemBtn = `
+  flex-1 flex items-center justify-between gap-2 px-3 py-1.5
+  text-[11px] text-[hsl(var(--foreground))] truncate
+  bg-transparent border-none cursor-pointer text-left`;
+const threadDate = `
+  text-[9px] text-[hsl(var(--muted-foreground))] shrink-0`;
+const threadDeleteBtn = `
+  px-2 py-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive,0_84%_60%))]
+  bg-transparent border-none cursor-pointer text-sm shrink-0`;
 
 // --- Messages ---
 const messagesScroll = `flex-1 overflow-y-auto p-3 space-y-3`;
@@ -439,24 +555,28 @@ const suggestionBtn = `
   text-[11px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
   transition-colors`;
 
-const userOuter = `ml-6`;
-const assistantOuter = `mr-2`;
-const bubble = `rounded-lg px-3 py-2 text-xs leading-relaxed`;
+const userOuter = `ml-4`;
+const assistantOuter = `mr-2 text-xs leading-relaxed text-[hsl(var(--foreground))] overflow-hidden min-w-0`;
 const userBubble = `
+  rounded-lg px-3 py-2 text-xs leading-relaxed
   bg-[hsl(var(--chat-user))] text-[hsl(var(--foreground))]
   border border-[hsl(var(--chat-user-border))]`;
-const assistantBubble = `
-  bg-[hsl(var(--chat-assistant))] text-[hsl(var(--foreground))]
-  border border-[hsl(var(--chat-assistant-border))]`;
 
 // --- Thinking indicator ---
 const thinkingContainer = `
-  inline-flex items-center gap-1.5 px-3 py-1.5
+  inline-flex items-center gap-1.5 px-2 py-1.5
+  text-[11px] text-[hsl(var(--muted-foreground))]`;
+const thinkingDetails = `
   text-[11px] text-[hsl(var(--muted-foreground))]
-  bg-[hsl(var(--chat-assistant))] border border-[hsl(var(--chat-assistant-border))]
-  rounded-lg`;
-const thinkingIcon = `text-sm animate-pulse`;
-const thinkingText = `font-medium`;
+  rounded overflow-hidden min-w-0`;
+const thinkingSummary = `
+  flex items-center gap-1.5 px-2 py-1 cursor-pointer
+  select-none list-none [&::-webkit-details-marker]:hidden`;
+const thinkingIcon = `text-sm animate-pulse shrink-0`;
+const thinkingLabel = `font-medium`;
+const thinkingContent = `
+  px-2 pb-1.5 text-[10px] opacity-70
+  whitespace-pre-wrap break-words overflow-hidden`;
 const thinkingDots = `inline-flex`;
 const dot1 = `animate-bounce [animation-delay:0ms]`;
 const dot2 = `animate-bounce [animation-delay:150ms]`;

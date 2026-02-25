@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useMixerStore, useTransportStore } from '@/data/store';
 import type { NoteData } from '@/data/slices/mixer';
 import { Chord } from '@tonaljs/tonal';
@@ -6,7 +6,7 @@ import { AutomationOverlay } from './AutomationOverlay';
 
 export function ArrangementView() {
   const { tracks, sections, totalBars: storeTotalBars } = useMixerStore();
-  const { looping, loopBars } = useTransportStore();
+  const { looping, loopBars, loopStartBar } = useTransportStore();
   const [showAutomation, setShowAutomation] = useState(false);
 
   useEffect(() => {
@@ -31,9 +31,12 @@ export function ArrangementView() {
   }, 4); // minimum 4 beats = 1 bar
   const totalBars = storeTotalBars > 1 ? storeTotalBars : Math.max(1, Math.ceil(maxBeat / 4));
 
-  // Loop region (0 to loopBars)
-  const loopEndPct = looping && loopBars > 0
-    ? Math.min((loopBars / totalBars) * 100, 100)
+  // Loop region position
+  const loopStartPct = looping && loopBars > 0
+    ? Math.min((loopStartBar / totalBars) * 100, 100)
+    : 0;
+  const loopWidthPct = looping && loopBars > 0
+    ? Math.min(((loopBars - loopStartBar) / totalBars) * 100, 100 - loopStartPct)
     : 0;
 
   return (
@@ -43,10 +46,13 @@ export function ArrangementView() {
         <div className={rulerSpacer} />
         <div className={rulerTrack}>
           {/* Loop region overlay on ruler */}
-          {looping && loopEndPct > 0 && (
-            <div
-              className={loopRegionRuler}
-              style={{ width: `${loopEndPct}%` }}
+          {looping && loopWidthPct > 0 && (
+            <LoopRegion
+              loopStartBar={loopStartBar}
+              loopEndBar={loopBars}
+              totalBars={totalBars}
+              loopStartPct={loopStartPct}
+              loopWidthPct={loopWidthPct}
             />
           )}
           {/* Section labels in top half */}
@@ -161,6 +167,126 @@ export function ArrangementView() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// --- Interactive Loop Region Component ---
+
+function LoopRegion({
+  loopStartBar,
+  loopEndBar,
+  totalBars,
+  loopStartPct,
+  loopWidthPct,
+}: {
+  loopStartBar: number;
+  loopEndBar: number;
+  totalBars: number;
+  loopStartPct: number;
+  loopWidthPct: number;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragMode, setDragMode] = useState<'none' | 'move' | 'resize-left' | 'resize-right'>('none');
+  const dragStart = useRef({ x: 0, startBar: 0, endBar: 0 });
+
+  const setLoopRange = useTransportStore.getState().setLoopRange;
+
+  const getBarFromX = useCallback((clientX: number): number => {
+    const parent = containerRef.current?.parentElement;
+    if (!parent) return 0;
+    const rect = parent.getBoundingClientRect();
+    const pct = (clientX - rect.left) / rect.width;
+    return Math.round(Math.max(0, Math.min(totalBars, pct * totalBars)));
+  }, [totalBars]);
+
+  const getCursorZone = useCallback((clientX: number): 'left' | 'right' | 'body' => {
+    const el = containerRef.current;
+    if (!el) return 'body';
+    const rect = el.getBoundingClientRect();
+    const edgeSize = 6;
+    if (clientX - rect.left < edgeSize) return 'left';
+    if (rect.right - clientX < edgeSize) return 'right';
+    return 'body';
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const zone = getCursorZone(e.clientX);
+    const mode = zone === 'left' ? 'resize-left' : zone === 'right' ? 'resize-right' : 'move';
+    setDragMode(mode);
+    dragStart.current = { x: e.clientX, startBar: loopStartBar, endBar: loopEndBar };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [getCursorZone, loopStartBar, loopEndBar]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (dragMode === 'none') {
+      // Just update cursor
+      const zone = getCursorZone(e.clientX);
+      const el = containerRef.current;
+      if (el) {
+        el.style.cursor = zone === 'body' ? 'grab' : 'col-resize';
+      }
+      return;
+    }
+
+    e.preventDefault();
+    const { startBar, endBar } = dragStart.current;
+    const loopLen = endBar - startBar;
+
+    if (dragMode === 'move') {
+      const currentBar = getBarFromX(e.clientX);
+      const origBar = getBarFromX(dragStart.current.x);
+      const delta = currentBar - origBar;
+      let newStart = startBar + delta;
+      let newEnd = endBar + delta;
+      // Clamp to bounds
+      if (newStart < 0) { newStart = 0; newEnd = loopLen; }
+      if (newEnd > totalBars) { newEnd = totalBars; newStart = totalBars - loopLen; }
+      setLoopRange(newStart, newEnd);
+    } else if (dragMode === 'resize-left') {
+      let newStart = getBarFromX(e.clientX);
+      newStart = Math.max(0, Math.min(newStart, endBar - 1)); // min 1 bar
+      setLoopRange(newStart, endBar);
+    } else if (dragMode === 'resize-right') {
+      let newEnd = getBarFromX(e.clientX);
+      newEnd = Math.max(startBar + 1, Math.min(newEnd, totalBars)); // min 1 bar
+      setLoopRange(startBar, newEnd);
+    }
+  }, [dragMode, getBarFromX, getCursorZone, totalBars, setLoopRange]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (dragMode !== 'none') {
+      setDragMode('none');
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    }
+  }, [dragMode]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={loopRegionRuler}
+      style={{
+        left: `${loopStartPct}%`,
+        width: `${loopWidthPct}%`,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={() => {
+        if (dragMode !== 'none') {
+          // Don't cancel if pointer captured
+          return;
+        }
+        const el = containerRef.current;
+        if (el) el.style.cursor = 'grab';
+      }}
+    >
+      {/* Left edge handle */}
+      <div className={loopEdgeHandle} style={{ left: 0 }} />
+      {/* Right edge handle */}
+      <div className={loopEdgeHandle} style={{ right: 0 }} />
     </div>
   );
 }
@@ -390,8 +516,15 @@ const sectionLabel = `
 
 // Loop region overlays
 const loopRegionRuler = `
-  absolute inset-y-0 left-0
-  bg-[hsl(var(--selection))]/5 border-r-2 border-[hsl(var(--selection))]/20`;
+  absolute inset-y-0
+  bg-[hsl(var(--selection))]/10 border-x-2 border-[hsl(var(--selection))]/30
+  cursor-grab z-40 touch-none`;
+
+const loopEdgeHandle = `
+  absolute inset-y-0 w-1.5
+  bg-[hsl(var(--selection))]/40
+  hover:bg-[hsl(var(--selection))]/60
+  cursor-col-resize z-50`;
 
 // Playhead
 const playheadLane = `

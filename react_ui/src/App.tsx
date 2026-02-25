@@ -1,20 +1,47 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Transport } from '@/components/Transport';
 import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
+import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
+import { addStateListener } from '@/data/bridge';
 
 const setZoom = isPlugin ? Juce.getNativeFunction('setZoom') : null;
+const uiReady = isPlugin ? Juce.getNativeFunction('uiReady') : null;
+
+interface ProgressPayload {
+  message: string;
+  progress: number;
+}
 
 function App() {
   const zoomRef = useRef(1.0);
+  const [engineReady, setEngineReady] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('Initializing workspace...');
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
+    const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
+    const redo = isPlugin ? Juce.getNativeFunction('redo') : null;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
+        // --- Undo / Redo ---
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo?.();
+          return;
+        }
+        if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          redo?.();
+          return;
+        }
+
+        // --- Zoom ---
         let newZoom = zoomRef.current;
         if (e.key === '=' || e.key === '+') {
           e.preventDefault();
@@ -34,9 +61,31 @@ function App() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    // Listen for C++ loading progress
+    const unsubProgress = addStateListener('loadingProgress', (data: unknown) => {
+      const payload = data as ProgressPayload;
+      if (payload.message === 'done') {
+        setEngineReady(true);
+      } else {
+        setLoadingMsg(payload.message);
+        setLoadingProgress(payload.progress);
+      }
+    });
+
+    // Tell C++ the UI is ready so it can start heavy loading and sending progress events
+    setTimeout(() => uiReady?.(), 100);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      unsubProgress();
+    };
   }, []);
 
+
+  if (!engineReady) {
+    return <LoadingScreen message={loadingMsg} progress={loadingProgress} />;
+  }
 
   return (
     <div className={shell}>

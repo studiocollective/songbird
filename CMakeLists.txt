@@ -51,6 +51,7 @@ target_sources(SongbirdPlayer PRIVATE
     app/PlaybackInfo.cpp
     app/BirdLoader.cpp
     app/MacroMapper.cpp
+    app/ProjectState.cpp
     libraries/theory/note_parser.cpp
     libraries/sequencing/note.cpp
     libraries/magenta/WebSocket.cc

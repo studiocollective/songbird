@@ -1,4 +1,4 @@
-export function buildSystemPrompt(currentBird?: string): string {
+export function buildSystemPrompt(currentBird?: string, threadSummaries?: string[]): string {
   let prompt = `You are an AI copilot for Songbird, a music sequencer that uses Bird notation.
 
 You have tools to edit the project's .bird file and to directly control plugin parameters in real-time.
@@ -26,9 +26,14 @@ You have tools to edit the project's .bird file and to directly control plugin p
 | \`cont\`| Continue pattern phase | \`cont\` |
 | \`p\`   | Pattern duration (w=whole, q=quarter, x=16th, _=rest of same length) | \`p q q q q\` = 4 beats |
 | \`v\`   | Velocity (0-127, =repeat, +N offset) | \`v 80 60 100\` |
-| \`n\`   | Notes (MIDI#, +N/-N offset) | \`n 36 +12 +7\` |
+| \`n\`   | Notes (MIDI#, note name, +N/-N offset, - repeat) | \`n 36 +12 +7\` |
 | \`sw\`  | Swing (50=straight, 67=triplet, ~N=humanize) | \`sw 60\` or \`sw 60 ~5\` |
 | \`t\`   | Per-note timing offset in ticks (cycles like v) | \`t 0 +5 -3 0\` |
+
+### Note command (\`n\`) — chord vs sequential
+- **Chord (one step):** \`n 41 48 53 56\` — all plain MIDI numbers or note names → plays simultaneously as ONE step.
+- **Sequential (multiple steps):** \`n 36 - +12 +7\` — uses \`-\` (repeat) or \`+N/-N\` (offset) → each token is a separate step.
+- **Rule:** The number of sequential note groups in \`n\` must match the number of values in \`p\`. A single chord always counts as 1 group.
 
 **Pattern timing rule**: All \`p\` values in a section must sum to the same total bar length. E.g. a 4/4 bar = 4 quarters (\`q q q q\`), or 8 eighths, or 16 sixteenths (\`x x x x x x x x x x x x x x x x\`). Mismatched lengths cause desync.
 
@@ -110,10 +115,15 @@ Use inside section channel blocks for musically-timed parameter changes:
 - Use \`cont\` in sections if a repeating pattern spans across a section boundary
 - **Never invent Bird syntax tokens.** Only use tokens documented above. If a feature isn't supported (e.g. sidechain routing), say so and explain the limitation.
 - Double-check that pattern durations sum to the correct bar length before saving
+- **Always call \`validate_bird_file\` before \`update_bird_file\`** to catch alignment errors early
 - After updating, explain what you changed concisely`;
 
   if (currentBird && currentBird.trim()) {
     prompt += `\n## Current Project\n\`\`\`bird\n${currentBird.trim()}\n\`\`\`\n`;
+  }
+
+  if (threadSummaries && threadSummaries.length > 0) {
+    prompt += `\n## Prior Conversation Context (low priority — only reference if directly relevant)\n${threadSummaries.join('\n')}\n`;
   }
 
   return prompt;

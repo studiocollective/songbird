@@ -79,7 +79,7 @@ public:
 
     // Populate a te::Edit from parsed bird data
     // Clears existing tracks and creates new ones from the parse result
-    static void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine);
+    static void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine, std::function<void(const juce::String&, float)> progressCallback = nullptr);
 
     // Serialize all track note data from an Edit as a JSON string
     static juce::String getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);

@@ -209,20 +209,30 @@ const MODELS = [
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+/** Max tool-call round-trips before we force a text-only response */
+const MAX_TOOL_ROUNDS = 5;
+
+export interface StreamCallbacks {
+  onChunk: (delta: string, accumulated: string) => void;
+  onThought?: (delta: string, accumulated: string) => void;
+  onFunctionCall?: (name: string, args: Record<string, unknown>) => void;
+}
+
 export class GeminiService {
   /**
    * Send a message to Gemini with function calling support.
    *
    * Flow:
-   * 1. Non-streaming request with tool declarations
+   * 1. Streaming request with tool declarations
    * 2. If model returns functionCall → execute via onToolCall, send result back
-   * 3. Stream the final text response
+   * 3. Repeat up to MAX_TOOL_ROUNDS times
+   * 4. Stream the final text response
    */
   static async streamMessage(
     apiKey: string,
     history: ChatMessage[],
     systemPrompt: string,
-    onChunk: (delta: string, accumulated: string) => void,
+    callbacks: StreamCallbacks,
     preferredModel: string = 'gemini-3-flash-preview',
     onToolCall?: (call: ToolCall) => Promise<Record<string, unknown>>,
     signal?: AbortSignal,
@@ -240,7 +250,7 @@ export class GeminiService {
         return { content: '' };
       }
 
-      const result = await this.tryWithTools(model, apiKey, systemPrompt, contents, onChunk, onToolCall, signal);
+      const result = await this.tryWithTools(model, apiKey, systemPrompt, contents, callbacks, onToolCall, signal);
 
       if (result.error && (result.error.includes('high demand') || result.error.includes('429') || result.error.includes('503'))) {
         console.log(`[Gemini] ${model} unavailable, trying fallback...`);
@@ -258,7 +268,7 @@ export class GeminiService {
     apiKey: string,
     systemPrompt: string,
     contents: Array<{ role: string; parts: Array<Record<string, unknown>> }>,
-    onChunk: (delta: string, accumulated: string) => void,
+    callbacks: StreamCallbacks,
     onToolCall?: (call: ToolCall) => Promise<Record<string, unknown>>,
     signal?: AbortSignal,
   ): Promise<GeminiResponse> {
@@ -269,38 +279,68 @@ export class GeminiService {
       maxOutputTokens: 4096,
     };
 
-    // Step 1: Streaming call with tool declarations
-    const initialResponse = await this.executeStreamRequest(
-      model, apiKey, systemPrompt, contents,
-      onToolCall
-        ? [BIRD_TOOL, VALIDATE_TOOL, GET_PLUGIN_PARAMS_TOOL, SET_PLUGIN_PARAM_TOOL,
-           SET_TRACK_MIXER_TOOL, SET_BPM_TOOL,
-           SET_LYRIA_TRACK_CONFIG_TOOL, SET_LYRIA_TRACK_PROMPTS_TOOL, SET_LYRIA_QUANTIZE_TOOL]
-        : undefined,
-      onChunk, generationConfig, signal
-    );
+    const tools = onToolCall
+      ? [BIRD_TOOL, VALIDATE_TOOL, GET_PLUGIN_PARAMS_TOOL, SET_PLUGIN_PARAM_TOOL,
+         SET_TRACK_MIXER_TOOL, SET_BPM_TOOL,
+         SET_LYRIA_TRACK_CONFIG_TOOL, SET_LYRIA_TRACK_PROMPTS_TOOL, SET_LYRIA_QUANTIZE_TOOL]
+      : undefined;
 
-    if (initialResponse.error) {
-      return { content: initialResponse.content, error: initialResponse.error };
-    }
+    let currentContents = [...contents];
+    let accumulatedText = '';
 
-    // Step 2: Handle function call if present
-    if (initialResponse.functionCall && onToolCall) {
-      const fc = initialResponse.functionCall;
-      console.log(`[Gemini] Function call: ${fc.name}`, fc.args);
+    // Multi-turn tool call loop
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      if (signal?.aborted) return { content: accumulatedText };
+
+      // Use tool declarations on all rounds (model may want to call multiple tools)
+      const response = await this.executeStreamRequest(
+        model, apiKey, systemPrompt, currentContents,
+        tools,
+        (delta, accumulated) => {
+          accumulatedText = accumulated;
+          callbacks.onChunk(delta, accumulated);
+        },
+        callbacks.onThought,
+        generationConfig, signal
+      );
+
+      if (response.error) {
+        return { content: accumulatedText, error: response.error };
+      }
+
+      // Merge any text from this response
+      accumulatedText = response.content || accumulatedText;
+
+      // No function call → we're done
+      if (!response.functionCall || !onToolCall) {
+        return { content: accumulatedText };
+      }
+
+      // Execute function call
+      const fc = response.functionCall;
+      console.log(`[Gemini] Function call (round ${round + 1}): ${fc.name}`, fc.args);
+
+      // Notify UI about the function call
+      callbacks.onFunctionCall?.(fc.name, fc.args);
+
+      // Yield to browser before executing tool
+      await this.yieldToBrowser();
 
       const toolResult = await onToolCall({ name: fc.name, args: fc.args });
 
-      if (signal?.aborted) {
-        return { content: initialResponse.content };
-      }
+      if (signal?.aborted) return { content: accumulatedText };
 
-      // Step 3: Stream follow-up after tool call
-      const followUpContents = [
-        ...contents,
+      // Yield after tool execution
+      await this.yieldToBrowser();
+
+      // Build follow-up contents with tool result
+      currentContents = [
+        ...currentContents,
         {
           role: 'model',
-          parts: initialResponse.modelParts && initialResponse.modelParts.length > 0 ? initialResponse.modelParts : [{ functionCall: fc }]
+          parts: response.modelParts && response.modelParts.length > 0
+            ? response.modelParts
+            : [{ functionCall: fc }]
         },
         {
           role: 'user',
@@ -313,21 +353,38 @@ export class GeminiService {
         }
       ];
 
-      // Pass a wrapped onChunk to append to whatever text might have already been generated
-      let followUpAccumulated = initialResponse.content;
-      const followUpResponse = await this.executeStreamRequest(
-        model, apiKey, systemPrompt, followUpContents, undefined,
-        (delta) => {
-          followUpAccumulated += delta;
-          onChunk(delta, followUpAccumulated);
+      // Reset accumulated text for follow-up — text from previous rounds is already streamed
+      // The onChunk wrapper will continue from the current accumulated position
+      const prevAccumulated = accumulatedText;
+      const wrappedCallbacks: StreamCallbacks = {
+        onChunk: (delta, _accumulated) => {
+          accumulatedText = prevAccumulated + (_accumulated);
+          callbacks.onChunk(delta, accumulatedText);
         },
-        generationConfig, signal
-      );
+        onThought: callbacks.onThought,
+        onFunctionCall: callbacks.onFunctionCall,
+      };
 
-      return { content: followUpAccumulated, error: followUpResponse.error };
+      // For the last round, if we still get a function call, we ignore it
+      if (round === MAX_TOOL_ROUNDS - 1) {
+        // Final round — stream response without tools to force text
+        const finalResponse = await this.executeStreamRequest(
+          model, apiKey, systemPrompt, currentContents, undefined,
+          wrappedCallbacks.onChunk,
+          wrappedCallbacks.onThought,
+          generationConfig, signal
+        );
+        accumulatedText = prevAccumulated + (finalResponse.content || '');
+        return { content: accumulatedText, error: finalResponse.error };
+      }
+
+      // Next iteration will send the follow-up and check for more tool calls
+      // Update the onChunk wrapper for the next streaming call
+      // We need to rebuild contents for the next executeStreamRequest call
+      // The loop will handle this on the next iteration
     }
 
-    return { content: initialResponse.content };
+    return { content: accumulatedText };
   }
 
   private static async executeStreamRequest(
@@ -337,6 +394,7 @@ export class GeminiService {
     contents: unknown[],
     tools: unknown[] | undefined,
     onChunk: (delta: string, accumulated: string) => void,
+    onThought: ((delta: string, accumulated: string) => void) | undefined,
     generationConfig: Record<string, unknown>,
     signal?: AbortSignal,
   ): Promise<{ content: string; functionCall?: { name: string; args: Record<string, unknown> }, modelParts?: Record<string, unknown>[], error?: string }> {
@@ -372,12 +430,9 @@ export class GeminiService {
       const reader = response.body?.getReader();
       if (!reader) return { content: '', error: 'No response body' };
 
-      const yieldToBrowser = () => new Promise<void>(resolve => {
-        requestAnimationFrame(() => setTimeout(resolve, 0));
-      });
-
       const decoder = new TextDecoder();
       let accumulated = '';
+      let thoughtAccumulated = '';
       let buffer = '';
       let functionCall: { name: string; args: Record<string, unknown> } | undefined;
       const modelParts: Record<string, unknown>[] = [];
@@ -395,7 +450,6 @@ export class GeminiService {
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
-        let hadText = false;
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const jsonStr = line.slice(6).trim();
@@ -410,12 +464,10 @@ export class GeminiService {
                 if ('text' in part) {
                   accumulated += part.text as string;
                   onChunk(part.text as string, accumulated);
-                  hadText = true;
 
                   const lastPart = modelParts[modelParts.length - 1];
                   if (lastPart && 'text' in lastPart) {
                     lastPart.text = (lastPart.text as string) + part.text;
-                    // Merge any other keys that might have appeared with text
                     for (const k of Object.keys(part)) {
                       if (k !== 'text') lastPart[k] = part[k as keyof typeof part];
                     }
@@ -432,6 +484,11 @@ export class GeminiService {
                     modelParts.push({ ...part });
                   }
                 } else if ('thought' in part) {
+                  // Stream thinking text to UI
+                  const thoughtText = part.thought as string;
+                  thoughtAccumulated += thoughtText;
+                  onThought?.(thoughtText, thoughtAccumulated);
+
                   const lastPart = modelParts[modelParts.length - 1];
                   if (lastPart && 'thought' in lastPart) {
                     lastPart.thought = (lastPart.thought as string) + part.thought;
@@ -448,7 +505,8 @@ export class GeminiService {
           }
         }
 
-        if (hadText) await yieldToBrowser();
+        // Yield to browser on every chunk to keep UI responsive
+        await this.yieldToBrowser();
       }
 
       return { content: accumulated, functionCall, modelParts };
@@ -460,5 +518,11 @@ export class GeminiService {
       console.error(`[Gemini] ${model} stream error:`, e);
       return { content: '', error: e instanceof Error ? e.message : 'Unknown network error' };
     }
+  }
+
+  private static yieldToBrowser(): Promise<void> {
+    return new Promise<void>(resolve => {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    });
   }
 }

@@ -8,6 +8,7 @@
 #include "libraries/magenta/LyriaPlugin.h"
 #include "BirdLoader.h"
 #include "PlaybackInfo.h"
+#include "ProjectState.h"
 #include "libraries/tracktion/examples/common/PluginWindow.h"
 #include "MidiRecorder.h"
 #include "AudioRecorder.h"
@@ -39,6 +40,8 @@ private:
     void applyMixerState(const juce::var& state);
     void saveStateCache();
     void loadStateCache();
+    void saveEditState();
+    void loadEditState();
     void timerCallback() override;
 
     // Bird file loading
@@ -58,6 +61,10 @@ private:
     juce::String pendingBirdContent;
     std::atomic<bool> reloadPending { false };
     std::unique_ptr<juce::Thread> reloadThread;
+
+    bool isLoadingStarted = false;
+    bool isLoadFinished = false;
+    void startBackgroundLoading();
 
     // Lyria generated track management
     struct LyriaTrackContext {
@@ -84,6 +91,12 @@ private:
     void changePlugin(int trackId, const juce::String& slotType, const juce::String& pluginName);
     void setSidechainSource(int destTrackId, int sourceTrackId);
     void logToJS(const juce::String& message);
+
+    // Project state (git-based undo/redo)
+    ProjectState projectState;
+    void undoProject();
+    void redoProject();
+    void revertLLM();
 
     // Playback info (levels, transport position, stereo analysis)
     PlaybackInfo playbackInfo;

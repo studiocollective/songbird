@@ -108,6 +108,13 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             }
             complete("ok");
         })
+        // Signal from React that the UI has mounted
+        .withNativeFunction("uiReady", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                startBackgroundLoading();
+            });
+            complete("ok");
+        })
         // Get track notes JSON for the UI
         .withNativeFunction("getTrackNotes", [this](auto&, auto complete) {
             complete(getTrackNotesJSON());
@@ -228,6 +235,9 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("updateBird", [this](auto& args, auto complete) {
             if (args.size() > 0 && currentBirdFile.existsAsFile()) {
                 juce::String content = args[0].toString();
+                // Auto-commit before LLM change for undo support
+                saveEditState();  // flush plugin state first
+                projectState.commit("Pre-LLM state", ProjectState::LLM);
                 // Write to disk synchronously (fast), then schedule a debounced
                 // background parse + apply so the main thread is never blocked.
                 currentBirdFile.replaceWithText(content);
@@ -286,6 +296,54 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 DBG("Transport: BPM set to " + juce::String(bpm));
                 complete("{\"success\":true,\"bpm\":" + juce::String(bpm) + "}");
             });
+        })
+        
+        // Explicit Transport Controls
+        .withNativeFunction("transportPlay", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                if (edit) {
+                    edit->getTransport().play(false);
+                    DBG("Transport: Playing (Native)");
+                }
+            });
+            complete("ok");
+        })
+        .withNativeFunction("transportStop", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                if (edit) {
+                    edit->getTransport().stop(false, false);
+                    edit->getTransport().setPosition(te::TimePosition::fromSeconds(0.0));
+                    DBG("Transport: Stopped & Rewound (Native)");
+                }
+            });
+            complete("ok");
+        })
+        .withNativeFunction("transportSeek", [this](auto& args, auto complete) {
+            if (args.size() > 0) {
+                double pos = static_cast<double>(args[0]);
+                juce::MessageManager::callAsync([this, pos]() {
+                    if (edit) {
+                        edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                        DBG("Transport: Seeked to " + juce::String(pos) + " (Native)");
+                    }
+                });
+            }
+            complete("ok");
+        })
+        .withNativeFunction("setLoopRange", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 2) { complete("ok"); return; }
+            int startBar = static_cast<int>(args[0]);
+            int endBar   = static_cast<int>(args[1]);
+            juce::MessageManager::callAsync([this, startBar, endBar]() {
+                if (!edit) return;
+                double bpm = edit->tempoSequence.getTempos()[0]->getBpm();
+                double secPerBar = (60.0 / bpm) * 4.0;
+                auto startTime = te::TimePosition::fromSeconds(secPerBar * startBar);
+                auto endTime   = te::TimePosition::fromSeconds(secPerBar * endBar);
+                edit->getTransport().setLoopRange(te::TimeRange(startTime, endTime));
+                DBG("Transport: Loop range set to bar " + juce::String(startBar) + " - " + juce::String(endBar));
+            });
+            complete("ok");
         })
 
         // Export to MIDI (Sheet Music)
@@ -636,6 +694,48 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             int bars    = static_cast<int>(args[1]);
             juce::MessageManager::callAsync([this, trackId, bars]() { setLyriaQuantize(trackId, bars); });
             complete("{\"success\":true}");
+        })
+
+        // ====================================================================
+        // Project Undo / Redo / History
+        // ====================================================================
+
+        .withNativeFunction("undo", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() { undoProject(); });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("redo", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() { redoProject(); });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("revertLLM", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() { revertLLM(); });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("commitProject", [this](auto& args, auto complete) {
+            juce::String message = args.size() > 0 ? args[0].toString() : "Manual save";
+            juce::MessageManager::callAsync([this, message]() {
+                saveEditState();
+                projectState.commit(message, ProjectState::User);
+            });
+            complete("{\"success\":true}");
+        })
+
+        .withNativeFunction("getHistory", [this](auto&, auto complete) {
+            auto history = projectState.getHistory(20);
+            juce::Array<juce::var> arr;
+            for (auto& entry : history) {
+                auto* obj = new juce::DynamicObject();
+                obj->setProperty("hash", entry.hash.substring(0, 8));
+                obj->setProperty("message", entry.message);
+                obj->setProperty("timestamp", entry.timestamp);
+                obj->setProperty("source", ProjectState::sourceTag(entry.source));
+                arr.add(juce::var(obj));
+            }
+            complete(juce::JSON::toString(juce::var(arr)));
         });
 }
 

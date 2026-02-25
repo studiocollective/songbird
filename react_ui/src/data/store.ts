@@ -26,7 +26,13 @@ export const useTransportStore = create<TransportState>()(
       name: TransportStateID,
       storage: createJSONStorage(() => juceBridge),
       version: 1,
-    },
+      partialize: (state) => {
+        // Exclude properties that shouldn't echo back to C++
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { position, playing, currentBar, currentSection, lastPositionUpdate, loopLength, loopBars, loopStartBar, initialized, ...rest } = state;
+        return rest;
+      },
+    }
   ),
 );
 
@@ -51,10 +57,15 @@ export const useChatStore = create<ChatState>()(
     {
       name: ChatStateID,
       storage: createJSONStorage(() => juceBridge),
-      version: 2,
+      version: 3,
       partialize: (state) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { apiKey: _apiKey, ...rest } = state;
+        // Exclude: apiKey (security), threads/threadMenu (localStorage),
+        // transient UI state (thinking, streaming, toolUse)
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        const { apiKey: _a, threads: _t, threadMenuOpen: _tm, activeThreadId: _at,
+                isThinking: _th, isStreaming: _st, thinkingText: _tt,
+                toolUseLabel: _tl, ...rest } = state;
+        /* eslint-enable @typescript-eslint/no-unused-vars */
         return rest;
       },
     },
@@ -110,13 +121,14 @@ addStateListener(LyriaStateID, (data: unknown) => {
 
 // --- Transport position updates (high-frequency from C++ timer) ---
 addStateListener('transportPosition', (data: unknown) => {
-  const d = data as { position: number; bar: number; looping?: boolean; loopLength?: number; loopBars?: number };
+  const d = data as { position: number; bar: number; looping?: boolean; loopLength?: number; loopBars?: number; loopStartBar?: number };
   useTransportStore.setState({
     position: d.position,
     currentBar: d.bar,
     ...(d.looping !== undefined && { looping: d.looping }),
     ...(d.loopLength !== undefined && { loopLength: d.loopLength }),
     ...(d.loopBars !== undefined && { loopBars: d.loopBars }),
+    ...(d.loopStartBar !== undefined && { loopStartBar: d.loopStartBar }),
     lastPositionUpdate: performance.now(),
   });
 });

@@ -123,10 +123,13 @@ void LevelMeterBridge::timerCallback()
     bool looping = transport.looping.get();
     double loopLenSeconds = 0.0;
     int loopBars = 0;
+    int loopStartBar = 0;
     if (looping)
     {
         auto loopRange = transport.getLoopRange();
         loopLenSeconds = loopRange.getLength().inSeconds();
+        auto loopStartBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getStart());
+        loopStartBar = loopStartBB.bars;
         auto loopEndBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getEnd());
         loopBars = loopEndBB.bars;
     }
@@ -135,6 +138,7 @@ void LevelMeterBridge::timerCallback()
         + ",\"bar\":" + juce::String(bar)
         + ",\"looping\":" + (looping ? "true" : "false")
         + ",\"loopLength\":" + juce::String(loopLenSeconds, 2)
-        + ",\"loopBars\":" + juce::String(loopBars) + "}";
+        + ",\"loopBars\":" + juce::String(loopBars)
+        + ",\"loopStartBar\":" + juce::String(loopStartBar) + "}";
     webView->emitEventIfBrowserIsVisible("transportPosition", juce::var(posJson));
 }
