@@ -169,13 +169,19 @@ void SongbirdEditor::startBackgroundLoading()
         if (edit)
             playbackInfo.setEdit(edit.get());
             
-        DBG("SongbirdEditor initialized - engine and edit ready");
-        
         // Push initial state to React UI (it often beats the 500ms JS timer)
         if (webView) {
             auto json = getTrackStateJSON();
             webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
         }
+
+        // Defer the "Project loaded" commit — plugins are still settling.
+        // The timer fires 500ms after the last audioProcessorParameterChanged,
+        // at which point we create the commit with all plugins stable.
+        saveStateCache();
+        pendingProjectLoadCommit = true;
+        startTimer(1000);  // wait for plugins to settle
+        DBG("SongbirdEditor initialized - engine and edit ready");
     });
 }
 
@@ -190,7 +196,7 @@ SongbirdEditor::~SongbirdEditor()
                 if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
                     dirtyPlugins.insert(ext);
         saveEditState();
-        projectState.commit("Session end", ProjectState::Autosave);
+        commitAndNotify("Session end", ProjectState::Autosave);
     }
     edit = nullptr;
 }
@@ -218,13 +224,44 @@ void SongbirdEditor::resized()
     #endif
 }
 
+void SongbirdEditor::checkLoadFinished()
+{
+    if (projectLoadComplete && reactHydrated && !isLoadFinished)
+    {
+        isLoadFinished = true;
+        DBG("StateSync: Both project and React ready — commits enabled");
+    }
+}
+
+void SongbirdEditor::commitAndNotify(const juce::String& message, ProjectState::Source source, bool includeEditXml)
+{
+    projectState.commit(message, source, includeEditXml);
+    if (webView)
+        webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
+}
+
 void SongbirdEditor::timerCallback()
 {
     stopTimer();
-    if (!isLoadFinished) return;
-    // Timer is used for: (1) session state debounce, (2) plugin param debounce
+    if (!isLoadFinished && !pendingProjectLoadCommit) return;
+
+    // Timer is used for: (1) deferred project load commit, (2) session state debounce, (3) plugin param debounce
     saveSessionState();
     saveEditState();
+
+    if (pendingProjectLoadCommit)
+    {
+        if (!reactHydrated)
+        {
+            startTimer(200);  // React not ready yet, check again soon
+            return;
+        }
+        pendingProjectLoadCommit = false;
+        saveStateCache();
+        commitAndNotify("Project loaded", ProjectState::Autosave);
+        isLoadFinished = true;
+        DBG("StateSync: 'Project loaded' commit - fully loaded, commits enabled");
+    }
 }
 
 void SongbirdEditor::saveStateCache()
@@ -630,9 +667,13 @@ void SongbirdEditor::undoProject()
         }
         DBG("=== UNDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
+
+    if (webView)
+        webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
     
-    // Clear the guard after a delay so React persist echoes are safely ignored
-    juce::MessageManager::callAsync([this]() { undoRedoInProgress = false; });
+    // Clear the guard after 200ms so React persist echoes are safely ignored.
+    // callAsync is not enough — the echo can arrive on a later message loop iteration.
+    juce::Timer::callAfterDelay(200, [this]() { undoRedoInProgress = false; });
 }
 
 void SongbirdEditor::redoProject()
@@ -692,8 +733,11 @@ void SongbirdEditor::redoProject()
         }
         DBG("=== REDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
+
+    if (webView)
+        webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
     
-    juce::MessageManager::callAsync([this]() { undoRedoInProgress = false; });
+    juce::Timer::callAfterDelay(200, [this]() { undoRedoInProgress = false; });
 }
 
 void SongbirdEditor::revertLLM()
@@ -816,10 +860,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
                 juce::String jsonStr = juce::JSON::toString(jsonVar, true);
                 webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(jsonStr));
             }
-            isLoadFinished = true;
         });
-    } else {
-        isLoadFinished = true;
     }
 
     // Load companion state files if any
@@ -944,9 +985,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
         applyMixerState(juce::var(mixerObj.get()));
     }
 
-    saveStateCache();     // writes .state.json with all tracks
-    projectState.commit("Project loaded", ProjectState::Autosave);
-    DBG("EditState: Initial full save complete (all tracks captured)");
+    DBG("EditState: Mixer state built and applied");
 
 
 

@@ -30,6 +30,30 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 complete("ok");
             }
         })
+        // React signals all Zustand stores have finished hydrating
+        .withNativeFunction("reactReady", [this](auto& /*args*/, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                reactHydrated = true;
+                DBG("StateSync: React hydrated");
+            });
+            complete("ok");
+        })
+        // Get git history for UI
+        .withNativeFunction("getHistory", [this](auto& /*args*/, auto complete) {
+            auto history = projectState.getHistory(50);
+            auto* arr = new juce::DynamicObject();
+            juce::Array<juce::var> entries;
+            for (const auto& entry : history)
+            {
+                auto* obj = new juce::DynamicObject();
+                obj->setProperty("hash", entry.hash.substring(0, 7));
+                obj->setProperty("message", entry.message.trimEnd());
+                obj->setProperty("timestamp", entry.timestamp);
+                entries.add(juce::var(obj));
+            }
+            arr->setProperty("entries", entries);
+            complete(juce::JSON::toString(juce::var(arr)));
+        })
         // Reset state (Zustand persist removeItem)
         .withNativeFunction("resetState", [this](auto& args, auto complete) {
             if (args.size() > 0) {
@@ -240,7 +264,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 juce::String content = args[0].toString();
                 // Auto-commit before LLM change for undo support
                 saveEditState();  // flush plugin state first
-                projectState.commit("Pre-LLM state", ProjectState::LLM);
+                commitAndNotify("Pre-LLM state", ProjectState::LLM);
                 // Write to disk synchronously (fast), then schedule a debounced
                 // background parse + apply so the main thread is never blocked.
                 currentBirdFile.replaceWithText(content);
@@ -758,7 +782,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             juce::String message = args.size() > 0 ? args[0].toString() : "Manual save";
             juce::MessageManager::callAsync([this, message]() {
                 saveEditState();
-                projectState.commit(message, ProjectState::User);
+                commitAndNotify(message, ProjectState::User);
             });
             complete("{\"success\":true}");
         })

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 // Side-effect import: registers audioLevels listener
 import '@/data/meters';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { juceBridge, addStateListener } from './bridge';
+import { juceBridge, addStateListener, nativeFunction } from './bridge';
 import type { TransportState, MixerState, ChatState, LyriaState, TrackType } from '@/data/slices';
 import {
   useTransportSlice,
@@ -14,6 +14,17 @@ import {
   useLyriaSlice,
   LyriaStateID,
 } from '@/data/slices';
+
+// --- Hydration tracking: signal C++ when all stores are ready ---
+const TOTAL_STORES = 4;
+let hydratedCount = 0;
+function onStoreHydrated() {
+  hydratedCount++;
+  if (hydratedCount >= TOTAL_STORES) {
+    console.log('[Store] All stores hydrated — signaling reactReady');
+    nativeFunction('reactReady')();
+  }
+}
 
 // --- Persisted stores (auto-sync with C++ via juceBridge) ---
 
@@ -32,6 +43,7 @@ export const useTransportStore = create<TransportState>()(
         const { position, playing, currentBar, currentSection, lastPositionUpdate, loopLength, loopBars, loopStartBar, initialized, ...rest } = state;
         return rest;
       },
+      onRehydrateStorage: () => () => onStoreHydrated(),
     }
   ),
 );
@@ -45,6 +57,7 @@ export const useMixerStore = create<MixerState>()(
       name: MixerStateID,
       storage: createJSONStorage(() => juceBridge),
       version: 1,
+      onRehydrateStorage: () => () => onStoreHydrated(),
     },
   ),
 );
@@ -68,6 +81,7 @@ export const useChatStore = create<ChatState>()(
         /* eslint-enable @typescript-eslint/no-unused-vars */
         return rest;
       },
+      onRehydrateStorage: () => () => onStoreHydrated(),
     },
   ),
 );
@@ -81,6 +95,7 @@ export const useLyriaStore = create<LyriaState>()(
       name: LyriaStateID,
       storage: createJSONStorage(() => juceBridge),
       version: 1,
+      onRehydrateStorage: () => () => onStoreHydrated(),
     },
   ),
 );

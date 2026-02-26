@@ -12,7 +12,8 @@
  *   - <name>.edit.json    — plugin state (VST3/AU presets, structured JSON)
  * 
  * Each meaningful change is committed with a source tag.
- * Undo/redo navigates commit history and restores files on disk.
+ * Undo/redo moves HEAD on the 'main' branch.
+ * A 'refs/redo-tip' ref preserves the forward history for redo.
  * All Git operations happen in-process via libgit2 (no fork/exec).
  */
 class ProjectState
@@ -76,16 +77,17 @@ private:
     git_repository* repo = nullptr;
     bool initialized = false;
 
-    // Undo position: 0 = HEAD, 1 = HEAD~1, etc.
-    int undoPosition = 0;
-
     void initRepo();
     
     // Core Git helpers (all in-process, zero fork)
     git_oid createCommit(const juce::String& message);
-    bool resolveCommitOid(int offset, git_oid* out) const;
     bool hasUncommittedChanges() const;
     juce::Array<ChangedFile> diffAndRestore(const git_oid& targetOid);
     juce::Array<ChangedFile> getChangedFiles(const git_oid& fromOid, const git_oid& toOid) const;
     void restoreWorkdirFromCommit(const git_oid& commitOid);
+    bool moveHead(const git_oid& targetOid);   // moves refs/heads/main
+    bool getHeadOid(git_oid* out) const;
+    bool getParentOid(const git_oid& commitOid, git_oid* parentOid) const;
+    bool findChildCommit(const git_oid& parentOid, const git_oid& tipOid, git_oid* childOid) const;
+    juce::String getCommitMessage(const git_oid& oid) const;
 };

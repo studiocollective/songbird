@@ -44,6 +44,8 @@ private:
     void applyMixerState(const juce::var& state);
     void saveStateCache();
     void saveSessionState();
+    juce::String describeMixerChange(const juce::String& oldJson, const juce::String& newJson);
+    void commitAndNotify(const juce::String& message, ProjectState::Source source, bool includeEditXml = true);
     void loadStateCache();
     void saveEditState();
     void loadEditState();
@@ -86,6 +88,10 @@ private:
 
     bool isLoadingStarted = false;
     bool isLoadFinished = false;
+    bool projectLoadComplete = false;  // set after "Project loaded" commit
+    bool reactHydrated = false;        // set when React calls reactReady
+    bool pendingProjectLoadCommit = false;  // deferred until plugins settle
+    void checkLoadFinished();           // sets isLoadFinished when both flags are true
     void startBackgroundLoading();
 
     // Lyria generated track management

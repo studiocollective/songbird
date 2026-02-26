@@ -4,8 +4,96 @@
 // State management — stores state as JSON keyed by store name
 //==============================================================================
 
+juce::String SongbirdEditor::describeMixerChange(const juce::String& oldJson, const juce::String& newJson)
+{
+    if (oldJson.isEmpty()) return "Mixer initialized";
+
+    auto oldParsed = juce::JSON::parse(oldJson);
+    auto newParsed = juce::JSON::parse(newJson);
+    auto oldState = oldParsed.getProperty("state", {});
+    auto newState = newParsed.getProperty("state", {});
+    if (!oldState.isObject() || !newState.isObject()) return "Mixer state change";
+
+    juce::StringArray changes;
+
+    // Check top-level properties
+    for (auto& propName : juce::StringArray{"mixerOpen", "returnsOpen"})
+    {
+        auto oldVal = oldState.getProperty(juce::Identifier(propName), {});
+        auto newVal = newState.getProperty(juce::Identifier(propName), {});
+        if (oldVal != newVal)
+            changes.add(propName + " -> " + newVal.toString());
+    }
+
+    auto* oldTracks = oldState.getProperty("tracks", {}).getArray();
+    auto* newTracks = newState.getProperty("tracks", {}).getArray();
+
+    if (oldTracks && newTracks)
+    {
+        if (oldTracks->size() != newTracks->size())
+            changes.add("tracks " + juce::String(oldTracks->size()) + " -> " + juce::String(newTracks->size()));
+
+        int count = juce::jmin(oldTracks->size(), newTracks->size());
+        for (int i = 0; i < count && changes.size() < 4; ++i)
+        {
+            auto oldT = (*oldTracks)[i];
+            auto newT = (*newTracks)[i];
+            juce::String name = newT.getProperty("name", "Track " + juce::String(i));
+
+            int oldVol = (int)oldT.getProperty("volume", 80);
+            int newVol = (int)newT.getProperty("volume", 80);
+            if (oldVol != newVol)
+                changes.add("'" + name + "' vol " + juce::String(oldVol) + "->" + juce::String(newVol));
+
+            int oldPan = (int)oldT.getProperty("pan", 0);
+            int newPan = (int)newT.getProperty("pan", 0);
+            if (oldPan != newPan)
+                changes.add("'" + name + "' pan " + juce::String(newPan));
+
+            bool oldMute = (bool)oldT.getProperty("muted", false);
+            bool newMute = (bool)newT.getProperty("muted", false);
+            if (oldMute != newMute)
+                changes.add("'" + name + "' " + juce::String(newMute ? "muted" : "unmuted"));
+
+            bool oldSolo = (bool)oldT.getProperty("solo", false);
+            bool newSolo = (bool)newT.getProperty("solo", false);
+            if (oldSolo != newSolo)
+                changes.add("'" + name + "' " + juce::String(newSolo ? "solo on" : "solo off"));
+
+            // Sends
+            auto* oldSends = oldT.getProperty("sends", {}).getArray();
+            auto* newSends = newT.getProperty("sends", {}).getArray();
+            if (oldSends && newSends)
+            {
+                for (int s = 0; s < juce::jmin(oldSends->size(), newSends->size()); ++s)
+                {
+                    if ((*oldSends)[s] != (*newSends)[s])
+                        changes.add("'" + name + "' send" + juce::String(s));
+                }
+            }
+        }
+    }
+
+    if (changes.isEmpty())
+    {
+        DBG("StateSync: describeMixerChange found no tracked diffs — JSON strings differ by content");
+        return "Mixer update";
+    }
+    return changes.joinIntoString(", ");
+}
+
 void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce::String& jsonValue)
 {
+    // Skip if value is identical to what's already cached (echo suppression)
+    auto it = stateCache.find(storeName);
+    if (it != stateCache.end() && it->second == jsonValue)
+        return;
+
+    // Save previous state for diff before updating cache
+    juce::String prevMixerJson;
+    if (storeName == "songbird-mixer" && it != stateCache.end())
+        prevMixerJson = it->second;
+
     // Store the state for later retrieval
     stateCache[storeName] = jsonValue;
 
@@ -13,10 +101,14 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
     // Transport/chat/lyria are saved to daw.session.json (gitignored) — no commits.
     if (storeName == "songbird-mixer" && isLoadFinished && !undoRedoInProgress.load())
     {
+        // Generate descriptive commit message by diffing old vs new state
+        juce::String commitMsg = describeMixerChange(prevMixerJson, jsonValue);
         saveStateCache();
         saveEditState();
-        projectState.commit("State change", ProjectState::Mixer, false);
-        DBG("StateSync: Immediate commit for " + storeName);
+        commitAndNotify(commitMsg, ProjectState::Mixer, false);
+
+        // Normalize the cached JSON so echo string comparison works.
+        stateCache[storeName] = juce::JSON::toString(juce::JSON::parse(jsonValue));
     }
     else if (storeName != "songbird-mixer")
     {

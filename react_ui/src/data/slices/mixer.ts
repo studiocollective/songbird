@@ -162,14 +162,14 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     })),
   setVolume: (id, volume) =>
     set((s) => {
-      console.log(`[Mixer] setVolume: track=${id} volume=${volume}`);
+      const v = Math.round(volume);
       return {
-        tracks: s.tracks.map((t) => (t.id === id ? { ...t, volume } : t)),
+        tracks: s.tracks.map((t) => (t.id === id ? { ...t, volume: v } : t)),
       };
     }),
   setPan: (id, pan) =>
     set((s) => ({
-      tracks: s.tracks.map((t) => (t.id === id ? { ...t, pan } : t)),
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, pan: Math.round(pan) } : t)),
     })),
   setSendLevel: (id, bus, level) =>
     set((s) => ({

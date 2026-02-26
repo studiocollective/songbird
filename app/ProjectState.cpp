@@ -50,8 +50,10 @@ void ProjectState::initRepo()
     
     if (err < 0)
     {
-        // Initialize new repo
-        err = git_repository_init(&repo, path.c_str(), 0);
+        // Initialize new repo with 'main' as default branch
+        git_repository_init_options initOpts = GIT_REPOSITORY_INIT_OPTIONS_INIT;
+        initOpts.initial_head = "main";
+        err = git_repository_init_ext(&repo, path.c_str(), &initOpts);
         if (err < 0)
         {
             DBG("ProjectState: Failed to init repo: " + juce::String(git_error_last()->message));
@@ -93,6 +95,17 @@ void ProjectState::initRepo()
     else
     {
         DBG("ProjectState: Opened existing repo in " + projectDir.getFullPathName());
+        
+        // Migrate master -> main if needed
+        git_reference* masterRef = nullptr;
+        if (git_reference_lookup(&masterRef, repo, "refs/heads/master") == 0)
+        {
+            git_reference* mainRef = nullptr;
+            git_branch_move(&mainRef, masterRef, "main", true);
+            if (mainRef) git_reference_free(mainRef);
+            git_reference_free(masterRef);
+            DBG("ProjectState: Renamed branch master -> main");
+        }
     }
 
     initialized = true;
@@ -171,23 +184,70 @@ git_oid ProjectState::createCommit(const juce::String& message)
     return oid;
 }
 
-bool ProjectState::resolveCommitOid(int offset, git_oid* out) const
+bool ProjectState::getHeadOid(git_oid* out) const
 {
     if (!repo || !out) return false;
+    return git_reference_name_to_id(out, repo, "HEAD") == 0;
+}
+
+bool ProjectState::getParentOid(const git_oid& commitOid, git_oid* parentOid) const
+{
+    if (!repo || !parentOid) return false;
+    git_commit* commit = nullptr;
+    if (git_commit_lookup(&commit, repo, &commitOid) != 0) return false;
+    bool hasParent = git_commit_parentcount(commit) > 0;
+    if (hasParent)
+        git_oid_cpy(parentOid, git_commit_parent_id(commit, 0));
+    git_commit_free(commit);
+    return hasParent;
+}
+
+juce::String ProjectState::getCommitMessage(const git_oid& oid) const
+{
+    if (!repo) return {};
+    git_commit* commit = nullptr;
+    if (git_commit_lookup(&commit, repo, &oid) != 0) return {};
+    juce::String msg = git_commit_message(commit);
+    git_commit_free(commit);
+    return msg;
+}
+
+bool ProjectState::moveHead(const git_oid& targetOid)
+{
+    if (!repo) return false;
+    git_reference* ref = nullptr;
+    git_reference* newRef = nullptr;
     
-    juce::String spec = "HEAD";
-    if (offset > 0)
-        spec += "~" + juce::String(offset);
+    // Find the current branch ref (e.g. refs/heads/main)
+    if (git_repository_head(&ref, repo) != 0) return false;
     
-    git_object* obj = nullptr;
-    int err = git_revparse_single(&obj, repo, spec.toStdString().c_str());
+    int err = git_reference_set_target(&newRef, ref, &targetOid, "undo/redo");
+    git_reference_free(ref);
+    if (newRef) git_reference_free(newRef);
+    return err == 0;
+}
+
+bool ProjectState::findChildCommit(const git_oid& parentOid, const git_oid& tipOid, git_oid* childOid) const
+{
+    if (!repo || !childOid) return false;
     
-    if (err < 0)
-        return false;
+    // Walk backward from tip toward parent, building a path
+    git_oid current = tipOid;
+    git_oid child = tipOid;
     
-    git_oid_cpy(out, git_object_id(obj));
-    git_object_free(obj);
-    return true;
+    for (int i = 0; i < 1000; ++i)  // safety limit
+    {
+        if (git_oid_equal(&current, &parentOid))
+        {
+            git_oid_cpy(childOid, &child);
+            return true;
+        }
+        child = current;
+        git_oid parent;
+        if (!getParentOid(current, &parent)) return false;
+        current = parent;
+    }
+    return false;
 }
 
 bool ProjectState::hasUncommittedChanges() const
@@ -243,10 +303,8 @@ juce::Array<ProjectState::ChangedFile> ProjectState::getChangedFiles(const git_o
             
             if (cf.filename.endsWith(".bird"))
             {
-                // Check if only note/velocity lines changed (soft reload)
                 cf.isSoftReloadOnly = true;
                 
-                // Get the patch to inspect line content
                 git_patch* patch = nullptr;
                 git_patch_from_diff(&patch, diff, i);
                 
@@ -321,15 +379,11 @@ void ProjectState::restoreWorkdirFromCommit(const git_oid& commitOid)
 
 juce::Array<ProjectState::ChangedFile> ProjectState::diffAndRestore(const git_oid& targetOid)
 {
-    // Get current HEAD oid
     git_oid headOid;
-    if (!resolveCommitOid(0, &headOid))
+    if (!getHeadOid(&headOid))
         return {};
     
-    // Get the diff (what changed between HEAD and target)
     auto changedFiles = getChangedFiles(headOid, targetOid);
-    
-    // Restore the working directory
     restoreWorkdirFromCommit(targetOid);
     
     return changedFiles;
@@ -343,12 +397,18 @@ void ProjectState::commit(const juce::String& message, Source source, bool inclu
 {
     if (!initialized) return;
     
+    // Never create empty commits
+    if (!hasUncommittedChanges())
+    {
+        DBG("ProjectState: Skipping commit (no changes) - " + message);
+        return;
+    }
+    
+    // New change invalidates redo history
+    git_reference_remove(repo, "refs/redo-tip");
+    
     auto fullMessage = sourceTag(source) + " " + message;
     createCommit(fullMessage.toStdString().c_str());
-    
-    // Only reset undo position for user-initiated or AI commits.
-    if (source != Autosave)
-        undoPosition = 0;
     
     DBG("ProjectState: Committed - " + fullMessage);
 }
@@ -360,13 +420,25 @@ void ProjectState::commit(const juce::String& message, Source source, bool inclu
 bool ProjectState::canUndo() const
 {
     if (!initialized) return false;
-    git_oid oid;
-    return resolveCommitOid(undoPosition + 1, &oid);
+    git_oid headOid;
+    if (!getHeadOid(&headOid)) return false;
+    
+    // Check if HEAD is the project-load boundary
+    auto msg = getCommitMessage(headOid);
+    if (msg.contains("Project loaded") || msg.contains("Initial project state"))
+        return false;
+    
+    git_oid parentOid;
+    return getParentOid(headOid, &parentOid);
 }
 
 bool ProjectState::canRedo() const
 {
-    return initialized && undoPosition > 0;
+    if (!initialized) return false;
+    git_reference* ref = nullptr;
+    bool exists = git_reference_lookup(&ref, repo, "refs/redo-tip") == 0;
+    if (ref) git_reference_free(ref);
+    return exists;
 }
 
 juce::Array<ProjectState::ChangedFile> ProjectState::undo()
@@ -374,40 +446,80 @@ juce::Array<ProjectState::ChangedFile> ProjectState::undo()
     if (!initialized) return {};
     auto t0 = juce::Time::getMillisecondCounterHiRes();
 
-    // 1. Snapshot if at tip
-    if (undoPosition == 0 && hasUncommittedChanges())
-        commit("Save before undo", Autosave);
-    DBG("  git: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] commit");
-
-    // 2. Resolve target
-    int targetIndex = undoPosition + 1;
-    git_oid targetOid;
-    if (!resolveCommitOid(targetIndex, &targetOid))
+    git_oid headOid;
+    if (!getHeadOid(&headOid))
     {
-        DBG("ProjectState: Cannot undo - reached beginning of history");
+        DBG("ProjectState: Cannot undo - no HEAD");
         return {};
     }
-    DBG("  git: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] resolve");
 
-    // 3. Diff and restore (all in-process, zero fork)
-    auto changedFiles = diffAndRestore(targetOid);
-    undoPosition = targetIndex;
-    DBG("  git: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] diff+restore");
+    // Block undo at project-load boundary
+    auto msg = getCommitMessage(headOid);
+    if (msg.contains("Project loaded") || msg.contains("Initial project state"))
+    {
+        DBG("ProjectState: Cannot undo past project load boundary");
+        return {};
+    }
+
+    // Get parent
+    git_oid parentOid;
+    if (!getParentOid(headOid, &parentOid))
+    {
+        DBG("ProjectState: Cannot undo - no parent commit");
+        return {};
+    }
+
+    // Save redo-tip if not already set (first undo in a sequence)
+    git_reference* redoRef = nullptr;
+    if (git_reference_lookup(&redoRef, repo, "refs/redo-tip") != 0)
+    {
+        // Create redo-tip pointing to current HEAD
+        git_reference_create(&redoRef, repo, "refs/redo-tip", &headOid, false, "save redo tip");
+    }
+    if (redoRef) git_reference_free(redoRef);
+
+    // Diff, restore workdir, and move HEAD
+    auto changedFiles = diffAndRestore(parentOid);
+    moveHead(parentOid);
+
+    DBG("ProjectState: Undo -> " + getCommitMessage(parentOid).trimEnd());
+    DBG("  git: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms]");
     
     return changedFiles;
 }
 
 juce::Array<ProjectState::ChangedFile> ProjectState::redo()
 {
-    if (!initialized || undoPosition <= 0) return {};
+    if (!initialized) return {};
 
-    int targetIndex = undoPosition - 1;
-    git_oid targetOid;
-    if (!resolveCommitOid(targetIndex, &targetOid))
+    // Get redo-tip ref
+    git_reference* redoRef = nullptr;
+    if (git_reference_lookup(&redoRef, repo, "refs/redo-tip") != 0)
+        return {};  // nothing to redo
+    
+    git_oid tipOid = *git_reference_target(redoRef);
+    git_reference_free(redoRef);
+
+    git_oid headOid;
+    if (!getHeadOid(&headOid)) return {};
+
+    // Find the child of HEAD on the path to redo-tip
+    git_oid childOid;
+    if (!findChildCommit(headOid, tipOid, &childOid))
+    {
+        DBG("ProjectState: Cannot redo - child commit not found");
         return {};
+    }
 
-    auto changedFiles = diffAndRestore(targetOid);
-    undoPosition = targetIndex;
+    // Diff, restore workdir, and move HEAD
+    auto changedFiles = diffAndRestore(childOid);
+    moveHead(childOid);
+
+    // If we reached the tip, delete redo-tip ref
+    if (git_oid_equal(&childOid, &tipOid))
+        git_reference_remove(repo, "refs/redo-tip");
+
+    DBG("ProjectState: Redo -> " + getCommitMessage(childOid).trimEnd());
     
     return changedFiles;
 }
@@ -420,45 +532,25 @@ juce::Array<ProjectState::ChangedFile> ProjectState::revertLastLLM()
 {
     if (!initialized) return {};
 
-    // 1. Snapshot or reset
-    if (undoPosition == 0)
-        commit("Save before revert", Autosave);
-    else
-    {
-        undoPosition = 0;
-        git_oid headOid;
-        if (resolveCommitOid(0, &headOid))
-            restoreWorkdirFromCommit(headOid);
-    }
-
-    // 2. Find most recent LLM commit
+    // Find most recent LLM commit
     auto history = getHistory(50);
-    juce::String targetHashStr;
     for (const auto& entry : history)
     {
         if (entry.source == LLM)
         {
-            // Want the parent of the LLM commit
             git_oid llmOid;
             git_oid_fromstr(&llmOid, entry.hash.toStdString().c_str());
             
-            git_commit* llmCommit = nullptr;
-            git_commit_lookup(&llmCommit, repo, &llmOid);
+            git_oid parentOid;
+            if (!getParentOid(llmOid, &parentOid))
+                break;
             
-            if (llmCommit && git_commit_parentcount(llmCommit) > 0)
-            {
-                const git_oid* parentOid = git_commit_parent_id(llmCommit, 0);
-                auto changedFiles = diffAndRestore(*parentOid);
-                git_commit_free(llmCommit);
-                
-                // Commit reversion as new tip
-                createCommit("[user] Reverted last AI change");
-                undoPosition = 0;
-                return changedFiles;
-            }
+            auto changedFiles = diffAndRestore(parentOid);
             
-            if (llmCommit) git_commit_free(llmCommit);
-            break;
+            // Commit reversion as new tip
+            git_reference_remove(repo, "refs/redo-tip");
+            createCommit("[user] Reverted last AI change");
+            return changedFiles;
         }
     }
 

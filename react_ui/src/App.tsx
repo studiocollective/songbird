@@ -3,6 +3,7 @@ import { Transport } from '@/components/Transport';
 import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
 import { ChatPanel } from '@/components/ChatPanel';
+import { HistoryPanel } from '@/components/HistoryPanel';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
@@ -95,6 +96,7 @@ function App() {
         <ChatPanel />
       </div>
       <MixerPanel />
+      <HistoryPanel />
       <DebugPanel />
       <ExportProgressModal />
     </div>
