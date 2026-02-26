@@ -82,7 +82,7 @@ public:
     static void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& engine, std::function<void(const juce::String&, float)> progressCallback = nullptr);
 
     // Serialize all track note data from an Edit as a JSON string
-    static juce::String getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);
+    static juce::String getTrackStateJSON(te::Edit& edit, const BirdParseResult* parseResult = nullptr);
 
     struct PatternState {
         size_t patIdx = 0;

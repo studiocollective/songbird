@@ -1260,7 +1260,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
 // --- Serialize track notes as JSON for the UI ---
 
-juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult* parseResult) {
+juce::String BirdLoader::getTrackStateJSON(te::Edit& edit, const BirdParseResult* parseResult) {
     auto tracks = te::getAudioTracks(edit);
     juce::String json = "{\"tracks\":[";
 
@@ -1365,11 +1365,29 @@ juce::String BirdLoader::getTrackNotesJSON(te::Edit& edit, const BirdParseResult
             }
         }
 
+        // Read volume/pan from Tracktion for this track
+        int trackVolume = 80;
+        int trackPan = 0;
+        bool trackMuted = false;
+        bool trackSolo = false;
+        if (auto* audioTrack = dynamic_cast<te::AudioTrack*>(track)) {
+            if (auto vp = audioTrack->getVolumePlugin()) {
+                trackVolume = juce::roundToInt(juce::Decibels::decibelsToGain(vp->getVolumeDb()) * 127.0f);
+                trackPan = juce::roundToInt(vp->getPan() * 64.0f);
+            }
+            trackMuted = audioTrack->isMuted(false);
+            trackSolo = audioTrack->isSolo(false);
+        }
+
         json += "{\"id\":" + juce::String(t) +
                 ",\"name\":" + juce::JSON::toString(isMaster ? "Master" : track->getName()) +
                 ",\"trackType\":" + juce::JSON::toString(trackTypeStr) +
                 ",\"isReturn\":" + (isReturn ? "true" : "false") +
                 ",\"isMaster\":" + (isMaster ? "true" : "false") +
+                ",\"volume\":" + juce::String(trackVolume) +
+                ",\"pan\":" + juce::String(trackPan) +
+                ",\"muted\":" + (trackMuted ? "true" : "false") +
+                ",\"solo\":" + (trackSolo ? "true" : "false") +
                 ",\"sends\":" + sendsJson +
                 pluginField + fxField + channelStripField +
                 ",\"notes\":[";

@@ -147,15 +147,19 @@ interface PluginSlotsProps {
 }
 
 export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster, sidechainTrackId, sidechainSensitivity, trackList }: PluginSlotsProps) {
+  const emptySlot: PluginSlot = { pluginId: null, pluginName: null, bypassed: false };
+  const inst = instrument ?? emptySlot;
+  const fxSlot = fx ?? emptySlot;
+  const stripSlot = channelStrip ?? emptySlot;
   const availableInstruments = useMixerStore((s) => s.availableInstruments);
   const availableFx = useMixerStore((s) => s.availableFx);
-  const availableEffects = useMixerStore((s) => s.availableEffects);
+  const availableChannelStrips = useMixerStore((s) => s.availableChannelStrips);
 
   return (
     <div className={slotsContainer}>
       {trackType === 'midi' ? (
         <PluginSlotButton
-          slot={instrument}
+          slot={inst}
           label="+ Instrument"
           icon="🎹"
           options={availableInstruments}
@@ -173,7 +177,7 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
         <div className="h-4" />
       )}
       <PluginSlotButton
-        slot={fx}
+        slot={fxSlot}
         label="+ FX"
         icon={isMaster ? "🎛️" : "✨"}
         options={availableFx}
@@ -188,10 +192,10 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
         }
       />
       <PluginSlotButton
-        slot={channelStrip}
+        slot={stripSlot}
         label="+ Strip"
         icon="🎛️"
-        options={availableEffects}
+        options={availableChannelStrips}
         onSelect={(pluginId, pluginName) =>
           useMixerStore.getState().setChannelStrip(trackId, pluginId, pluginName)
         }
@@ -204,7 +208,7 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
       />
 
       {/* Sidechain selector — shown when a channel strip is loaded and not on master/return */}
-      {channelStrip.pluginId && !isMaster && (
+      {stripSlot.pluginId && !isMaster && (
         <SidechainSelector
           trackId={trackId}
           sidechainTrackId={sidechainTrackId ?? null}

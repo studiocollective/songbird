@@ -1,22 +1,25 @@
 #pragma once
 
 #include <juce_core/juce_core.h>
+#include <git2.h>
 
 /**
- * Centralized project state manager using local git for undo/redo and LLM revert.
+ * Centralized project state manager using libgit2 for zero-fork undo/redo.
  * 
  * The project directory contains:
  *   - <name>.bird         — composition (notes, arrangement)
  *   - <name>.state.json   — UI state (mixer, chat)
- *   - <name>.edit.xml     — plugin state (VST3/AU presets)
+ *   - <name>.edit.json    — plugin state (VST3/AU presets, structured JSON)
  * 
  * Each meaningful change is committed with a source tag.
  * Undo/redo navigates commit history and restores files on disk.
+ * All Git operations happen in-process via libgit2 (no fork/exec).
  */
 class ProjectState
 {
 public:
     ProjectState();
+    ~ProjectState();
 
     /// Set the project directory (must be called before any other method)
     void setProjectDir(const juce::File& birdFile);
@@ -27,9 +30,7 @@ public:
 
     enum Source { Autosave, LLM, User, Mixer };
 
-    /** Commit current files with a message and source tag.
-     *  If includeEditXml is false, .edit.xml is excluded (for frequent mixer saves).
-     */
+    /** Commit current files with a message and source tag. */
     void commit(const juce::String& message, Source source, bool includeEditXml = true);
 
     // ------------------------------------------------------------------
@@ -39,29 +40,18 @@ public:
     bool canUndo() const;
     bool canRedo() const;
 
-    // Return structure for undo/redo
     struct ChangedFile {
         juce::String filename;
-        bool isSoftReloadOnly = false; // True if ONLY patterns/velocities changed in a .bird file
+        bool isSoftReloadOnly = false;
     };
 
-    /** Undo: restores files from the previous commit.
-     *  Returns the list of files changed (caller uses this for fast-path reloads).
-     */
     juce::Array<ChangedFile> undo();
-
-    /** Redo: restores files from the next commit (after undo).
-     *  Returns the list of files changed.
-     */
     juce::Array<ChangedFile> redo();
 
     // ------------------------------------------------------------------
     // LLM Revert
     // ------------------------------------------------------------------
 
-    /** Revert to the state before the last LLM commit.
-     *  Returns the list of files changed.
-     */
     juce::Array<ChangedFile> revertLastLLM();
 
     // ------------------------------------------------------------------
@@ -83,15 +73,19 @@ public:
 
 private:
     juce::File projectDir;
+    git_repository* repo = nullptr;
     bool initialized = false;
 
     // Undo position: 0 = HEAD, 1 = HEAD~1, etc.
     int undoPosition = 0;
 
     void initRepo();
-    juce::String runGit(const juce::StringArray& args) const;
-    juce::String runGitInternal(const juce::StringArray& fullArgs) const;
-    bool restoreFilesFromCommit(const juce::String& commitHash);
-    juce::String getCommitHash(int offset) const;
-    juce::Array<ChangedFile> parseDiffOutput(const juce::String& diffText);
+    
+    // Core Git helpers (all in-process, zero fork)
+    git_oid createCommit(const juce::String& message);
+    bool resolveCommitOid(int offset, git_oid* out) const;
+    bool hasUncommittedChanges() const;
+    juce::Array<ChangedFile> diffAndRestore(const git_oid& targetOid);
+    juce::Array<ChangedFile> getChangedFiles(const git_oid& fromOid, const git_oid& toOid) const;
+    void restoreWorkdirFromCommit(const git_oid& commitOid);
 };

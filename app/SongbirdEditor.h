@@ -5,6 +5,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <tracktion_engine/tracktion_engine.h>
 #include <map>
+#include <set>
 #include "libraries/magenta/LyriaPlugin.h"
 #include "BirdLoader.h"
 #include "PlaybackInfo.h"
@@ -12,10 +13,13 @@
 #include "libraries/tracktion/examples/common/PluginWindow.h"
 #include "MidiRecorder.h"
 #include "AudioRecorder.h"
+#include "TrackStateWatcher.h"
 
 namespace te = tracktion;
 
-class SongbirdEditor : public juce::Component, private juce::Timer
+class SongbirdEditor : public juce::Component, 
+                       private juce::Timer,
+                       private juce::AudioProcessorListener
 {
 public:
     SongbirdEditor();
@@ -39,10 +43,28 @@ private:
     void applyTransportState(const juce::var& state);
     void applyMixerState(const juce::var& state);
     void saveStateCache();
+    void saveSessionState();
     void loadStateCache();
     void saveEditState();
     void loadEditState();
     void timerCallback() override;
+
+    // Reactive plugin state tracking
+    // Listeners fire from audio thread → callAsync marks plugins dirty on message thread
+    // Timer debounces → flushes only dirty plugins → writes JSON to disk
+    std::set<te::ExternalPlugin*> dirtyPlugins;
+    void registerPluginListeners();
+    void unregisterPluginListeners();
+    te::ExternalPlugin* findExternalPlugin(juce::AudioProcessor* processor);
+    void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override;
+    void audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails& details) override;
+
+    // Per-track reactive mixer state sync (C++ → React)
+    std::vector<std::unique_ptr<TrackStateWatcher>> trackWatchers;
+    std::atomic<bool> suppressMixerEcho { false };
+    std::atomic<bool> undoRedoInProgress { false };  // suppresses applyMixerState from React persist echo
+    void createTrackWatchers();
+    void pushMixerStateToReact();  // force push all tracks (after load/undo)
 
     // Bird file loading
     void scanForPlugins();
@@ -52,7 +74,7 @@ private:
     void exportSheetMusic();
     void exportStems(bool includeReturnFx);
     void exportMaster();
-    juce::String getTrackNotesJSON();
+    juce::String getTrackStateJSON();
     BirdParseResult lastParseResult;
     juce::File currentBirdFile;
     std::unique_ptr<juce::Thread> stemExportThread;
@@ -69,7 +91,7 @@ private:
     // Lyria generated track management
     struct LyriaTrackContext {
         magenta::LyriaPlugin* plugin = nullptr;
-        int quantizeBars = 0;  // 0 = no quantize, 1 = 1 bar, 2 = 2 bars, etc.
+        int quantizeBars = 0;
     };
     std::map<int, LyriaTrackContext> lyriaPlugins;
     void addGeneratedTrack();

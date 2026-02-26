@@ -9,8 +9,20 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
     // Store the state for later retrieval
     stateCache[storeName] = jsonValue;
 
-    // Debounce save to disk (500ms)
-    startTimer(500);
+    // Only mixer state participates in undo/redo (git-tracked via daw.state.json).
+    // Transport/chat/lyria are saved to daw.session.json (gitignored) — no commits.
+    if (storeName == "songbird-mixer" && isLoadFinished && !undoRedoInProgress.load())
+    {
+        saveStateCache();
+        saveEditState();
+        projectState.commit("State change", ProjectState::Mixer, false);
+        DBG("StateSync: Immediate commit for " + storeName);
+    }
+    else if (storeName != "songbird-mixer")
+    {
+        // Debounce session saves (transport position fires at ~60fps)
+        startTimer(500);
+    }
 
     // Parse and react to state changes
     auto json = juce::JSON::parse(jsonValue);
@@ -25,14 +37,15 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
     }
     else if (storeName == "songbird-mixer")
     {
-        applyMixerState(state);
+        // During undo/redo, the restored state has already been applied to Tracktion.
+        // React's persist will echo back stale values -- don't re-apply them.
+        if (!undoRedoInProgress.load())
+            applyMixerState(state);
     }
     else if (storeName == "songbird-lyria")
     {
         handleLyriaState(state);
     }
-
-
 }
 
 void SongbirdEditor::applyTransportState(const juce::var& state)
@@ -94,12 +107,13 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
 {
     if (!edit) return;
 
-    // Apply track volumes, pans, mutes, solos from state
+    suppressMixerEcho = true;
+
     auto tracksVar = state.getProperty("tracks", {});
-    if (!tracksVar.isArray()) return;
+    if (!tracksVar.isArray()) { suppressMixerEcho = false; return; }
 
     auto* tracksArray = tracksVar.getArray();
-    if (!tracksArray) return;
+    if (!tracksArray) { suppressMixerEcho = false; return; }
 
     auto audioTracks = te::getAudioTracks(*edit);
 
@@ -122,32 +136,49 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
         auto* audioTrack = dynamic_cast<te::AudioTrack*>(track);
         if (!audioTrack) continue;
 
-        // Volume (0-127 → 0.0-1.0)
+        // Volume (0-127 -> 0.0-1.0) — only apply if changed
         if (trackState.hasProperty("volume"))
         {
-            double vol = (double)trackState.getProperty("volume", 80) / 127.0;
+            int volMidi = (int)trackState.getProperty("volume", 80);
+            double vol = (double)volMidi / 127.0;
+            float volDb = juce::Decibels::gainToDecibels(static_cast<float>(vol));
             if (auto volPlugin = audioTrack->getVolumePlugin())
-                volPlugin->setVolumeDb(juce::Decibels::gainToDecibels(static_cast<float>(vol)));
+            {
+                float prevDb = volPlugin->getVolumeDb();
+                if (std::abs(volDb - prevDb) > 0.05f)
+                {
+                    volPlugin->setVolumeDb(volDb);
+                    DBG("  Track[" + juce::String(i) + "] '" + audioTrack->getName()
+                        + "' vol: " + juce::String(prevDb, 1) + " -> " + juce::String(volDb, 1) + "dB");
+                }
+            }
         }
 
-        // Pan (-64 to 63 → -1.0 to 1.0)
+        // Pan — only apply if changed
         if (trackState.hasProperty("pan"))
         {
-            double pan = (double)trackState.getProperty("pan", 0) / 64.0;
+            float pan = static_cast<float>((double)trackState.getProperty("pan", 0) / 64.0);
             if (auto volPlugin = audioTrack->getVolumePlugin())
-                volPlugin->setPan(static_cast<float>(pan));
+            {
+                if (std::abs(pan - volPlugin->getPan()) > 0.01f)
+                    volPlugin->setPan(pan);
+            }
         }
 
-        // Mute
+        // Mute — only apply if changed
         if (trackState.hasProperty("muted"))
         {
-            audioTrack->setMute((bool)trackState.getProperty("muted", false));
+            bool muted = (bool)trackState.getProperty("muted", false);
+            if (muted != audioTrack->isMuted(false))
+                audioTrack->setMute(muted);
         }
 
-        // Solo
+        // Solo — only apply if changed
         if (trackState.hasProperty("solo"))
         {
-            audioTrack->setSolo((bool)trackState.getProperty("solo", false));
+            bool solo = (bool)trackState.getProperty("solo", false);
+            if (solo != audioTrack->isSolo(false))
+                audioTrack->setSolo(solo);
         }
 
         // Sends
@@ -168,4 +199,28 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
             }
         }
     }
+
+    suppressMixerEcho = false;
 }
+
+void SongbirdEditor::createTrackWatchers()
+{
+    trackWatchers.clear();
+    if (!edit) return;
+    
+    auto audioTracks = te::getAudioTracks(*edit);
+    for (int i = 0; i < audioTracks.size(); i++)
+    {
+        trackWatchers.push_back(std::make_unique<TrackStateWatcher>(
+            audioTracks[i], i, webView.get(), suppressMixerEcho));
+    }
+    
+    DBG("StateSync: Created " + juce::String((int)trackWatchers.size()) + " track watchers");
+}
+
+void SongbirdEditor::pushMixerStateToReact()
+{
+    for (auto& watcher : trackWatchers)
+        watcher->forcePush();
+}
+

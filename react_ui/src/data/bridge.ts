@@ -1,5 +1,6 @@
 import type { StateStorage } from 'zustand/middleware';
 import { Juce, isPlugin } from '@/lib';
+import { isSliderDragging } from '@/data/sliderDrag';
 
 // --- Debug log (circular buffer, max 200 entries) ---
 export interface BridgeLogEntry {
@@ -39,6 +40,8 @@ const resetState = isPlugin ? Juce.getNativeFunction('resetState') : () => Promi
 // --- Zustand StateStorage that routes to C++ ---
 export const juceBridge: StateStorage = {
   setItem: (name: string, value: string) => {
+    // During slider drags, suppress mixer persist — audio is handled by setMixerParamRT
+    if (name === 'songbird-mixer' && isSliderDragging()) return;
     pushLog({ direction: isPlugin ? '→C++' : 'local', method: 'updateState', storeName: name, payload: value });
     updateState(name, value);
     return true;

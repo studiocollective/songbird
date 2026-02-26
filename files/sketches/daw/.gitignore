@@ -1,4 +1,6 @@
 .DS_Store
+*.edit.xml
+*.session.json
 *.wav
 *.mp3
 *.aif

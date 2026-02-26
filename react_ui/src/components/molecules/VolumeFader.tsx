@@ -1,6 +1,8 @@
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
+import { nativeFunction } from '@/data/bridge';
+import { beginSliderDrag, endSliderDrag } from '@/data/sliderDrag';
 
 interface VolumeFaderProps {
   trackId: number;
@@ -10,6 +12,7 @@ interface VolumeFaderProps {
 }
 
 const DEFAULT_VOLUME = 80;
+const setMixerParamRT = nativeFunction('setMixerParamRT');
 
 export function VolumeFader({ trackId, value, color, height = 'h-24' }: VolumeFaderProps) {
   return (
@@ -19,7 +22,16 @@ export function VolumeFader({ trackId, value, color, height = 'h-24' }: VolumeFa
       max={127}
       step={0.01}
       value={[value]}
-      onValueChange={([v]) => useMixerStore.getState().setVolume(trackId, v)}
+      onPointerDown={() => beginSliderDrag()}
+      onValueChange={([v]) => {
+        useMixerStore.getState().setVolume(trackId, v);
+        setMixerParamRT(trackId, 'volume', v);
+      }}
+      onValueCommit={([v]) => {
+        endSliderDrag();
+        // Re-call setVolume with persist enabled to flush final state to C++
+        useMixerStore.getState().setVolume(trackId, v);
+      }}
       onDoubleClick={() => useMixerStore.getState().setVolume(trackId, DEFAULT_VOLUME)}
       className={cn(root, height)}
     >

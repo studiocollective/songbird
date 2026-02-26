@@ -1,6 +1,8 @@
 import { useRef, useCallback, useEffect } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useMixerStore } from '@/data/store';
+import { nativeFunction } from '@/data/bridge';
+import { beginSliderDrag, endSliderDrag } from '@/data/sliderDrag';
 
 interface SendControlProps {
   trackId: number;
@@ -11,6 +13,7 @@ interface SendControlProps {
 
 const DEFAULT_SEND = 0;
 const DRAG_SENSITIVITY = 150;
+const setMixerParamRT = nativeFunction('setMixerParamRT');
 
 export function SendControl({ trackId, busIndex, value, color }: SendControlProps) {
   const currentY = useRef<number | undefined>(undefined);
@@ -31,6 +34,7 @@ export function SendControl({ trackId, busIndex, value, color }: SendControlProp
     
     currentValue.current = newValue;
     useMixerStore.getState().setSendLevel(trackId, busIndex, newValue);
+    setMixerParamRT(trackId, 'send' + busIndex, newValue);
     
     currentY.current = e.clientY;
   }, [trackId, busIndex]);
@@ -39,10 +43,14 @@ export function SendControl({ trackId, busIndex, value, color }: SendControlProp
     currentY.current = undefined;
     window.removeEventListener('pointermove', handlePointerMove);
     window.removeEventListener('pointerup', onPointerUp);
-  }, [handlePointerMove]);
+    // Re-enable persist and flush final state
+    endSliderDrag();
+    useMixerStore.getState().setSendLevel(trackId, busIndex, currentValue.current);
+  }, [handlePointerMove, trackId, busIndex]);
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return; // Only left-click
+    beginSliderDrag();
     currentY.current = e.clientY;
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);

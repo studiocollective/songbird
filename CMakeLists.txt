@@ -2,6 +2,20 @@ cmake_minimum_required(VERSION 3.15)
 
 project(SongbirdPlayer VERSION 1.0.0)
 
+# Fetch libgit2 — in-process Git for zero-fork undo/redo
+include(FetchContent)
+FetchContent_Declare(libgit2
+    GIT_REPOSITORY https://github.com/libgit2/libgit2.git
+    GIT_TAG        v1.8.4
+    GIT_SHALLOW    TRUE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_CLI OFF CACHE BOOL "" FORCE)
+set(USE_SSH OFF CACHE BOOL "" FORCE)
+set(USE_HTTPS OFF CACHE BOOL "" FORCE)
+set(USE_BUNDLED_ZLIB OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(libgit2)
+
 # macOS deployment target
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
@@ -64,7 +78,9 @@ target_include_directories(SongbirdPlayer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/json/include
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/websocketpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/asio/asio/include
-    ${CMAKE_CURRENT_SOURCE_DIR})
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${libgit2_SOURCE_DIR}/include
+    ${libgit2_BINARY_DIR}/include)
 
 # Compile definitions
 target_compile_definitions(SongbirdPlayer PRIVATE
@@ -89,7 +105,8 @@ target_link_libraries(SongbirdPlayer PRIVATE
     juce::juce_dsp
     juce::juce_recommended_warning_flags
     OpenSSL::SSL
-    OpenSSL::Crypto)
+    OpenSSL::Crypto
+    libgit2package)
 
 # macOS-specific
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

@@ -23,7 +23,10 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             if (args.size() > 1) {
                 juce::String storeName = args[0].toString();
                 juce::String value = args[1].toString();
-                handleStateUpdate(storeName, value);
+                // Dispatch to message thread so JUCE Timer and audio APIs work correctly
+                juce::MessageManager::callAsync([this, storeName, value]() {
+                    handleStateUpdate(storeName, value);
+                });
                 complete("ok");
             }
         })
@@ -116,8 +119,8 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             complete("ok");
         })
         // Get track notes JSON for the UI
-        .withNativeFunction("getTrackNotes", [this](auto&, auto complete) {
-            complete(getTrackNotesJSON());
+        .withNativeFunction("getTrackState", [this](auto&, auto complete) {
+            complete(getTrackStateJSON());
         })
         // Enumerate all automatable parameters on a track's plugins (for AI tool use)
         .withNativeFunction("getPluginParams", [this](auto& args, auto complete) {
@@ -277,14 +280,50 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 DBG("MixerSet: track=" + juce::String(trackId) + " vol=" + juce::String(volumeDb)
                     + "dB pan=" + juce::String(pan) + " mute=" + (mute ? "Y" : "N") + " solo=" + (solo ? "Y" : "N"));
 
-                // Re-emit trackNotes so React mixer panel reflects the change
+                // Re-emit trackState so React mixer panel reflects the change
                 if (webView) {
-                    auto json = BirdLoader::getTrackNotesJSON(*edit, &lastParseResult);
-                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+                    auto json = BirdLoader::getTrackStateJSON(*edit, &lastParseResult);
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
                 }
 
                 complete("{\"success\":true}");
             });
+        })
+        // Real-time mixer param for slider drags — sets engine directly, no state cache / commit
+        // Args: (trackId: int, param: string, value: number)
+        // param: "volume" (0-127), "pan" (-64 to 63), "send0"-"send3" (0.0-1.0)
+        .withNativeFunction("setMixerParamRT", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 3) { complete("ok"); return; }
+            int trackId       = static_cast<int>(args[0]);
+            juce::String param = args[1].toString();
+            double value      = static_cast<double>(args[2]);
+
+            juce::MessageManager::callAsync([this, trackId, param, value]() {
+                auto audioTracks = te::getAudioTracks(*edit);
+                te::AudioTrack* track = nullptr;
+
+                if (trackId == (int)audioTracks.size())
+                    track = dynamic_cast<te::AudioTrack*>(edit->getMasterTrack());
+                else if (trackId >= 0 && trackId < (int)audioTracks.size())
+                    track = audioTracks[trackId];
+                if (!track) return;
+
+                if (param == "volume") {
+                    double vol = value / 127.0;
+                    float volDb = juce::Decibels::gainToDecibels(static_cast<float>(vol));
+                    if (auto vp = track->getVolumePlugin())
+                        vp->setVolumeDb(volDb);
+                } else if (param == "pan") {
+                    float pan = static_cast<float>(value / 64.0);
+                    if (auto vp = track->getVolumePlugin())
+                        vp->setPan(pan);
+                } else if (param.startsWith("send")) {
+                    int bus = param.getTrailingIntValue();
+                    if (auto* sp = track->getAuxSendPlugin(bus))
+                        sp->setGainDb(juce::Decibels::gainToDecibels(static_cast<float>(value)));
+                }
+            });
+            complete("ok");
         })
         // Set project BPM
         .withNativeFunction("setBpm", [this](auto& args, auto complete) {
@@ -610,7 +649,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                         clip->state.getParent().removeChild(clip->state, nullptr);
                     BirdLoader::populateEdit(*edit, lastParseResult, engine);
                     if (webView)
-                        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+                        webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
                 }
             });
             complete("{\"success\":true}");
@@ -631,7 +670,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
                 int id = audioRecorder->addAudioTrack();
                 if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
                 complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
             });
         })
@@ -641,7 +680,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             juce::MessageManager::callAsync([this, trackId]() {
                 audioRecorder->removeAudioTrack(trackId);
                 if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(BirdLoader::getTrackNotesJSON(*edit, &lastParseResult)));
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
             });
             complete("{\"success\":true}");
         })

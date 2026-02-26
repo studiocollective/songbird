@@ -26,7 +26,7 @@ export function ArrangementView() {
   // otherwise fall back to max note beat position
   const arrangementTracks = tracks.filter((t) => !t.isReturn && !t.isMaster);
   const maxBeat = arrangementTracks.reduce((max, track) => {
-    const trackMax = track.notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
+    const trackMax = (track.notes ?? []).reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
     return Math.max(max, trackMax);
   }, 4); // minimum 4 beats = 1 bar
   const totalBars = storeTotalBars > 1 ? storeTotalBars : Math.max(1, Math.ceil(maxBeat / 4));
@@ -140,7 +140,7 @@ export function ArrangementView() {
               ))}
 
               {/* MIDI notes mini piano-roll */}
-              {track.notes.length > 0 && (
+              {track.notes && track.notes.length > 0 && (
                 <div className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0`}>
                     <NoteClip
                       notes={track.notes}

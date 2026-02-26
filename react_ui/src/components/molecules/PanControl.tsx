@@ -1,5 +1,7 @@
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { useMixerStore } from '@/data/store';
+import { nativeFunction } from '@/data/bridge';
+import { beginSliderDrag, endSliderDrag } from '@/data/sliderDrag';
 
 interface PanControlProps {
   trackId: number;
@@ -8,6 +10,7 @@ interface PanControlProps {
 }
 
 const DEFAULT_PAN = 0;
+const setMixerParamRT = nativeFunction('setMixerParamRT');
 
 export function PanControl({ trackId, value, color }: PanControlProps) {
   return (
@@ -18,7 +21,15 @@ export function PanControl({ trackId, value, color }: PanControlProps) {
         max={63}
         step={0.01}
         value={[value]}
-        onValueChange={([v]) => useMixerStore.getState().setPan(trackId, v)}
+        onPointerDown={() => beginSliderDrag()}
+        onValueChange={([v]) => {
+          useMixerStore.getState().setPan(trackId, v);
+          setMixerParamRT(trackId, 'pan', v);
+        }}
+        onValueCommit={([v]) => {
+          endSliderDrag();
+          useMixerStore.getState().setPan(trackId, v);
+        }}
         onDoubleClick={() => useMixerStore.getState().setPan(trackId, DEFAULT_PAN)}
         className={root}
       >

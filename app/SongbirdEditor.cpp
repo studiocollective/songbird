@@ -1,5 +1,6 @@
 #include "SongbirdEditor.h"
 #include "WebViewHelpers.h"
+#include "ValueTreeJSON.h"
 
 //==============================================================================
 // Constructor / Destructor
@@ -49,10 +50,10 @@ SongbirdEditor::SongbirdEditor()
             if (oldStateFile.existsAsFile()) {
                 oldStateFile.moveFileTo(projectDir.getChildFile(sketchName + ".state.json"));
             }
-            // Also move edit state file if it exists
+            // Also move edit state file if it exists (migrate to JSON)
             auto oldEditFile = sketchesDir.getChildFile(sketchName + ".edit.xml");
             if (oldEditFile.existsAsFile()) {
-                oldEditFile.moveFileTo(projectDir.getChildFile(sketchName + ".edit.xml"));
+                oldEditFile.moveFileTo(projectDir.getChildFile(sketchName + ".edit.json"));
             }
             DBG("BirdLoader: Migrated " + sketchName + " to project folder");
         }
@@ -87,11 +88,11 @@ SongbirdEditor::SongbirdEditor()
             
             auto oldStateFile = projectRoot.getChildFile("files/sketches/daw.bird.state.json");
             if (oldStateFile.existsAsFile()) {
-                oldStateFile.moveFileTo(projectDir.getChildFile("daw.bird.state.json"));
+                oldStateFile.moveFileTo(projectDir.getChildFile("daw.state.json"));
             }
             auto oldEditFile = projectRoot.getChildFile("files/sketches/daw.bird.edit.xml");
             if (oldEditFile.existsAsFile()) {
-                oldEditFile.moveFileTo(projectDir.getChildFile("daw.bird.edit.xml"));
+                oldEditFile.moveFileTo(projectDir.getChildFile("daw.edit.json"));
             }
         }
 
@@ -172,8 +173,8 @@ void SongbirdEditor::startBackgroundLoading()
         
         // Push initial state to React UI (it often beats the 500ms JS timer)
         if (webView) {
-            auto json = getTrackNotesJSON();
-            webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+            auto json = getTrackStateJSON();
+            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
         }
     });
 }
@@ -182,6 +183,12 @@ SongbirdEditor::~SongbirdEditor()
 {
     if (edit) {
         edit->getTransport().stop(false, false);
+        unregisterPluginListeners();
+        // Mark all plugins dirty for final save
+        for (auto* track : te::getAllTracks(*edit))
+            for (auto* plugin : track->pluginList.getPlugins())
+                if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+                    dirtyPlugins.insert(ext);
         saveEditState();
         projectState.commit("Session end", ProjectState::Autosave);
     }
@@ -214,85 +221,258 @@ void SongbirdEditor::resized()
 void SongbirdEditor::timerCallback()
 {
     stopTimer();
-    saveStateCache();
+    if (!isLoadFinished) return;
+    // Timer is used for: (1) session state debounce, (2) plugin param debounce
+    saveSessionState();
     saveEditState();
-    projectState.commit("State change", ProjectState::Mixer, false);
 }
 
 void SongbirdEditor::saveStateCache()
 {
     if (!currentBirdFile.existsAsFile()) return;
     
+    // Only save mixer state to daw.state.json (git-tracked for undo/redo)
     juce::DynamicObject::Ptr obj = new juce::DynamicObject();
-    for (auto& pair : stateCache)
-    {
-        // Add parsed JSON directly
-        obj->setProperty(pair.first, juce::JSON::parse(pair.second));
-    }
+    auto it = stateCache.find("songbird-mixer");
+    if (it != stateCache.end())
+        obj->setProperty(it->first, juce::JSON::parse(it->second));
         
-    auto stateFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileName() + ".state.json");
+    auto stateFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".state.json");
     if (obj->getProperties().size() > 0)
     {
         stateFile.replaceWithText(juce::JSON::toString(obj.get()));
-        DBG("StateSync: Saved state to " + stateFile.getFullPathName());
+    }
+}
+
+void SongbirdEditor::saveSessionState()
+{
+    if (!currentBirdFile.existsAsFile()) return;
+    
+    // Save transport/chat/lyria to daw.session.json (gitignored, not part of undo)
+    juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+    for (auto& pair : stateCache)
+    {
+        if (pair.first == "songbird-mixer") continue;  // mixer is in state.json
+        obj->setProperty(pair.first, juce::JSON::parse(pair.second));
+    }
+        
+    auto sessionFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".session.json");
+    if (obj->getProperties().size() > 0)
+    {
+        sessionFile.replaceWithText(juce::JSON::toString(obj.get()));
     }
 }
 
 void SongbirdEditor::loadStateCache()
 {
     if (!currentBirdFile.existsAsFile()) return;
+    stateCache.clear();
     
-    auto stateFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileName() + ".state.json");
-    if (!stateFile.existsAsFile()) return;
+    // Load git-tracked mixer state from daw.state.json
+    auto stateFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".state.json");
     
-    auto parsed = juce::JSON::parse(stateFile);
-    if (auto* obj = parsed.getDynamicObject())
-    {
-        stateCache.clear();
-        for (auto& prop : obj->getProperties())
-        {
-            stateCache[prop.name.toString()] = juce::JSON::toString(prop.value);
-        }
-        DBG("StateSync: Loaded state from " + stateFile.getFullPathName());
+    // Backward compatibility: migrate old daw.bird.state.json → daw.state.json
+    if (!stateFile.existsAsFile()) {
+        auto oldFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileName() + ".state.json");
+        if (oldFile.existsAsFile())
+            oldFile.moveFileTo(stateFile);
     }
+    if (stateFile.existsAsFile())
+    {
+        auto parsed = juce::JSON::parse(stateFile);
+        if (auto* obj = parsed.getDynamicObject())
+        {
+            for (auto& prop : obj->getProperties())
+                stateCache[prop.name.toString()] = juce::JSON::toString(prop.value);
+        }
+    }
+    
+    // Load session state (transport/chat/lyria) from daw.session.json
+    auto sessionFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".session.json");
+    if (sessionFile.existsAsFile())
+    {
+        auto parsed = juce::JSON::parse(sessionFile);
+        if (auto* obj = parsed.getDynamicObject())
+        {
+            for (auto& prop : obj->getProperties())
+                stateCache[prop.name.toString()] = juce::JSON::toString(prop.value);
+        }
+    }
+    
+    DBG("StateSync: Loaded state cache (" + juce::String((int)stateCache.size()) + " stores)");
 }
 
 void SongbirdEditor::saveEditState()
 {
     if (!edit || !currentBirdFile.existsAsFile()) return;
-
-    // Flush all plugin internal state (VST3/AU binary blobs) into the ValueTree
-    for (auto* track : te::getAllTracks(*edit))
+    if (dirtyPlugins.empty())
     {
+        DBG("EditState: All plugins clean, skipping save");
+        return;
+    }
+
+    // Only flush plugins that actually changed (not all 50+)
+    int flushed = 0;
+    for (auto* plugin : dirtyPlugins)
+    {
+        if (plugin != nullptr)
+        {
+            edit->flushPluginStateIfNeeded(*plugin);
+            flushed++;
+        }
+    }
+    dirtyPlugins.clear();
+
+    auto editFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.json");
+    editFile.replaceWithText(ValueTreeJSON::toJsonString(edit->state));
+    DBG("EditState: Flushed " + juce::String(flushed) + " dirty plugins, saved to " + editFile.getFullPathName());
+}
+
+//==============================================================================
+// Reactive plugin state tracking
+//==============================================================================
+
+void SongbirdEditor::registerPluginListeners()
+{
+    if (!edit) return;
+    unregisterPluginListeners();  // clear any stale listeners
+    
+    auto registerForTrack = [this](te::Track* track)
+    {
+        if (!track) return;
         for (auto* plugin : track->pluginList.getPlugins())
-            edit->flushPluginStateIfNeeded(*plugin);
-    }
-    if (auto* master = edit->getMasterTrack())
-    {
-        for (auto* plugin : master->pluginList.getPlugins())
-            edit->flushPluginStateIfNeeded(*plugin);
-    }
+        {
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+            {
+                if (auto* proc = ext->getAudioPluginInstance())
+                    proc->addListener(this);
+            }
+        }
+    };
+    
+    for (auto* track : te::getAllTracks(*edit))
+        registerForTrack(track);
+    registerForTrack(edit->getMasterTrack());
+    
+    // Count registered plugins for logging
+    int count = 0;
+    for (auto* track : te::getAllTracks(*edit))
+        for (auto* plugin : track->pluginList.getPlugins())
+            if (dynamic_cast<te::ExternalPlugin*>(plugin))
+                count++;
+    
+    // Plugins start clean — disk matches memory after load.
+    // Listeners will mark specific plugins dirty when they actually change.
+    dirtyPlugins.clear();
+    
+    DBG("EditState: Registered listeners on " + juce::String(count) + " plugins (all clean)");
+}
 
-    auto editFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.xml");
-    if (auto xml = edit->state.createXml())
+void SongbirdEditor::unregisterPluginListeners()
+{
+    if (!edit) return;
+    
+    auto unregisterForTrack = [this](te::Track* track)
     {
-        editFile.replaceWithText(xml->toString());
-        DBG("EditState: Saved to " + editFile.getFullPathName());
-    }
+        if (!track) return;
+        for (auto* plugin : track->pluginList.getPlugins())
+        {
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+            {
+                if (auto* proc = ext->getAudioPluginInstance())
+                    proc->removeListener(this);
+            }
+        }
+    };
+    
+    for (auto* track : te::getAllTracks(*edit))
+        unregisterForTrack(track);
+    unregisterForTrack(edit->getMasterTrack());
+}
+
+te::ExternalPlugin* SongbirdEditor::findExternalPlugin(juce::AudioProcessor* processor)
+{
+    if (!edit || !processor) return nullptr;
+    
+    auto findInTrack = [processor](te::Track* track) -> te::ExternalPlugin*
+    {
+        if (!track) return nullptr;
+        for (auto* plugin : track->pluginList.getPlugins())
+        {
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+            {
+                if (ext->getAudioPluginInstance() == processor)
+                    return ext;
+            }
+        }
+        return nullptr;
+    };
+    
+    for (auto* track : te::getAllTracks(*edit))
+        if (auto* found = findInTrack(track))
+            return found;
+    return findInTrack(edit->getMasterTrack());
+}
+
+// Called from audio thread — must be lock-free
+void SongbirdEditor::audioProcessorParameterChanged(juce::AudioProcessor* processor, int, float)
+{
+    // Post to message thread for safe dirty marking
+    juce::MessageManager::callAsync([this, processor]()
+    {
+        if (auto* ext = findExternalPlugin(processor))
+        {
+            dirtyPlugins.insert(ext);
+            startTimer(200);  // debounce: flush in 200ms
+        }
+    });
+}
+
+// Called when plugin signals a major internal state change (preset load, etc)
+void SongbirdEditor::audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails&)
+{
+    juce::MessageManager::callAsync([this, processor]()
+    {
+        if (auto* ext = findExternalPlugin(processor))
+        {
+            dirtyPlugins.insert(ext);
+            startTimer(200);
+        }
+    });
 }
 
 void SongbirdEditor::loadEditState()
 {
     if (!edit || !currentBirdFile.existsAsFile()) return;
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
 
-    auto editFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.xml");
+    auto editFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.json");
+    
+    // Backward compatibility: migrate old .edit.xml if .edit.json doesn't exist
+    if (!editFile.existsAsFile()) {
+        auto oldXml = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.xml");
+        if (oldXml.existsAsFile()) {
+            auto xml = juce::parseXML(oldXml);
+            if (xml) {
+                auto tree = juce::ValueTree::fromXml(*xml);
+                editFile.replaceWithText(ValueTreeJSON::toJsonString(tree));
+                oldXml.deleteFile();
+                DBG("EditState: Migrated .edit.xml -> .edit.json");
+            }
+        }
+    }
     if (!editFile.existsAsFile()) return;
 
-    auto xml = juce::parseXML(editFile);
-    if (!xml) return;
-
-    auto savedState = juce::ValueTree::fromXml(*xml);
-    if (!savedState.isValid()) return;
+    auto jsonText = editFile.loadFileAsString();
+    DBG("    loadEdit: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] file read (" + juce::String(jsonText.length()) + " bytes)");
+    
+    auto savedState = ValueTreeJSON::fromJsonString(jsonText);
+    DBG("    loadEdit: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] JSON parse + ValueTree");
+    
+    if (!savedState.isValid()) {
+        DBG("    loadEdit: INVALID saved state!");
+        return;
+    }
 
     // Build a map of saved tracks: trackName -> ValueTree
     std::map<juce::String, juce::ValueTree> savedTracks;
@@ -306,8 +486,12 @@ void SongbirdEditor::loadEditState()
                 savedTracks[name] = child;
         }
     }
+    DBG("    loadEdit: " + juce::String((int)savedTracks.size()) + " saved tracks, " 
+        + juce::String(te::getAllTracks(*edit).size()) + " live tracks");
 
-    // Restore plugin states for each live track
+    // Restore plugin states — only for plugins whose state actually changed
+    int restored = 0, skipped = 0;
+    
     auto restorePluginsForTrack = [&](te::Track* track)
     {
         if (!track) return;
@@ -323,21 +507,28 @@ void SongbirdEditor::loadEditState()
 
             juce::String liveName = extPlugin->getName();
 
-            // Find matching plugin in saved state
+            // Find matching plugin in saved state (plugins are direct TRACK children)
             for (int p = 0; p < savedTrackVT.getNumChildren(); p++)
             {
                 auto savedPluginVT = savedTrackVT.getChild(p);
                 if (!savedPluginVT.hasType("PLUGIN")) continue;
 
-                juce::String savedType = savedPluginVT.getProperty("type", "").toString();
-                if (savedType != "external") continue;
-
+                // Match by name — Tracktion uses "vst" not "external" for type,
+                // so just match on plugin name (live-side dynamic_cast already filters)
                 juce::String savedName = savedPluginVT.getProperty("name", "").toString();
                 if (savedName != liveName) continue;
 
-                // Use Tracktion's proper API to safely ingest the restored state
-                extPlugin->restorePluginStateFromValueTree(savedPluginVT);
-                DBG("EditState: Restored plugin '" + liveName + "' on track '" + track->getName() + "'");
+                // Compare state blobs — skip restore if unchanged
+                auto savedBlob = savedPluginVT.getProperty("state");
+                auto& liveVT = extPlugin->state;
+                auto liveBlob = liveVT.getProperty("state");
+                
+                if (savedBlob == liveBlob) {
+                    skipped++;
+                } else {
+                    extPlugin->restorePluginStateFromValueTree(savedPluginVT);
+                    restored++;
+                }
                 break;
             }
         }
@@ -350,7 +541,8 @@ void SongbirdEditor::loadEditState()
     // Restore for master track
     restorePluginsForTrack(edit->getMasterTrack());
 
-    DBG("EditState: Loaded from " + editFile.getFullPathName());
+    DBG("    loadEdit: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] " 
+        + juce::String(restored) + " restored, " + juce::String(skipped) + " unchanged");
 }
 
 //==============================================================================
@@ -360,27 +552,37 @@ void SongbirdEditor::loadEditState()
 void SongbirdEditor::undoProject()
 {
     if (!edit) return;
-    saveEditState();  // flush current plugin state before undo
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
+    DBG("=== UNDO START ===");
+    
+    // Prevent React persist echoes from re-applying stale mixer state
+    undoRedoInProgress = true;
+    
+    stopTimer();  // cancel any pending debounce timer
+    saveStateCache();  // flush pending mixer state to daw.state.json
+    saveEditState();   // flush current plugin state to daw.edit.json
+    DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] saveStateCache + saveEditState");
     
     auto changedFiles = projectState.undo();
+    DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] projectState.undo() returned " + juce::String(changedFiles.size()) + " files");
+    
     if (!changedFiles.isEmpty())
     {
         bool needsHeavyReload = false;
         bool needsSoftReload = false;
         bool stateXmlChanged = false;
+        bool stateJsonChanged = false;
         
         for (auto& f : changedFiles) {
+            DBG("  changed: " + f.filename);
             if (f.filename.endsWith(".bird")) {
-                // if (f.isSoftReloadOnly) {
-                //     needsSoftReload = true;
-                // } else {
-                //     needsHeavyReload = true;
-                // }
-                // FORCE SOFT RELOAD
                 needsSoftReload = true;
             }
-            if (f.filename.endsWith(".edit.xml")) {
+            if (f.filename.endsWith(".edit.json") || f.filename.endsWith(".edit.xml")) {
                 stateXmlChanged = true;
+            }
+            if (f.filename.endsWith(".state.json")) {
+                stateJsonChanged = true;
             }
         }
 
@@ -388,55 +590,62 @@ void SongbirdEditor::undoProject()
             loadBirdFile(currentBirdFile);
         } else {
             if (needsSoftReload) {
-                DBG("Undo: Light Update activated (Track/MIDI data changed)");
-                
-                // Parse the new .bird state silently
                 auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] BirdLoader::parse");
                 if (result.error.empty()) {
-                    // Update the running edit without destroying plugins
                     BirdLoader::populateEdit(*edit, result, engine, nullptr);
-                } else {
-                    DBG("Undo Light Update error: " + juce::String(result.error));
+                    DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] populateEdit");
                 }
             }
             
             if (stateXmlChanged) {
-                DBG("Undo: Fast path activated (plugin state changed)");
                 loadEditState();
-            } else if (!needsSoftReload) {
-                DBG("Undo: Fast path activated (only mixer state changed)");
+                DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] loadEditState");
             }
             
-            loadStateCache(); 
-            for (auto& pair : stateCache)
-            {
-                handleStateUpdate(pair.first, pair.second);
+            // Reload mixer state and apply to Tracktion engine
+            if (stateJsonChanged) {
+                loadStateCache();
+                DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 1) + "ms] loadStateCache");
+                
+                auto mixerIt = stateCache.find("songbird-mixer");
+                if (mixerIt != stateCache.end())
+                {
+                    auto parsed = juce::JSON::parse(mixerIt->second);
+                    auto mixerState = parsed.getProperty("state", {});
+                    if (mixerState.isObject())
+                        applyMixerState(mixerState);
+                }
+                pushMixerStateToReact();
             }
         }
         
-        // Push restored state back to React UI
-        if (webView)
+        // Push to React UI
+        if (webView && (needsHeavyReload || needsSoftReload))
         {
-            if (needsHeavyReload || needsSoftReload) {
-                auto json = getTrackNotesJSON();
-                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
-            }
-            
-            for (auto& pair : stateCache)
-            {
-                auto parsed = juce::JSON::parse(pair.second);
-                auto inner = parsed.getProperty("state", {});
-                if (inner.isObject())
-                    webView->emitEventIfBrowserIsVisible(pair.first, juce::var(juce::JSON::toString(inner)));
-            }
+            // Full refresh only when tracks/notes changed (.bird file)
+            // Mixer-only changes are already handled by pushMixerStateToReact() above
+            auto json = getTrackStateJSON();
+            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
         }
-        DBG("Undo: Project state restored");
+        DBG("=== UNDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
+    
+    // Clear the guard after a delay so React persist echoes are safely ignored
+    juce::MessageManager::callAsync([this]() { undoRedoInProgress = false; });
 }
 
 void SongbirdEditor::redoProject()
 {
     if (!edit) return;
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
+    DBG("=== REDO START ===");
+    
+    undoRedoInProgress = true;
+    
+    stopTimer();
+    saveStateCache();
+    saveEditState();
     
     auto changedFiles = projectState.redo();
     if (!changedFiles.isEmpty())
@@ -444,72 +653,54 @@ void SongbirdEditor::redoProject()
         bool needsHeavyReload = false;
         bool needsSoftReload = false;
         bool stateXmlChanged = false;
+        bool stateJsonChanged = false;
         
         for (auto& f : changedFiles) {
-            if (f.filename.endsWith(".bird")) {
-                // if (f.isSoftReloadOnly) {
-                //     needsSoftReload = true;
-                // } else {
-                //     needsHeavyReload = true;
-                // }
-                // FORCE SOFT RELOAD
-                needsSoftReload = true;
-            }
-            if (f.filename.endsWith(".edit.xml")) {
-                stateXmlChanged = true;
-            }
+            if (f.filename.endsWith(".bird")) needsSoftReload = true;
+            if (f.filename.endsWith(".edit.json") || f.filename.endsWith(".edit.xml")) stateXmlChanged = true;
+            if (f.filename.endsWith(".state.json")) stateJsonChanged = true;
         }
 
         if (needsHeavyReload) {
             loadBirdFile(currentBirdFile);
         } else {
             if (needsSoftReload) {
-                DBG("Redo: Light Update activated (Track/MIDI data changed)");
-                
                 auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
-                if (result.error.empty()) {
+                if (result.error.empty())
                     BirdLoader::populateEdit(*edit, result, engine, nullptr);
-                } else {
-                    DBG("Redo Light Update error: " + juce::String(result.error));
-                }
             }
-            
-            if (stateXmlChanged) {
-                DBG("Redo: Fast path activated (plugin state changed)");
+            if (stateXmlChanged)
                 loadEditState();
-            } else if (!needsSoftReload) {
-                DBG("Redo: Fast path activated (only mixer state changed)");
-            }
-            
-            loadStateCache(); 
-            for (auto& pair : stateCache)
-            {
-                handleStateUpdate(pair.first, pair.second);
+            if (stateJsonChanged) {
+                loadStateCache();
+                
+                auto mixerIt = stateCache.find("songbird-mixer");
+                if (mixerIt != stateCache.end())
+                {
+                    auto parsed = juce::JSON::parse(mixerIt->second);
+                    auto mixerState = parsed.getProperty("state", {});
+                    if (mixerState.isObject())
+                        applyMixerState(mixerState);
+                }
+                pushMixerStateToReact();
             }
         }
         
-        if (webView)
-        {
-            if (needsHeavyReload || needsSoftReload) {
-                auto json = getTrackNotesJSON();
-                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
-            }
-            
-            for (auto& pair : stateCache)
-            {
-                auto parsed = juce::JSON::parse(pair.second);
-                auto inner = parsed.getProperty("state", {});
-                if (inner.isObject())
-                    webView->emitEventIfBrowserIsVisible(pair.first, juce::var(juce::JSON::toString(inner)));
-            }
+        if (webView && (needsHeavyReload || needsSoftReload)) {
+            auto json = getTrackStateJSON();
+            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
         }
-        DBG("Redo: Project state restored");
+        DBG("=== REDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
+    
+    juce::MessageManager::callAsync([this]() { undoRedoInProgress = false; });
 }
 
 void SongbirdEditor::revertLLM()
 {
     if (!edit) return;
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
+    DBG("=== REVERT START ===");
     saveEditState();  // flush current plugin state before revert
     
     auto changedFiles = projectState.revertLastLLM();
@@ -518,66 +709,44 @@ void SongbirdEditor::revertLLM()
         bool needsHeavyReload = false;
         bool needsSoftReload = false;
         bool stateXmlChanged = false;
+        bool stateJsonChanged = false;
         
         for (auto& f : changedFiles) {
-            if (f.filename.endsWith(".bird")) {
-                // if (f.isSoftReloadOnly) {
-                //     needsSoftReload = true;
-                // } else {
-                //     needsHeavyReload = true;
-                // }
-                // FORCE SOFT RELOAD
-                needsSoftReload = true;
-            }
-            if (f.filename.endsWith(".edit.xml")) {
-                stateXmlChanged = true;
-            }
+            if (f.filename.endsWith(".bird")) needsSoftReload = true;
+            if (f.filename.endsWith(".edit.json") || f.filename.endsWith(".edit.xml")) stateXmlChanged = true;
+            if (f.filename.endsWith(".state.json")) stateJsonChanged = true;
         }
 
         if (needsHeavyReload) {
             loadBirdFile(currentBirdFile);
         } else {
             if (needsSoftReload) {
-                DBG("RevertLLM: Light Update activated (Track/MIDI data changed)");
-                
                 auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
-                if (result.error.empty()) {
+                if (result.error.empty())
                     BirdLoader::populateEdit(*edit, result, engine, nullptr);
-                } else {
-                    DBG("RevertLLM Light Update error: " + juce::String(result.error));
-                }
             }
-            
-            if (stateXmlChanged) {
-                DBG("RevertLLM: Fast path activated (plugin state changed)");
+            if (stateXmlChanged)
                 loadEditState();
-            } else if (!needsSoftReload) {
-                DBG("RevertLLM: Fast path activated (only mixer state changed)");
-            }
-            
-            loadStateCache(); 
-            for (auto& pair : stateCache)
-            {
-                handleStateUpdate(pair.first, pair.second);
+            if (stateJsonChanged) {
+                loadStateCache();
+                for (auto& pair : stateCache)
+                    handleStateUpdate(pair.first, pair.second);
             }
         }
         
-        if (webView)
-        {
-            if (needsHeavyReload || needsSoftReload) {
-                auto json = getTrackNotesJSON();
-                webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
-            }
-            
-            for (auto& pair : stateCache)
-            {
-                auto parsed = juce::JSON::parse(pair.second);
-                auto inner = parsed.getProperty("state", {});
-                if (inner.isObject())
-                    webView->emitEventIfBrowserIsVisible(pair.first, juce::var(juce::JSON::toString(inner)));
+        if (webView) {
+            if (needsHeavyReload || needsSoftReload)
+                webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
+            if (stateJsonChanged) {
+                for (auto& pair : stateCache) {
+                    auto parsed = juce::JSON::parse(pair.second);
+                    auto inner = parsed.getProperty("state", {});
+                    if (inner.isObject())
+                        webView->emitEventIfBrowserIsVisible(pair.first, juce::var(juce::JSON::toString(inner)));
+                }
             }
         }
-        DBG("RevertLLM: Project state restored");
+        DBG("=== REVERT COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
 }
 
@@ -633,6 +802,8 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
 
     playbackInfo.reattachAnalyzer(); // Re-insert analyzer AFTER populateEdit adds plugins
     lastParseResult = result;  // store for JSON serialization
+    registerPluginListeners();  // start tracking per-plugin state changes
+    createTrackWatchers();      // start per-track reactive mixer sync
 
     // Tell UI loading is finished
     if (webView) {
@@ -655,10 +826,134 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
     loadStateCache();
     loadEditState();
 
+    // Full initial save — captures all current tracks/plugins to disk
+    // (populateEdit may have created new tracks not in the old .edit.json)
+    for (auto* track : te::getAllTracks(*edit))
+        for (auto* plugin : track->pluginList.getPlugins())
+            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
+                dirtyPlugins.insert(ext);
+    saveEditState();      // writes .edit.json with all tracks
+
+    // Build mixer state JSON directly from Tracktion edit state.
+    // This ensures ALL tracks are captured, merging with any saved volumes
+    // from the previous session's stateCache (loaded above by loadStateCache).
+    {
+        // Extract saved track properties by name from the old state cache
+        std::map<juce::String, juce::var> savedTracksByName;
+        if (stateCache.count("songbird-mixer"))
+        {
+            auto oldParsed = juce::JSON::parse(stateCache["songbird-mixer"]);
+            auto oldState = oldParsed.getProperty("state", {});
+            if (oldState.isObject())
+            {
+                auto oldTracks = oldState.getProperty("tracks", {});
+                if (oldTracks.isArray())
+                {
+                    for (int i = 0; i < oldTracks.getArray()->size(); i++)
+                    {
+                        auto t = (*oldTracks.getArray())[i];
+                        auto name = t.getProperty("name", "").toString();
+                        if (name.isNotEmpty())
+                            savedTracksByName[name] = t;
+                    }
+                }
+            }
+        }
+        DBG("EditState: Found " + juce::String((int)savedTracksByName.size()) + " saved tracks to merge");
+
+        // Build complete track array from current Tracktion edit
+        juce::Array<juce::var> tracksArray;
+        const juce::String TRACK_COLORS[] = {"#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F"};
+        auto audioTracks = te::getAudioTracks(*edit);
+
+        for (int i = 0; i < audioTracks.size(); i++)
+        {
+            auto* at = audioTracks[i];
+            auto name = at->getName();
+
+            // Merge with saved values if they exist
+            int volume = 80, pan = 0;
+            bool muted = false, solo = false;
+            if (savedTracksByName.count(name))
+            {
+                auto& saved = savedTracksByName[name];
+                volume = (int)saved.getProperty("volume", 80);
+                pan = (int)saved.getProperty("pan", 0);
+                muted = (bool)saved.getProperty("muted", false);
+                solo = (bool)saved.getProperty("solo", false);
+            }
+            else if (auto vp = at->getVolumePlugin())
+            {
+                // No saved state — read from Tracktion
+                volume = juce::roundToInt(juce::Decibels::decibelsToGain(vp->getVolumeDb()) * 127.0f);
+                pan = juce::roundToInt(vp->getPan() * 64.0f);
+                muted = at->isMuted(false);
+                solo = at->isSolo(false);
+            }
+
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty("id", i);
+            obj->setProperty("name", name);
+            obj->setProperty("type", "midi");
+            obj->setProperty("color", TRACK_COLORS[i % 8]);
+            obj->setProperty("volume", volume);
+            obj->setProperty("pan", pan);
+            obj->setProperty("muted", muted);
+            obj->setProperty("solo", solo);
+            obj->setProperty("isMaster", false);
+            obj->setProperty("isReturn", false);
+            tracksArray.add(juce::var(obj));
+        }
+
+        // Add master track
+        {
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty("id", (int)audioTracks.size());
+            obj->setProperty("name", "Master");
+            obj->setProperty("type", "midi");
+            obj->setProperty("color", TRACK_COLORS[audioTracks.size() % 8]);
+            int masterVol = 80;
+            if (savedTracksByName.count("Master"))
+                masterVol = (int)savedTracksByName["Master"].getProperty("volume", 80);
+            obj->setProperty("volume", masterVol);
+            obj->setProperty("pan", 0);
+            obj->setProperty("muted", false);
+            obj->setProperty("solo", false);
+            obj->setProperty("isMaster", true);
+            obj->setProperty("isReturn", false);
+            tracksArray.add(juce::var(obj));
+        }
+
+        // Build and inject the complete mixer state into stateCache
+        juce::DynamicObject::Ptr mixerObj = new juce::DynamicObject();
+        mixerObj->setProperty("tracks", tracksArray);
+        mixerObj->setProperty("initialized", false);
+        mixerObj->setProperty("sections", juce::Array<juce::var>());
+        mixerObj->setProperty("totalBars", 1);
+        mixerObj->setProperty("mixerOpen", true);
+        mixerObj->setProperty("returnsOpen", false);
+
+        juce::DynamicObject::Ptr wrapper = new juce::DynamicObject();
+        wrapper->setProperty("state", juce::var(mixerObj.get()));
+        wrapper->setProperty("version", 1);
+
+        stateCache["songbird-mixer"] = juce::JSON::toString(juce::var(wrapper.get()));
+        DBG("EditState: Built mixer state from C++ with " + juce::String(tracksArray.size()) + " tracks");
+        
+        // Apply the merged mixer state to Tracktion's audio engine
+        applyMixerState(juce::var(mixerObj.get()));
+    }
+
+    saveStateCache();     // writes .state.json with all tracks
+    projectState.commit("Project loaded", ProjectState::Autosave);
+    DBG("EditState: Initial full save complete (all tracks captured)");
+
+
+
     // Push track notes to UI if webview is up
     if (webView) {
-        auto json = getTrackNotesJSON();
-        webView->emitEventIfBrowserIsVisible("trackNotes", juce::var(json));
+        auto json = getTrackStateJSON();
+        webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
     }
 }
 
@@ -724,10 +1019,10 @@ void SongbirdEditor::exportSheetMusic()
         });
 }
 
-juce::String SongbirdEditor::getTrackNotesJSON()
+juce::String SongbirdEditor::getTrackStateJSON()
 {
-    if (!edit) return "[]";
-    return BirdLoader::getTrackNotesJSON(*edit, &lastParseResult);
+    if (!edit) return "{}";
+    return BirdLoader::getTrackStateJSON(*edit, &lastParseResult);
 }
 
 void SongbirdEditor::exportStems(bool includeReturnFx)

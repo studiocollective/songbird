@@ -67,7 +67,7 @@ export interface Track {
 }
 
 const defaultTracks: Track[] = [];
-// Tracks are loaded dynamically from the .bird file via trackNotes events
+// Tracks are loaded dynamically from the .bird file via trackState events
 
 // --- Mixer State Slice ---
 export interface MixerState {
@@ -110,7 +110,7 @@ export interface MixerState {
 
   // Dynamic Plugin List
   availableInstruments: { id: string; name: string; vendor: string; category: string }[];
-  availableEffects: { id: string; name: string; vendor: string; category: string }[];
+  availableChannelStrips: { id: string; name: string; vendor: string; category: string }[];
   availableFx: { id: string; name: string; vendor: string; category: string }[];
   fetchAvailablePlugins: () => Promise<void>;
 
@@ -131,7 +131,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   returnsOpen: false,
 
   availableInstruments: [],
-  availableEffects: [],
+  availableChannelStrips: [],
   availableFx: [],
   fetchAvailablePlugins: async () => {
       try {
@@ -140,7 +140,7 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
           if (data && data.instruments) {
               set({ 
                   availableInstruments: data.instruments,
-                  availableEffects: data.effects,
+                  availableChannelStrips: data.effects,
                   availableFx: data.fx || []
               });
               console.log(`[Mixer] Loaded ${data.instruments.length} instruments, ${data.effects.length} effects, and ${(data.fx || []).length} fx`);
@@ -161,9 +161,12 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, solo: !t.solo } : t)),
     })),
   setVolume: (id, volume) =>
-    set((s) => ({
-      tracks: s.tracks.map((t) => (t.id === id ? { ...t, volume } : t)),
-    })),
+    set((s) => {
+      console.log(`[Mixer] setVolume: track=${id} volume=${volume}`);
+      return {
+        tracks: s.tracks.map((t) => (t.id === id ? { ...t, volume } : t)),
+      };
+    }),
   setPan: (id, pan) =>
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, pan } : t)),

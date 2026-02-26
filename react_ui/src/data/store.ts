@@ -140,7 +140,7 @@ const SECTION_COLORS = [
 ];
 
 function processTrackNotes(data: string | object) {
-  // Handle both string (from initial getTrackNotes) and pre-parsed object (from event listener)
+  // Handle both string (from initial getTrackState) and pre-parsed object (from event listener)
   const raw = typeof data === 'string' ? JSON.parse(data) : data;
 
   // Support both old array format and new object format
@@ -170,10 +170,10 @@ function processTrackNotes(data: string | object) {
         return raw as TrackType;
       })(),
       color: existing ? existing.color : TRACK_COLORS[i % TRACK_COLORS.length],
-      muted: existing ? existing.muted : false,
-      solo: existing ? existing.solo : false,
-      volume: existing ? existing.volume : 80,
-      pan: existing ? existing.pan : 0,
+      muted: t.muted ?? existing?.muted ?? false,
+      solo: t.solo ?? existing?.solo ?? false,
+      volume: t.volume ?? existing?.volume ?? 80,
+      pan: t.pan ?? existing?.pan ?? 0,
       instrument: t.plugin
         ? { pluginId: t.plugin.pluginId, pluginName: t.plugin.pluginName, bypassed: existing?.instrument?.bypassed ?? false }
         : emptySlot,
@@ -208,11 +208,45 @@ function processTrackNotes(data: string | object) {
   return tracks;
 }
 
-addStateListener('trackNotes', (data: unknown) => {
+addStateListener('trackState', (data: unknown) => {
   try {
     processTrackNotes(data as string | object);
   } catch (e) {
-    console.error('[trackNotes] Failed to parse:', e);
+    console.error('[trackState] Failed to parse:', e);
+  }
+});
+
+// Per-track mixer updates from C++ (reactive ValueTree listeners)
+addStateListener('trackMixerUpdate', (data: unknown) => {
+  try {
+    const raw = typeof data === 'string' ? JSON.parse(data) : data;
+    const { trackIndex, volume, pan, muted, solo } = raw as {
+      trackIndex: number;
+      volume: number;
+      pan: number;
+      muted: boolean;
+      solo: boolean;
+    };
+    
+    const tracks = useMixerStore.getState().tracks;
+    if (trackIndex >= 0 && trackIndex < tracks.length) {
+      const prev = tracks[trackIndex];
+      const changes: string[] = [];
+      if (prev.volume !== volume) changes.push(`vol:${prev.volume}→${volume}`);
+      if (prev.pan !== pan) changes.push(`pan:${prev.pan}→${pan}`);
+      if (prev.muted !== muted) changes.push(`mute:${prev.muted}→${muted}`);
+      if (prev.solo !== solo) changes.push(`solo:${prev.solo}→${solo}`);
+      if (changes.length > 0) {
+        console.log(`[trackMixerUpdate] track[${trackIndex}] '${prev.name}': ${changes.join(', ')}`);
+      }
+      useMixerStore.setState({
+        tracks: tracks.map((t, i) =>
+          i === trackIndex ? { ...t, volume, pan, muted, solo } : t
+        ),
+      });
+    }
+  } catch (e) {
+    console.error('[trackMixerUpdate] Failed:', e);
   }
 });
 
@@ -225,23 +259,21 @@ addStateListener('cppLog', (data: unknown) => {
 // --- Fetch initial track notes on startup ---
 if (typeof window !== 'undefined' && window.__JUCE__) {
   import('@/lib').then(({ Juce }) => {
-    const getTrackNotes = Juce.getNativeFunction('getTrackNotes');
     // Small delay to let the Edit finish loading
     setTimeout(async () => {
+      const getTrackState = Juce.getNativeFunction('getTrackState');
       // Fetch available plugins from C++
       useMixerStore.getState().fetchAvailablePlugins();
 
       try {
-        const jsonStr = await getTrackNotes();
+        const jsonStr = await getTrackState();
         if (jsonStr && jsonStr !== '[]' && jsonStr !== '{}') {
           const tracks = processTrackNotes(jsonStr);
-          console.log('[trackNotes] Loaded', tracks.length, 'tracks from C++');
+          console.log('[trackState] Loaded', tracks.length, 'tracks from C++');
         }
       } catch (e) {
-        console.error('[trackNotes] Initial fetch failed:', e);
+        console.error('[trackState] Initial fetch failed:', e);
       }
     }, 500);
   });
 }
-
-
