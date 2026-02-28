@@ -40,19 +40,41 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         })
         // Get git history for UI
         .withNativeFunction("getHistory", [this](auto& /*args*/, auto complete) {
-            auto history = projectState.getHistory(50);
-            auto* arr = new juce::DynamicObject();
-            juce::Array<juce::var> entries;
-            for (const auto& entry : history)
+            juce::String headHash;
+            auto history = projectState.getHistory(50, &headHash);
+
+            // Redo-tip hash
+            juce::String redoTipHash;
+            git_reference* redoRef = nullptr;
+            if (projectState.getRepo() && git_reference_lookup(&redoRef, projectState.getRepo(), "refs/redo-tip") == 0)
             {
-                auto* obj = new juce::DynamicObject();
-                obj->setProperty("hash", entry.hash.substring(0, 7));
-                obj->setProperty("message", entry.message.trimEnd());
-                obj->setProperty("timestamp", entry.timestamp);
-                entries.add(juce::var(obj));
+                char buf[GIT_OID_SHA1_HEXSIZE + 1];
+                git_oid_tostr(buf, sizeof(buf), git_reference_target(redoRef));
+                redoTipHash = juce::String(buf).substring(0, 7);
+                git_reference_free(redoRef);
             }
-            arr->setProperty("entries", entries);
-            complete(juce::JSON::toString(juce::var(arr)));
+
+            // Build commits JSON array and find HEAD index
+            juce::String commitsJson;
+            int headIndex = 0;
+            for (int i = 0; i < history.size(); i++)
+            {
+                const auto& entry = history[i];
+                auto shortHash = entry.hash.substring(0, 7);
+
+                if (headHash.startsWith(shortHash) || shortHash.startsWith(headHash.substring(0, 7)))
+                    headIndex = i;
+
+                if (i > 0) commitsJson += ",";
+                commitsJson += "{\"hash\":" + juce::JSON::toString(shortHash)
+                    + ",\"message\":" + juce::JSON::toString(entry.message.trimEnd())
+                    + ",\"timestamp\":" + juce::JSON::toString(entry.timestamp) + "}";
+            }
+
+            auto json = "{\"headIndex\":" + juce::String(headIndex)
+                + ",\"redoTipHash\":" + juce::JSON::toString(redoTipHash)
+                + ",\"commits\":[" + commitsJson + "]}";
+            complete(json);
         })
         // Reset state (Zustand persist removeItem)
         .withNativeFunction("resetState", [this](auto& args, auto complete) {

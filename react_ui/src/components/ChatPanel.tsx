@@ -9,7 +9,7 @@ import { validateBirdSyntax } from '@/lib/ai/validator';
 
 export function ChatPanel() {
   const {
-    chatOpen, chatMessages, chatInput, apiKey, selectedModel,
+    chatMessages, chatInput, apiKey, selectedModel,
     isThinking, isStreaming, thinkingText, toolUseLabel,
     activeThreadId, threads, threadMenuOpen,
     setChatInput, setApiKey, setSelectedModel,
@@ -284,7 +284,7 @@ export function ChatPanel() {
 
   if (loadingKey) {
     return (
-      <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+      <div className={cn(panel, 'w-80')}>
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
           Loading...
         </div>
@@ -294,7 +294,7 @@ export function ChatPanel() {
 
   if (!apiKey) {
     return (
-      <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+      <div className={cn(panel, 'w-80')}>
         <div className={panelInner}>
           <div className={header}>
              <div className={statusDot} />
@@ -323,7 +323,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className={cn(panel, chatOpen ? 'w-80' : 'w-0')}>
+    <div className={cn(panel, 'w-80')}>
       <div className={panelInner}>
         {/* Header */}
         <div className={header}>

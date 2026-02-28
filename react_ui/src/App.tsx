@@ -9,6 +9,7 @@ import { ExportProgressModal } from '@/components/organisms/ExportProgressModal'
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';
+import { useChatStore } from '@/data/store';
 
 const setZoom = isPlugin ? Juce.getNativeFunction('setZoom') : null;
 const uiReady = isPlugin ? Juce.getNativeFunction('uiReady') : null;
@@ -23,6 +24,7 @@ function App() {
   const [engineReady, setEngineReady] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('Initializing workspace...');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const rightPanel = useChatStore((s) => s.rightPanel);
 
   useEffect(() => {
     const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
@@ -93,10 +95,10 @@ function App() {
       <Transport />
       <div className={middle}>
         <ArrangementView />
-        <ChatPanel />
+        {rightPanel === 'chat' && <ChatPanel />}
+        {rightPanel === 'history' && <HistoryPanel />}
       </div>
       <MixerPanel />
-      <HistoryPanel />
       <DebugPanel />
       <ExportProgressModal />
     </div>

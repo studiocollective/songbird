@@ -116,7 +116,7 @@ void ProjectState::initRepo()
 // Core Git helpers
 //==============================================================================
 
-git_oid ProjectState::createCommit(const juce::String& message)
+git_oid ProjectState::createCommit(const juce::String& message, Source source)
 {
     git_oid oid = {};
     if (!repo) return oid;
@@ -143,9 +143,12 @@ git_oid ProjectState::createCommit(const juce::String& message)
     git_tree_lookup(&tree, repo, &treeOid);
     if (!tree) return oid;
     
-    // Get signature
+    // Get signature — use different author names per source
+    const char* authorName = "Songbird";
+    if (source == User || source == Mixer) authorName = "User";
+    else if (source == LLM) authorName = "Songbird AI";
     git_signature* sig = nullptr;
-    git_signature_now(&sig, "Songbird", "songbird@local");
+    git_signature_now(&sig, authorName, "songbird@local");
     if (!sig) { git_tree_free(tree); return oid; }
     
     // Get parent commit (HEAD), if any
@@ -408,7 +411,7 @@ void ProjectState::commit(const juce::String& message, Source source, bool inclu
     git_reference_remove(repo, "refs/redo-tip");
     
     auto fullMessage = sourceTag(source) + " " + message;
-    createCommit(fullMessage.toStdString().c_str());
+    createCommit(fullMessage.toStdString().c_str(), source);
     
     DBG("ProjectState: Committed - " + fullMessage);
 }
@@ -561,14 +564,33 @@ juce::Array<ProjectState::ChangedFile> ProjectState::revertLastLLM()
 // History
 //==============================================================================
 
-juce::Array<ProjectState::HistoryEntry> ProjectState::getHistory(int maxEntries) const
+juce::Array<ProjectState::HistoryEntry> ProjectState::getHistory(int maxEntries, juce::String* outHeadHash) const
 {
     juce::Array<HistoryEntry> entries;
     if (!initialized || !repo) return entries;
 
+    // Get current HEAD hash
+    git_oid headOid;
+    if (getHeadOid(&headOid) && outHeadHash)
+    {
+        char buf[GIT_OID_SHA1_HEXSIZE + 1];
+        git_oid_tostr(buf, sizeof(buf), &headOid);
+        *outHeadHash = buf;
+    }
+
+    // Walk from redo-tip if it exists (shows future commits after undo),
+    // otherwise walk from HEAD
+    git_oid startOid = headOid;
+    git_reference* redoRef = nullptr;
+    if (git_reference_lookup(&redoRef, repo, "refs/redo-tip") == 0)
+    {
+        startOid = *git_reference_target(redoRef);
+        git_reference_free(redoRef);
+    }
+
     git_revwalk* walker = nullptr;
     git_revwalk_new(&walker, repo);
-    git_revwalk_push_head(walker);
+    git_revwalk_push(walker, &startOid);
     git_revwalk_sorting(walker, GIT_SORT_TIME);
 
     git_oid oid;

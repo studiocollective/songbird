@@ -8,8 +8,8 @@
           "name": "kick",
           "type": "midi",
           "color": "#FF6B6B",
-          "muted": true,
-          "solo": true,
+          "muted": false,
+          "solo": false,
           "volume": 42,
           "pan": 0,
           "instrument": {
@@ -852,7 +852,7 @@
           "color": "#45B7D1",
           "muted": false,
           "solo": false,
-          "volume": 127,
+          "volume": 80,
           "pan": 0,
           "instrument": {
             "pluginId": "arturia.mini-v",
@@ -1657,7 +1657,7 @@
           "color": "#96CEB4",
           "muted": false,
           "solo": false,
-          "volume": 127,
+          "volume": 35,
           "pan": 0,
           "instrument": {
             "pluginId": "softube.heartbeat",
@@ -2892,9 +2892,9 @@
           "name": "lead",
           "type": "midi",
           "color": "#FFEAA7",
-          "muted": false,
+          "muted": true,
           "solo": false,
-          "volume": 127,
+          "volume": 77,
           "pan": 0,
           "instrument": {
             "pluginId": "arturia.jup-8-v",
@@ -3315,7 +3315,7 @@
           "color": "#DDA0DD",
           "muted": false,
           "solo": false,
-          "volume": 89,
+          "volume": 53,
           "pan": 0,
           "instrument": {
             "pluginId": "arturia.prophet-v",

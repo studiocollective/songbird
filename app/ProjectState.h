@@ -67,10 +67,12 @@ public:
         Source source;
     };
 
-    juce::Array<HistoryEntry> getHistory(int maxEntries = 20) const;
+    juce::Array<HistoryEntry> getHistory(int maxEntries, juce::String* outHeadHash = nullptr) const;
 
     /** Returns the source tag prefix for commit messages */
     static juce::String sourceTag(Source s);
+
+    git_repository* getRepo() const { return repo; }
 
 private:
     juce::File projectDir;
@@ -80,7 +82,7 @@ private:
     void initRepo();
     
     // Core Git helpers (all in-process, zero fork)
-    git_oid createCommit(const juce::String& message);
+    git_oid createCommit(const juce::String& message, Source source = Autosave);
     bool hasUncommittedChanges() const;
     juce::Array<ChangedFile> diffAndRestore(const git_oid& targetOid);
     juce::Array<ChangedFile> getChangedFiles(const git_oid& fromOid, const git_oid& toOid) const;

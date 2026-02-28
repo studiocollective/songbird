@@ -48,6 +48,7 @@ export interface ChatState {
   initialize: () => void;
 
   chatOpen: boolean;
+  rightPanel: 'chat' | 'history' | null;
   chatMessages: ChatMessage[];
   chatInput: string;
   apiKey: string | null;
@@ -63,6 +64,7 @@ export interface ChatState {
   threadMenuOpen: boolean;
 
   toggleChat: () => void;
+  setRightPanel: (panel: 'chat' | 'history' | null) => void;
   setChatInput: (input: string) => void;
   setApiKey: (key: string) => void;
   setSelectedModel: (model: string) => void;
@@ -112,6 +114,7 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     initialize: () => set({ initialized: true }),
 
     chatOpen: true,
+    rightPanel: 'chat' as 'chat' | 'history' | null,
     chatMessages: activeThread.messages,
     chatInput: '',
     apiKey: null,
@@ -126,6 +129,10 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     threadMenuOpen: false,
 
     toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
+    setRightPanel: (panel) => set((s) => ({
+      rightPanel: s.rightPanel === panel ? null : panel,
+      chatOpen: panel === 'chat' ? true : panel === null ? false : s.chatOpen,
+    })),
     setChatInput: (chatInput) => set({ chatInput }),
     setApiKey: (apiKey) => set({ apiKey }),
     setSelectedModel: (selectedModel) => set({ selectedModel }),

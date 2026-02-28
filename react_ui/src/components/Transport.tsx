@@ -6,7 +6,7 @@ import { Juce, isPlugin } from '@/lib';
 export function Transport() {
   const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature } = useTransportStore();
   const { toggleMixer, mixerOpen } = useMixerStore();
-  const { toggleChat, chatOpen } = useChatStore();
+  const { rightPanel, setRightPanel } = useChatStore();
 
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -160,10 +160,16 @@ export function Transport() {
           Mixer
         </button>
         <button
-          onClick={toggleChat}
-          className={cn(panelBtn, chatOpen ? panelBtnActive : panelBtnInactive)}
+          onClick={() => setRightPanel('chat')}
+          className={cn(panelBtn, rightPanel === 'chat' ? panelBtnActive : panelBtnInactive)}
         >
           Chat
+        </button>
+        <button
+          onClick={() => setRightPanel('history')}
+          className={cn(panelBtn, rightPanel === 'history' ? panelBtnActive : panelBtnInactive)}
+        >
+          History
         </button>
       </div>
     </div>
