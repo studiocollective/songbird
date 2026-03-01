@@ -29,7 +29,7 @@ public:
     // Commit
     // ------------------------------------------------------------------
 
-    enum Source { Autosave, LLM, User, Mixer };
+    enum Source { Autosave, LLM, User, Mixer, Plugin };
 
     /** Commit current files with a message and source tag. */
     void commit(const juce::String& message, Source source, bool includeEditXml = true);

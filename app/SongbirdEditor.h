@@ -53,8 +53,10 @@ private:
 
     // Reactive plugin state tracking
     // Listeners fire from audio thread → callAsync marks plugins dirty on message thread
-    // Timer debounces → flushes only dirty plugins → writes JSON to disk
+    // Timer debounces → flushes only dirty plugins → writes JSON to disk → commits to git
     std::set<te::ExternalPlugin*> dirtyPlugins;
+    std::set<juce::String> dirtyPluginNames;  // track which plugins changed for commit messages
+    bool pluginParamsDirty = false;           // true when timer should commit plugin changes
     void registerPluginListeners();
     void unregisterPluginListeners();
     te::ExternalPlugin* findExternalPlugin(juce::AudioProcessor* processor);

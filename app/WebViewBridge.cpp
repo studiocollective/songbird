@@ -54,27 +54,28 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 git_reference_free(redoRef);
             }
 
-            // Build commits JSON array and find HEAD index
-            juce::String commitsJson;
+            // Build commits array and find HEAD index
+            juce::Array<juce::var> commits;
             int headIndex = 0;
             for (int i = 0; i < history.size(); i++)
             {
                 const auto& entry = history[i];
+                auto* obj = new juce::DynamicObject();
                 auto shortHash = entry.hash.substring(0, 7);
+                obj->setProperty("hash", shortHash);
+                obj->setProperty("message", entry.message.trimEnd());
+                obj->setProperty("timestamp", entry.timestamp);
+                commits.add(juce::var(obj));
 
                 if (headHash.startsWith(shortHash) || shortHash.startsWith(headHash.substring(0, 7)))
                     headIndex = i;
-
-                if (i > 0) commitsJson += ",";
-                commitsJson += "{\"hash\":" + juce::JSON::toString(shortHash)
-                    + ",\"message\":" + juce::JSON::toString(entry.message.trimEnd())
-                    + ",\"timestamp\":" + juce::JSON::toString(entry.timestamp) + "}";
             }
 
-            auto json = "{\"headIndex\":" + juce::String(headIndex)
-                + ",\"redoTipHash\":" + juce::JSON::toString(redoTipHash)
-                + ",\"commits\":[" + commitsJson + "]}";
-            complete(json);
+            auto* result = new juce::DynamicObject();
+            result->setProperty("commits", commits);
+            result->setProperty("headIndex", headIndex);
+            result->setProperty("redoTipHash", redoTipHash);
+            complete(juce::JSON::toString(juce::var(result)));
         })
         // Reset state (Zustand persist removeItem)
         .withNativeFunction("resetState", [this](auto& args, auto complete) {
@@ -807,20 +808,6 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 commitAndNotify(message, ProjectState::User);
             });
             complete("{\"success\":true}");
-        })
-
-        .withNativeFunction("getHistory", [this](auto&, auto complete) {
-            auto history = projectState.getHistory(20);
-            juce::Array<juce::var> arr;
-            for (auto& entry : history) {
-                auto* obj = new juce::DynamicObject();
-                obj->setProperty("hash", entry.hash.substring(0, 8));
-                obj->setProperty("message", entry.message);
-                obj->setProperty("timestamp", entry.timestamp);
-                obj->setProperty("source", ProjectState::sourceTag(entry.source));
-                arr.add(juce::var(obj));
-            }
-            complete(juce::JSON::toString(juce::var(arr)));
         });
 }
 

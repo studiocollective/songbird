@@ -850,7 +850,7 @@
           "name": "bass",
           "type": "midi",
           "color": "#45B7D1",
-          "muted": false,
+          "muted": true,
           "solo": false,
           "volume": 80,
           "pan": 0,
@@ -1657,7 +1657,7 @@
           "color": "#96CEB4",
           "muted": false,
           "solo": false,
-          "volume": 35,
+          "volume": 127,
           "pan": 0,
           "instrument": {
             "pluginId": "softube.heartbeat",
@@ -3315,7 +3315,7 @@
           "color": "#DDA0DD",
           "muted": false,
           "solo": false,
-          "volume": 53,
+          "volume": 31,
           "pan": 0,
           "instrument": {
             "pluginId": "arturia.prophet-v",

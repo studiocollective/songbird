@@ -25,6 +25,7 @@ juce::String ProjectState::sourceTag(Source s)
         case LLM:      return "[LLM]";
         case User:     return "[user]";
         case Mixer:    return "[mixer]";
+        case Plugin:   return "[plugin]";
     }
     return "[unknown]";
 }

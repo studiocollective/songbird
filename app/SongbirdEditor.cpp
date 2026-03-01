@@ -262,6 +262,25 @@ void SongbirdEditor::timerCallback()
         isLoadFinished = true;
         DBG("StateSync: 'Project loaded' commit - fully loaded, commits enabled");
     }
+    else if (pluginParamsDirty && !undoRedoInProgress.load())
+    {
+        // Build descriptive commit message from the set of changed plugin names
+        juce::String commitMsg;
+        if (dirtyPluginNames.empty())
+        {
+            commitMsg = "Plugin parameter change";
+        }
+        else
+        {
+            juce::StringArray names;
+            for (auto& n : dirtyPluginNames)
+                names.add(n);
+            commitMsg = names.joinIntoString(", ") + ": parameter change";
+        }
+        dirtyPluginNames.clear();
+        pluginParamsDirty = false;
+        commitAndNotify(commitMsg, ProjectState::Plugin);
+    }
 }
 
 void SongbirdEditor::saveStateCache()
@@ -401,6 +420,8 @@ void SongbirdEditor::registerPluginListeners()
     // Plugins start clean — disk matches memory after load.
     // Listeners will mark specific plugins dirty when they actually change.
     dirtyPlugins.clear();
+    dirtyPluginNames.clear();
+    pluginParamsDirty = false;
     
     DBG("EditState: Registered listeners on " + juce::String(count) + " plugins (all clean)");
 }
@@ -460,7 +481,9 @@ void SongbirdEditor::audioProcessorParameterChanged(juce::AudioProcessor* proces
         if (auto* ext = findExternalPlugin(processor))
         {
             dirtyPlugins.insert(ext);
-            startTimer(200);  // debounce: flush in 200ms
+            dirtyPluginNames.insert(ext->getName());
+            pluginParamsDirty = true;
+            startTimer(500);  // debounce: flush + commit in 500ms
         }
     });
 }
@@ -473,7 +496,9 @@ void SongbirdEditor::audioProcessorChanged(juce::AudioProcessor* processor, cons
         if (auto* ext = findExternalPlugin(processor))
         {
             dirtyPlugins.insert(ext);
-            startTimer(200);
+            dirtyPluginNames.insert(ext->getName());
+            pluginParamsDirty = true;
+            startTimer(500);
         }
     });
 }
