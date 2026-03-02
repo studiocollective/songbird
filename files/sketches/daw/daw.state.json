@@ -10,7 +10,7 @@
           "color": "#FF6B6B",
           "muted": false,
           "solo": false,
-          "volume": 42,
+          "volume": 65,
           "pan": 0,
           "instrument": {
             "pluginId": "sonicacademy.kick-3",
@@ -850,7 +850,7 @@
           "name": "bass",
           "type": "midi",
           "color": "#45B7D1",
-          "muted": true,
+          "muted": false,
           "solo": false,
           "volume": 80,
           "pan": 0,
@@ -1657,8 +1657,8 @@
           "color": "#96CEB4",
           "muted": false,
           "solo": false,
-          "volume": 127,
-          "pan": 0,
+          "volume": 71,
+          "pan": 2,
           "instrument": {
             "pluginId": "softube.heartbeat",
             "pluginName": "Heartbeat",
@@ -3315,7 +3315,7 @@
           "color": "#DDA0DD",
           "muted": false,
           "solo": false,
-          "volume": 31,
+          "volume": 89,
           "pan": 0,
           "instrument": {
             "pluginId": "arturia.prophet-v",
@@ -3721,10 +3721,10 @@
           "isReturn": false,
           "isMaster": false,
           "sends": [
-            0,
-            0,
-            0,
-            0
+            0.243802083333333,
+            0.269270833333333,
+            0.21828125,
+            0.973151041666667
           ],
           "sidechainTrackId": null,
           "sidechainSensitivity": 0.6
@@ -3746,7 +3746,7 @@
           "fx": {
             "pluginId": "",
             "pluginName": "ValhallaRoom",
-            "bypassed": false
+            "bypassed": true
           },
           "channelStrip": {
             "pluginId": null,
@@ -3938,7 +3938,7 @@
       ],
       "totalBars": 16,
       "mixerOpen": true,
-      "returnsOpen": false,
+      "returnsOpen": true,
       "availableInstruments": [
         {
           "id": "/Library/Audio/Plug-Ins/VST3/Buchla Easel V.vst3",

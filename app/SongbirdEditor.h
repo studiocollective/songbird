@@ -55,7 +55,7 @@ private:
     // Listeners fire from audio thread → callAsync marks plugins dirty on message thread
     // Timer debounces → flushes only dirty plugins → writes JSON to disk → commits to git
     std::set<te::ExternalPlugin*> dirtyPlugins;
-    std::set<juce::String> dirtyPluginNames;  // track which plugins changed for commit messages
+    std::map<juce::String, std::set<juce::String>> dirtyPluginParams;  // plugin name → param names
     bool pluginParamsDirty = false;           // true when timer should commit plugin changes
     void registerPluginListeners();
     void unregisterPluginListeners();

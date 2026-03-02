@@ -264,20 +264,32 @@ void SongbirdEditor::timerCallback()
     }
     else if (pluginParamsDirty && !undoRedoInProgress.load())
     {
-        // Build descriptive commit message from the set of changed plugin names
+        // Build descriptive commit message from changed plugins and params
         juce::String commitMsg;
-        if (dirtyPluginNames.empty())
+        if (dirtyPluginParams.empty())
         {
             commitMsg = "Plugin parameter change";
         }
         else
         {
-            juce::StringArray names;
-            for (auto& n : dirtyPluginNames)
-                names.add(n);
-            commitMsg = names.joinIntoString(", ") + ": parameter change";
+            juce::StringArray parts;
+            for (auto& [pluginName, params] : dirtyPluginParams)
+            {
+                juce::StringArray paramNames;
+                for (auto& p : params)
+                    paramNames.add(p);
+                // Limit to 3 param names to keep message short
+                if (paramNames.size() > 3)
+                {
+                    auto count = paramNames.size();
+                    paramNames.removeRange(3, paramNames.size() - 3);
+                    paramNames.add("+" + juce::String(count - 3) + " more");
+                }
+                parts.add(pluginName + ": " + paramNames.joinIntoString(", "));
+            }
+            commitMsg = parts.joinIntoString("; ");
         }
-        dirtyPluginNames.clear();
+        dirtyPluginParams.clear();
         pluginParamsDirty = false;
         commitAndNotify(commitMsg, ProjectState::Plugin);
     }
@@ -420,7 +432,7 @@ void SongbirdEditor::registerPluginListeners()
     // Plugins start clean — disk matches memory after load.
     // Listeners will mark specific plugins dirty when they actually change.
     dirtyPlugins.clear();
-    dirtyPluginNames.clear();
+    dirtyPluginParams.clear();
     pluginParamsDirty = false;
     
     DBG("EditState: Registered listeners on " + juce::String(count) + " plugins (all clean)");
@@ -473,31 +485,48 @@ te::ExternalPlugin* SongbirdEditor::findExternalPlugin(juce::AudioProcessor* pro
 }
 
 // Called from audio thread — must be lock-free
-void SongbirdEditor::audioProcessorParameterChanged(juce::AudioProcessor* processor, int, float)
+void SongbirdEditor::audioProcessorParameterChanged(juce::AudioProcessor* processor, int paramIndex, float)
 {
+    // Capture param name on audio thread before posting (lightweight string copy)
+    juce::String paramName;
+    if (auto* param = processor->getParameters()[paramIndex])
+        paramName = param->getName(64);
+
     // Post to message thread for safe dirty marking
-    juce::MessageManager::callAsync([this, processor]()
+    juce::MessageManager::callAsync([this, processor, paramName]()
     {
+        if (undoRedoInProgress.load()) return;
         if (auto* ext = findExternalPlugin(processor))
         {
             dirtyPlugins.insert(ext);
-            dirtyPluginNames.insert(ext->getName());
+            if (paramName.isNotEmpty())
+                dirtyPluginParams[ext->getName()].insert(paramName);
             pluginParamsDirty = true;
-            startTimer(500);  // debounce: flush + commit in 500ms
+            startTimer(500);
         }
     });
 }
 
-// Called when plugin signals a major internal state change (preset load, etc)
-void SongbirdEditor::audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails&)
+// Called when plugin signals a major internal state change (UI open, preset load, etc.)
+// Only commit when a meaningful flag is set — UI open/close fires with all flags false
+void SongbirdEditor::audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails& details)
 {
-    juce::MessageManager::callAsync([this, processor]()
+    bool meaningful = details.programChanged || details.nonParameterStateChanged
+                   || details.parameterInfoChanged || details.latencyChanged;
+    juce::MessageManager::callAsync([this, processor, meaningful, details]()
     {
+        if (undoRedoInProgress.load()) return;
         if (auto* ext = findExternalPlugin(processor))
         {
             dirtyPlugins.insert(ext);
-            dirtyPluginNames.insert(ext->getName());
-            pluginParamsDirty = true;
+            if (meaningful)
+            {
+                auto label = details.programChanged ? "preset change"
+                           : details.nonParameterStateChanged ? "state change"
+                           : "config change";
+                dirtyPluginParams[ext->getName()].insert(label);
+                pluginParamsDirty = true;
+            }
             startTimer(500);
         }
     });
