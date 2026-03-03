@@ -3869,8 +3869,8 @@
           "volume": 77,
           "pan": 0,
           "instrument": {
-            "pluginId": "arturia.jup-8-v",
-            "pluginName": "Jup-8 V",
+            "pluginId": "/Library/Audio/Plug-Ins/VST3/CS-80 V4.vst3",
+            "pluginName": "CS-80 V4",
             "bypassed": false
           },
           "fx": {
@@ -3887,14 +3887,14 @@
             {
               "pitch": 85,
               "beat": 0.25,
-              "duration": 0.183,
-              "velocity": 64
+              "duration": 0.109,
+              "velocity": 19
             },
             {
               "pitch": 85,
               "beat": 1,
-              "duration": 0.183,
-              "velocity": 66
+              "duration": 0.109,
+              "velocity": 20
             },
             {
               "pitch": 86,
@@ -3903,92 +3903,20 @@
               "velocity": 127
             },
             {
-              "pitch": 81,
-              "beat": 2.25,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 82,
-              "beat": 2.25,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 84,
-              "beat": 2.25,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
               "pitch": 83,
-              "beat": 2.25,
-              "duration": 0.225,
-              "velocity": 100
+              "beat": 2,
+              "duration": 0.9,
+              "velocity": 39
             },
             {
               "pitch": 85,
-              "beat": 2.25,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 86,
-              "beat": 2.5,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 81,
-              "beat": 2.5,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 82,
-              "beat": 2.5,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 83,
-              "beat": 2.5,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 84,
-              "beat": 2.5,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 90,
               "beat": 3,
-              "duration": 0.9,
+              "duration": 0.81,
               "velocity": 100
             },
             {
-              "pitch": 88,
-              "beat": 3,
-              "duration": 0.9,
-              "velocity": 100
-            },
-            {
-              "pitch": 86,
-              "beat": 3,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 88,
-              "beat": 4,
-              "duration": 0.9,
-              "velocity": 100
-            },
-            {
-              "pitch": 92,
-              "beat": 4.25,
+              "pitch": 47,
+              "beat": 8.25,
               "duration": 0.225,
               "velocity": 100
             },
@@ -4000,12 +3928,6 @@
             },
             {
               "pitch": 46,
-              "beat": 8.25,
-              "duration": 0.225,
-              "velocity": 100
-            },
-            {
-              "pitch": 47,
               "beat": 8.25,
               "duration": 0.225,
               "velocity": 100
@@ -4047,7 +3969,7 @@
               "velocity": 90
             },
             {
-              "pitch": 48,
+              "pitch": 70,
               "beat": 16,
               "duration": 0.219,
               "velocity": 90
@@ -4132,6 +4054,24 @@
             },
             {
               "pitch": 48,
+              "beat": 16,
+              "duration": 0.219,
+              "velocity": 90
+            },
+            {
+              "pitch": 55,
+              "beat": 16,
+              "duration": 0.219,
+              "velocity": 90
+            },
+            {
+              "pitch": 70,
+              "beat": 16,
+              "duration": 0.219,
+              "velocity": 90
+            },
+            {
+              "pitch": 55,
               "beat": 16,
               "duration": 0.219,
               "velocity": 90
@@ -4149,13 +4089,13 @@
               "velocity": 90
             },
             {
-              "pitch": 70,
+              "pitch": 48,
               "beat": 16,
               "duration": 0.219,
               "velocity": 90
             },
             {
-              "pitch": 70,
+              "pitch": 48,
               "beat": 16,
               "duration": 0.219,
               "velocity": 90
@@ -4192,24 +4132,6 @@
             },
             {
               "pitch": 55,
-              "beat": 16,
-              "duration": 0.219,
-              "velocity": 90
-            },
-            {
-              "pitch": 55,
-              "beat": 16,
-              "duration": 0.219,
-              "velocity": 90
-            },
-            {
-              "pitch": 55,
-              "beat": 16,
-              "duration": 0.219,
-              "velocity": 90
-            },
-            {
-              "pitch": 48,
               "beat": 16,
               "duration": 0.219,
               "velocity": 90

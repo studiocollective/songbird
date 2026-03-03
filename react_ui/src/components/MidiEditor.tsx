@@ -301,8 +301,22 @@ function NoteGrid({
 
   // Sync local notes when store notes change (from trackState event)
   useEffect(() => {
-    setLocalNotes(notes);
-    setSelectedIndices(new Set());
+    setLocalNotes((prevNotes) => {
+      // Remap selected indices: match old selected notes by pitch+beat to new indices
+      setSelectedIndices((prevSelected) => {
+        if (prevSelected.size === 0) return prevSelected;
+        const oldSelected = [...prevSelected].map((i) => prevNotes[i]).filter(Boolean);
+        const newSelected = new Set<number>();
+        for (const old of oldSelected) {
+          const newIdx = notes.findIndex(
+            (n) => n.pitch === old.pitch && Math.abs(n.beat - old.beat) < 0.05
+          );
+          if (newIdx >= 0) newSelected.add(newIdx);
+        }
+        return newSelected;
+      });
+      return notes;
+    });
   }, [notes]);
 
   const gridStepBeats = 4 / gridDiv;
