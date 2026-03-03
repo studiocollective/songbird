@@ -783,6 +783,154 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         })
 
         // ====================================================================
+        // MIDI Note Editing (Piano Roll Editor)
+        // ====================================================================
+        //
+        // Individual note operations: each modifies a single note in the
+        // Tracktion MIDI clip (instant on message thread). Bird file write
+        // and trackState emit are debounced via scheduleMidiCommit().
+
+        // --- Add a MIDI note ---
+        // Args: (trackId, sectionName, pitch, beat, duration, velocity)
+        //   beat is relative to section start, in beats (0-based)
+        .withNativeFunction("midiAddNote", [this](auto& args, auto complete) {
+            if (!edit || !currentBirdFile.existsAsFile() || args.size() < 6) {
+                complete("{\"success\":false}"); return;
+            }
+            int trackId          = static_cast<int>(args[0]);
+            juce::String secName = args[1].toString();
+            int pitch            = static_cast<int>(args[2]);
+            double beat          = static_cast<double>(args[3]);
+            double duration      = static_cast<double>(args[4]);
+            int velocity         = static_cast<int>(args[5]);
+
+            juce::MessageManager::callAsync([this, trackId, secName, pitch, beat, duration, velocity]() {
+                double secOffset = 0.0;
+                int secBars = 4;
+                for (auto& e : lastParseResult.arrangement) {
+                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
+                    secOffset += e.bars * 4.0;
+                }
+
+                // Add note to Tracktion clip (instant)
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId >= 0 && trackId < (int)audioTracks.size()) {
+                    te::MidiClip* mc = nullptr;
+                    for (auto* clip : audioTracks[trackId]->getClips())
+                        if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                    if (mc) {
+                        mc->getSequence().addNote(pitch,
+                            te::BeatPosition::fromBeats(secOffset + beat),
+                            te::BeatDuration::fromBeats(duration * 0.9),
+                            velocity, 0, nullptr);
+                    }
+                }
+
+                // Debounce: bird write + trackState + commit happen after edits settle
+                pendingMidiEdit = { trackId, secName, secOffset, secBars };
+                scheduleMidiCommit();
+            });
+            complete("{\"success\":true}");
+        })
+
+        // --- Remove a MIDI note ---
+        // Args: (trackId, sectionName, pitch, beat)
+        .withNativeFunction("midiRemoveNote", [this](auto& args, auto complete) {
+            if (!edit || !currentBirdFile.existsAsFile() || args.size() < 4) {
+                complete("{\"success\":false}"); return;
+            }
+            int trackId          = static_cast<int>(args[0]);
+            juce::String secName = args[1].toString();
+            int pitch            = static_cast<int>(args[2]);
+            double beat          = static_cast<double>(args[3]);
+
+            juce::MessageManager::callAsync([this, trackId, secName, pitch, beat]() {
+                double secOffset = 0.0;
+                int secBars = 4;
+                for (auto& e : lastParseResult.arrangement) {
+                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
+                    secOffset += e.bars * 4.0;
+                }
+
+                double absBeat = secOffset + beat;
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId >= 0 && trackId < (int)audioTracks.size()) {
+                    te::MidiClip* mc = nullptr;
+                    for (auto* clip : audioTracks[trackId]->getClips())
+                        if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                    if (mc) {
+                        auto& seq = mc->getSequence();
+                        for (int i = seq.getNumNotes() - 1; i >= 0; --i) {
+                            auto* note = seq.getNote(i);
+                            if (note->getNoteNumber() == pitch &&
+                                std::abs(note->getStartBeat().inBeats() - absBeat) < 0.05) {
+                                seq.removeNote(*note, nullptr);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                pendingMidiEdit = { trackId, secName, secOffset, secBars };
+                scheduleMidiCommit();
+            });
+            complete("{\"success\":true}");
+        })
+
+        // --- Move / resize a MIDI note ---
+        // Args: (trackId, sectionName, oldPitch, oldBeat, newPitch, newBeat, newDuration)
+        .withNativeFunction("midiMoveNote", [this](auto& args, auto complete) {
+            if (!edit || !currentBirdFile.existsAsFile() || args.size() < 7) {
+                complete("{\"success\":false}"); return;
+            }
+            int trackId          = static_cast<int>(args[0]);
+            juce::String secName = args[1].toString();
+            int oldPitch         = static_cast<int>(args[2]);
+            double oldBeat       = static_cast<double>(args[3]);
+            int newPitch         = static_cast<int>(args[4]);
+            double newBeat       = static_cast<double>(args[5]);
+            double newDuration   = static_cast<double>(args[6]);
+
+            juce::MessageManager::callAsync([this, trackId, secName, oldPitch, oldBeat, newPitch, newBeat, newDuration]() {
+                double secOffset = 0.0;
+                int secBars = 4;
+                for (auto& e : lastParseResult.arrangement) {
+                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
+                    secOffset += e.bars * 4.0;
+                }
+
+                double absOld = secOffset + oldBeat;
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId >= 0 && trackId < (int)audioTracks.size()) {
+                    te::MidiClip* mc = nullptr;
+                    for (auto* clip : audioTracks[trackId]->getClips())
+                        if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                    if (mc) {
+                        auto& seq = mc->getSequence();
+                        int vel = 100;
+                        for (int i = seq.getNumNotes() - 1; i >= 0; --i) {
+                            auto* note = seq.getNote(i);
+                            if (note->getNoteNumber() == oldPitch &&
+                                std::abs(note->getStartBeat().inBeats() - absOld) < 0.05) {
+                                vel = note->getVelocity();
+                                seq.removeNote(*note, nullptr);
+                                break;
+                            }
+                        }
+                        seq.addNote(newPitch,
+                            te::BeatPosition::fromBeats(secOffset + newBeat),
+                            te::BeatDuration::fromBeats(newDuration * 0.9),
+                            vel, 0, nullptr);
+                    }
+                }
+
+                pendingMidiEdit = { trackId, secName, secOffset, secBars };
+                scheduleMidiCommit();
+            });
+            complete("{\"success\":true}");
+        })
+
+        // ====================================================================
         // Project Undo / Redo / History
         // ====================================================================
 

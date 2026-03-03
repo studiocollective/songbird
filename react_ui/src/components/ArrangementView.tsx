@@ -139,9 +139,26 @@ export function ArrangementView() {
                 />
               ))}
 
-              {/* MIDI notes mini piano-roll */}
+              {/* MIDI notes mini piano-roll — clickable to open editor */}
               {track.notes && track.notes.length > 0 && (
-                <div className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0`}>
+                <div
+                  className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0 cursor-pointer`}
+                  onClick={(e) => {
+                    // Determine which section was clicked
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pct = (e.clientX - rect.left) / rect.width;
+                    const clickedBar = pct * totalBars;
+                    let sectionIdx = 0;
+                    for (let si = 0; si < sections.length; si++) {
+                      const sec = sections[si];
+                      if (clickedBar >= sec.start && clickedBar < sec.start + sec.length) {
+                        sectionIdx = si;
+                        break;
+                      }
+                    }
+                    useMixerStore.getState().openMidiEditor(track.id, sectionIdx);
+                  }}
+                >
                     <NoteClip
                       notes={track.notes}
                       color={track.color}

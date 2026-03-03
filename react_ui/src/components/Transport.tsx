@@ -171,6 +171,12 @@ export function Transport() {
         >
           History
         </button>
+        <button
+          onClick={() => setRightPanel('bird')}
+          className={cn(panelBtn, rightPanel === 'bird' ? panelBtnActive : panelBtnInactive)}
+        >
+          Bird
+        </button>
       </div>
     </div>
   );

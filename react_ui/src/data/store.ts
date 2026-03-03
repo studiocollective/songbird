@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import '@/data/meters';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { juceBridge, addStateListener, nativeFunction } from './bridge';
-import type { TransportState, MixerState, ChatState, LyriaState, TrackType } from '@/data/slices';
+import type { TransportState, MixerState, ChatState, LyriaState, TrackType, NoteData } from '@/data/slices';
 import {
   useTransportSlice,
   TransportStateID,
@@ -228,6 +228,17 @@ addStateListener('trackState', (data: unknown) => {
     processTrackNotes(data as string | object);
   } catch (e) {
     console.error('[trackState] Failed to parse:', e);
+  }
+});
+
+// Lightweight note update from MIDI editing (replaces expensive full trackState for note edits)
+addStateListener('notesChanged', (data: unknown) => {
+  try {
+    const raw = typeof data === 'string' ? JSON.parse(data) : data;
+    const { trackId, notes } = raw as { trackId: number; notes: NoteData[] };
+    useMixerStore.getState().setTrackNotes(trackId, notes);
+  } catch (e) {
+    console.error('[notesChanged] Failed to parse:', e);
   }
 });
 

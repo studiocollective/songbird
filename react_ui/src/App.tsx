@@ -2,14 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Transport } from '@/components/Transport';
 import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
+import { MidiEditor } from '@/components/MidiEditor';
 import { ChatPanel } from '@/components/ChatPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
+import { BirdFilePanel } from '@/components/BirdFilePanel';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';
-import { useChatStore } from '@/data/store';
+import { useChatStore, useMixerStore } from '@/data/store';
 
 const setZoom = isPlugin ? Juce.getNativeFunction('setZoom') : null;
 const uiReady = isPlugin ? Juce.getNativeFunction('uiReady') : null;
@@ -25,6 +27,7 @@ function App() {
   const [loadingMsg, setLoadingMsg] = useState('Initializing workspace...');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const rightPanel = useChatStore((s) => s.rightPanel);
+  const midiEditorOpen = useMixerStore((s) => s.midiEditorOpen);
 
   useEffect(() => {
     const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
@@ -97,8 +100,9 @@ function App() {
         <ArrangementView />
         {rightPanel === 'chat' && <ChatPanel />}
         {rightPanel === 'history' && <HistoryPanel />}
+        {rightPanel === 'bird' && <BirdFilePanel />}
       </div>
-      <MixerPanel />
+      {midiEditorOpen ? <MidiEditor /> : <MixerPanel />}
       <DebugPanel />
       <ExportProgressModal />
     </div>

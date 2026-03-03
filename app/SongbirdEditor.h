@@ -128,6 +128,24 @@ private:
     void redoProject();
     void revertLLM();
 
+    // MIDI editing helpers (piano roll → bird + Tracktion)
+    struct PendingMidiEdit {
+        int trackId = -1;
+        juce::String sectionName;
+        double secOffset = 0.0;
+        int secBars = 4;
+    };
+    PendingMidiEdit pendingMidiEdit;
+    std::atomic<bool> midiEditPending { false };  // suppresses mixer echo commits
+
+    struct ClipNote { int pitch; int velocity; double relBeat; };
+    std::vector<ClipNote> collectNotesFromClip(int trackId, double secOffset, int secBars);
+    void writeBirdFromClip(int trackId, const juce::String& sectionName,
+                           double secOffset, int secBars,
+                           const std::vector<ClipNote>& clipNotes);
+    void emitTrackState();
+    void scheduleMidiCommit();
+
     // Playback info (levels, transport position, stereo analysis)
     PlaybackInfo playbackInfo;
 

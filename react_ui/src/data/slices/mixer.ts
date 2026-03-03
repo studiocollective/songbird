@@ -70,6 +70,11 @@ const defaultTracks: Track[] = [];
 // Tracks are loaded dynamically from the .bird file via trackState events
 
 // --- Mixer State Slice ---
+export interface SelectedClip {
+  trackId: number;
+  sectionIndex: number;  // which section occurrence in the arrangement
+}
+
 export interface MixerState {
   initialized: boolean;
   initialize: () => void;
@@ -79,6 +84,14 @@ export interface MixerState {
   totalBars: number;
   mixerOpen: boolean;
   returnsOpen: boolean;
+
+  // MIDI Editor
+  midiEditorOpen: boolean;
+  selectedClip: SelectedClip | null;
+  midiEditorGridDiv: number;  // grid subdivision: 4=quarter, 8=eighth, 16=sixteenth
+  openMidiEditor: (trackId: number, sectionIndex: number) => void;
+  closeMidiEditor: () => void;
+  setMidiEditorGridDiv: (div: number) => void;
 
   toggleMixer: () => void;
   toggleReturns: () => void;
@@ -129,6 +142,22 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   totalBars: 1,
   mixerOpen: true,
   returnsOpen: false,
+
+  // MIDI Editor
+  midiEditorOpen: false,
+  selectedClip: null,
+  midiEditorGridDiv: 8,
+  openMidiEditor: (trackId, sectionIndex) => set({
+    midiEditorOpen: true,
+    selectedClip: { trackId, sectionIndex },
+    mixerOpen: false,
+  }),
+  closeMidiEditor: () => set({
+    midiEditorOpen: false,
+    selectedClip: null,
+    mixerOpen: true,
+  }),
+  setMidiEditorGridDiv: (div) => set({ midiEditorGridDiv: div }),
 
   availableInstruments: [],
   availableChannelStrips: [],

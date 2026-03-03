@@ -48,7 +48,7 @@ export interface ChatState {
   initialize: () => void;
 
   chatOpen: boolean;
-  rightPanel: 'chat' | 'history' | null;
+  rightPanel: 'chat' | 'history' | 'bird' | null;
   chatMessages: ChatMessage[];
   chatInput: string;
   apiKey: string | null;
@@ -64,7 +64,7 @@ export interface ChatState {
   threadMenuOpen: boolean;
 
   toggleChat: () => void;
-  setRightPanel: (panel: 'chat' | 'history' | null) => void;
+  setRightPanel: (panel: 'chat' | 'history' | 'bird' | null) => void;
   setChatInput: (input: string) => void;
   setApiKey: (key: string) => void;
   setSelectedModel: (model: string) => void;
@@ -114,7 +114,7 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     initialize: () => set({ initialized: true }),
 
     chatOpen: true,
-    rightPanel: 'chat' as 'chat' | 'history' | null,
+    rightPanel: 'chat' as 'chat' | 'history' | 'bird' | null,
     chatMessages: activeThread.messages,
     chatInput: '',
     apiKey: null,

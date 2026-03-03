@@ -99,7 +99,7 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
 
     // Only mixer state participates in undo/redo (git-tracked via daw.state.json).
     // Transport/chat/lyria are saved to daw.session.json (gitignored) — no commits.
-    if (storeName == "songbird-mixer" && isLoadFinished && !undoRedoInProgress.load())
+    if (storeName == "songbird-mixer" && isLoadFinished && !undoRedoInProgress.load() && !midiEditPending.load())
     {
         // Generate descriptive commit message by diffing old vs new state
         juce::String commitMsg = describeMixerChange(prevMixerJson, jsonValue);

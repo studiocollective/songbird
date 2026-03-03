@@ -245,7 +245,63 @@ void SongbirdEditor::timerCallback()
     stopTimer();
     if (!isLoadFinished && !pendingProjectLoadCommit) return;
 
-    // Timer is used for: (1) deferred project load commit, (2) session state debounce, (3) plugin param debounce
+    // --- MIDI edit flush (most work goes to background thread) ---
+    if (pendingMidiEdit.trackId >= 0) {
+        auto midiEdit = pendingMidiEdit;
+        pendingMidiEdit.trackId = -1;
+
+        // Read notes from Tracktion clip ON message thread (fast)
+        auto clipNotes = collectNotesFromClip(midiEdit.trackId, midiEdit.secOffset, midiEdit.secBars);
+
+        dirtyPluginParams.clear();
+        pluginParamsDirty = false;
+
+        // Build lightweight notes JSON and emit immediately (message thread, fast)
+        // This replaces the expensive getTrackStateJSON — only one track's notes
+        if (webView) {
+            juce::String notesJson = "{\"trackId\":" + juce::String(midiEdit.trackId) + ",\"notes\":[";
+            auto audioTracks = te::getAudioTracks(*edit);
+            if (midiEdit.trackId >= 0 && midiEdit.trackId < (int)audioTracks.size()) {
+                te::MidiClip* mc = nullptr;
+                for (auto* clip : audioTracks[midiEdit.trackId]->getClips())
+                    if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                if (mc) {
+                    auto& seq = mc->getSequence();
+                    for (int n = 0; n < seq.getNumNotes(); n++) {
+                        auto* note = seq.getNote(n);
+                        if (n > 0) notesJson += ",";
+                        notesJson += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
+                                     ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
+                                     ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
+                                     ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
+                    }
+                }
+            }
+            notesJson += "]}";
+            webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesJson));
+        }
+
+        // Launch background thread for heavy I/O (bird file write + git commit)
+        juce::String commitMsg = "MIDI Edit: edit notes";
+        juce::Thread::launch([this, midiEdit, clipNotes, commitMsg]() {
+            writeBirdFromClip(midiEdit.trackId, midiEdit.sectionName,
+                              midiEdit.secOffset, midiEdit.secBars, clipNotes);
+
+            saveSessionState();
+            saveEditState();
+
+            projectState.commit(commitMsg, ProjectState::Plugin, true);
+            midiEditPending = false;
+
+            juce::MessageManager::callAsync([this]() {
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
+            });
+        });
+        return;
+    }
+
+    // --- Non-MIDI timer work (plugin params, project load) stays on message thread ---
     saveSessionState();
     saveEditState();
 
@@ -264,7 +320,6 @@ void SongbirdEditor::timerCallback()
     }
     else if (pluginParamsDirty && !undoRedoInProgress.load())
     {
-        // Build descriptive commit message from changed plugins and params
         juce::String commitMsg;
         if (dirtyPluginParams.empty())
         {
@@ -278,7 +333,6 @@ void SongbirdEditor::timerCallback()
                 juce::StringArray paramNames;
                 for (auto& p : params)
                     paramNames.add(p);
-                // Limit to 3 param names to keep message short
                 if (paramNames.size() > 3)
                 {
                     auto count = paramNames.size();
@@ -1544,4 +1598,167 @@ void SongbirdEditor::setSidechainSource(int destTrackId, int sourceTrackId)
     DBG("Sidechain: Track " + juce::String(sourceTrackId)
         + " -> Track " + juce::String(destTrackId)
         + " via bus " + juce::String(SC_BUS));
+}
+
+// ====================================================================
+// MIDI editing helpers (piano roll)
+// ====================================================================
+
+void SongbirdEditor::emitTrackState()
+{
+    if (webView && edit)
+        webView->emitEventIfBrowserIsVisible("trackState",
+            juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
+}
+
+void SongbirdEditor::scheduleMidiCommit()
+{
+    midiEditPending = true;
+    dirtyPluginParams.clear();
+    dirtyPluginParams["MIDI Edit"].insert("edit notes");
+    pluginParamsDirty = true;
+    startTimer(800);
+}
+
+std::vector<SongbirdEditor::ClipNote> SongbirdEditor::collectNotesFromClip(
+    int trackId, double secOffset, int secBars)
+{
+    // MUST run on message thread — reads from Tracktion MidiSequence
+    std::vector<ClipNote> result;
+    if (!edit) return result;
+
+    auto audioTracks = te::getAudioTracks(*edit);
+    if (trackId < 0 || trackId >= (int)audioTracks.size()) return result;
+
+    te::MidiClip* mc = nullptr;
+    for (auto* clip : audioTracks[trackId]->getClips())
+        if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+    if (!mc) return result;
+
+    auto& seq = mc->getSequence();
+    double secEnd = secOffset + secBars * 4.0;
+
+    for (int i = 0; i < seq.getNumNotes(); ++i) {
+        auto* note = seq.getNote(i);
+        double b = note->getStartBeat().inBeats();
+        if (b >= secOffset - 0.01 && b < secEnd + 0.01) {
+            result.push_back({ note->getNoteNumber(), note->getVelocity(), b - secOffset });
+        }
+    }
+    return result;
+}
+
+void SongbirdEditor::writeBirdFromClip(int trackId, const juce::String& sectionName,
+                                        double /*secOffset*/, int secBars,
+                                        const std::vector<ClipNote>& clipNotes)
+{
+    // Safe to run on background thread — only does string manipulation + file I/O.
+    // No Tracktion or JUCE ValueTree access.
+    if (!currentBirdFile.existsAsFile()) return;
+    if (trackId < 0 || trackId >= (int)lastParseResult.channels.size()) return;
+
+    auto& chInfo = lastParseResult.channels[trackId];
+    juce::String channelName = chInfo.name;
+    int channelNumInFile = chInfo.channel + 1;
+
+    // Convert notes to step map
+    struct StepNote { int pitch; int velocity; };
+    int totalSteps = secBars * 16;
+    std::map<int, std::vector<StepNote>> stepMap;
+
+    for (auto& cn : clipNotes) {
+        int step = static_cast<int>(std::round(cn.relBeat * 4.0));
+        if (step >= 0 && step < totalSteps)
+            stepMap[step].push_back({ cn.pitch, cn.velocity });
+    }
+
+    // Build p/v/n lines
+    int maxVoices = 0;
+    for (auto& [step, notes] : stepMap)
+        maxVoices = std::max(maxVoices, (int)notes.size());
+    if (maxVoices == 0) maxVoices = 1;
+
+    for (auto& [step, notes] : stepMap)
+        std::sort(notes.begin(), notes.end(),
+            [](const StepNote& a, const StepNote& b) { return a.pitch > b.pitch; });
+
+    juce::String pLine = "    p";
+    juce::String vLine = "      v";
+    std::vector<juce::String> nLines(maxVoices, "        n");
+
+    for (int s = 0; s < totalSteps; s++) {
+        auto it = stepMap.find(s);
+        if (it != stepMap.end() && !it->second.empty()) {
+            pLine += " x";
+            vLine += " " + juce::String(it->second[0].velocity);
+            for (int v = 0; v < maxVoices; v++) {
+                if (v < (int)it->second.size())
+                    nLines[v] += " " + juce::String(it->second[v].pitch);
+                else
+                    nLines[v] += " -";
+            }
+        } else {
+            pLine += " _";
+        }
+    }
+
+    juce::String newBlock = pLine + "\n" + vLine + "\n";
+    for (auto& nl : nLines)
+        newBlock += nl + "\n";
+
+    // --- Replace the channel block in the bird file ---
+    auto birdText = currentBirdFile.loadFileAsString();
+    auto lines = juce::StringArray::fromLines(birdText);
+
+    int secStart = -1, secEndLine = lines.size();
+    juce::String secMarker = "sec " + sectionName;
+    for (int i = 0; i < lines.size(); i++) {
+        auto trimmed = lines[i].trim();
+        if (trimmed == secMarker || trimmed.startsWith(secMarker + " ")) {
+            secStart = i;
+            for (int j = i + 1; j < lines.size(); j++) {
+                auto t = lines[j].trim();
+                if (t.startsWith("sec ") && !t.startsWith(secMarker)) { secEndLine = j; break; }
+            }
+            break;
+        }
+    }
+    if (secStart < 0) return;
+
+    juce::String chMarker = "ch " + juce::String(channelNumInFile) + " " + channelName;
+    int chStart = -1, chEnd = secEndLine;
+    for (int i = secStart + 1; i < secEndLine; i++) {
+        auto trimmed = lines[i].trim();
+        if (trimmed == chMarker || trimmed.startsWith(chMarker + " ")) {
+            chStart = i;
+            for (int j = i + 1; j < secEndLine; j++) {
+                if (lines[j].trim().startsWith("ch ")) { chEnd = j; break; }
+            }
+            break;
+        }
+    }
+
+    if (chStart < 0) {
+        lines.insert(secEndLine, "  " + chMarker + "\n" + newBlock);
+    } else {
+        juce::StringArray preserved;
+        for (int i = chStart + 1; i < chEnd; i++) {
+            auto t = lines[i].trim();
+            if (!t.startsWith("p ") && !t.startsWith("v ") && !t.startsWith("n "))
+                preserved.add(lines[i]);
+        }
+        lines.removeRange(chStart + 1, chEnd - chStart - 1);
+        int insertAt = chStart + 1;
+        auto newLines = juce::StringArray::fromLines(newBlock);
+        if (newLines.size() > 0 && newLines[newLines.size() - 1].isEmpty())
+            newLines.remove(newLines.size() - 1);
+        for (int i = 0; i < newLines.size(); i++)
+            lines.insert(insertAt + i, newLines[i]);
+        insertAt += newLines.size();
+        for (int i = 0; i < preserved.size(); i++)
+            lines.insert(insertAt + i, preserved[i]);
+    }
+
+    currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+    DBG("MidiEdit: writeBirdFromClip sec=" + sectionName + " ch=" + channelName);
 }
