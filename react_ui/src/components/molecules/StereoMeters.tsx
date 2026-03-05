@@ -184,7 +184,7 @@ export function SpectrumAnalyzer() {
           const h = Math.max(1, val * SVG_H);
           bar.setAttribute('height', String(h));
           bar.setAttribute('y', String(SVG_H - h));
-          const color = val >= 0.95 ? 'rgb(239,68,68)' : 'rgb(52,211,153)';
+          const color = 'rgb(52,211,153)'; // always green
           bar.setAttribute('fill', color);
         }
       }

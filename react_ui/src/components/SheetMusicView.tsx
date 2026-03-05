@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { NoteData } from '@/data/slices/mixer';
+import { sheetMusicCls } from './MidiEditor';
 
 // ─── Music theory constants ───────────────────────────
 const MIDDLE_C = 60;
@@ -169,7 +170,7 @@ export function SheetMusicView({
           y1={y}
           x2={svgWidth - RIGHT_MARGIN + 5}
           y2={y}
-          stroke="hsl(0 0% 40%)"
+          stroke="hsl(var(--border))"
           strokeWidth={0.8}
         />
       );
@@ -184,7 +185,7 @@ export function SheetMusicView({
           y1={y}
           x2={svgWidth - RIGHT_MARGIN + 5}
           y2={y}
-          stroke="hsl(0 0% 40%)"
+          stroke="hsl(var(--border))"
           strokeWidth={0.8}
         />
       );
@@ -206,7 +207,7 @@ export function SheetMusicView({
           y1={trebleTop}
           x2={x}
           y2={bassBottom}
-          stroke="hsl(0 0% 40%)"
+          stroke="hsl(var(--border))"
           strokeWidth={bar === 0 || bar === sectionLengthBars ? 1.5 : 0.8}
         />
       );
@@ -217,7 +218,7 @@ export function SheetMusicView({
             key={`barnum-${bar}`}
             x={x + 4}
             y={TREBLE_TOP - 6}
-            fill="hsl(0 0% 55%)"
+            fill="hsl(var(--muted-foreground))"
             fontSize={9}
             fontFamily="Inter, system-ui, sans-serif"
           >
@@ -237,7 +238,7 @@ export function SheetMusicView({
         x={LEFT_MARGIN - 28}
         y={TREBLE_TOP + (STAFF_LINES - 1) * STAFF_LINE_SPACING - 2}
         fontSize={42}
-        fill="hsl(0 0% 60%)"
+        fill="hsl(var(--muted-foreground))"
         fontFamily="'Noto Music', serif"
       >
         𝄞
@@ -247,7 +248,7 @@ export function SheetMusicView({
         x={LEFT_MARGIN - 26}
         y={BASS_TOP + (STAFF_LINES - 1) * STAFF_LINE_SPACING - 6}
         fontSize={34}
-        fill="hsl(0 0% 60%)"
+        fill="hsl(var(--muted-foreground))"
         fontFamily="'Noto Music', serif"
       >
         𝄢
@@ -275,7 +276,7 @@ export function SheetMusicView({
           y1={ly}
           x2={x + NOTE_RADIUS + 3}
           y2={ly}
-          stroke="hsl(0 0% 40%)"
+          stroke="hsl(var(--border))"
           strokeWidth={0.8}
         />
       );
@@ -289,7 +290,7 @@ export function SheetMusicView({
           x={x - NOTE_RADIUS - 9}
           y={y + 3.5}
           fontSize={11}
-          fill={"hsl(0 0% 15%)"}
+          fill={"hsl(var(--foreground))"}
           opacity={opacity}
           fontFamily="'Noto Music', serif"
         >
@@ -309,7 +310,7 @@ export function SheetMusicView({
           rx={NOTE_RADIUS + 1}
           ry={NOTE_RADIUS - 0.5}
           fill="none"
-          stroke={"hsl(0 0% 15%)"}
+          stroke={"hsl(var(--foreground))"}
           strokeWidth={1.5}
           opacity={opacity}
         />
@@ -324,7 +325,7 @@ export function SheetMusicView({
           rx={NOTE_RADIUS}
           ry={NOTE_RADIUS - 1}
           fill="none"
-          stroke={"hsl(0 0% 15%)"}
+          stroke={"hsl(var(--foreground))"}
           strokeWidth={1.5}
           opacity={opacity}
           transform={`rotate(-15, ${x}, ${y})`}
@@ -337,7 +338,7 @@ export function SheetMusicView({
           y1={y}
           x2={x + NOTE_RADIUS}
           y2={y - 28}
-          stroke={"hsl(0 0% 15%)"}
+          stroke={"hsl(var(--foreground))"}
           strokeWidth={1.2}
           opacity={opacity}
         />
@@ -351,7 +352,7 @@ export function SheetMusicView({
           cy={y}
           rx={NOTE_RADIUS}
           ry={NOTE_RADIUS - 1}
-          fill={"hsl(0 0% 15%)"}
+          fill={"hsl(var(--foreground))"}
           opacity={opacity}
           transform={`rotate(-15, ${x}, ${y})`}
         />
@@ -364,7 +365,7 @@ export function SheetMusicView({
           y1={y}
           x2={x + NOTE_RADIUS}
           y2={y - 28}
-          stroke={"hsl(0 0% 15%)"}
+          stroke={"hsl(var(--foreground))"}
           strokeWidth={1.2}
           opacity={opacity}
         />
@@ -376,7 +377,7 @@ export function SheetMusicView({
             key={`flag1-${index}`}
             d={`M${x + NOTE_RADIUS},${y - 28} Q${x + NOTE_RADIUS + 8},${y - 20} ${x + NOTE_RADIUS + 2},${y - 14}`}
             fill="none"
-            stroke={"hsl(0 0% 15%)"}
+            stroke={"hsl(var(--foreground))"}
             strokeWidth={1.2}
             opacity={opacity}
           />
@@ -388,7 +389,7 @@ export function SheetMusicView({
             key={`flag2-${index}`}
             d={`M${x + NOTE_RADIUS},${y - 24} Q${x + NOTE_RADIUS + 8},${y - 16} ${x + NOTE_RADIUS + 2},${y - 10}`}
             fill="none"
-            stroke={"hsl(0 0% 15%)"}
+            stroke={"hsl(var(--foreground))"}
             strokeWidth={1.2}
             opacity={opacity}
           />
@@ -429,7 +430,7 @@ export function SheetMusicView({
           y1={(TREBLE_TOP + (STAFF_LINES - 1) * STAFF_LINE_SPACING + BASS_TOP) / 2}
           x2={svgWidth - RIGHT_MARGIN}
           y2={(TREBLE_TOP + (STAFF_LINES - 1) * STAFF_LINE_SPACING + BASS_TOP) / 2}
-          stroke="hsl(0 0% 35%)"
+          stroke="hsl(var(--muted-foreground))"
           strokeWidth={0.5}
           strokeDasharray="4 4"
           opacity={0.4}

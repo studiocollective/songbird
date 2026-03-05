@@ -22,23 +22,7 @@ export function MixerPanel() {
   return (
     <div className={cn(panel, mixerOpen ? 'h-72 overflow-visible' : 'h-0 overflow-hidden')}>
       <div className={panelInner}>
-        <MasterChannel />
-
-        <div className="flex flex-col justify-end pb-4 px-2 border-r border-[hsl(var(--border))]/50">
-          <button
-            onClick={toggleReturns}
-            className={cn(
-              "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors",
-              returnsOpen
-                ? "bg-[hsl(var(--primary))] text-primary-foreground"
-                : "bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]/80"
-            )}
-            title="Toggle Return Tracks & Sends"
-          >
-            R
-          </button>
-        </div>
-
+        <MasterChannel returnsOpen={returnsOpen} onToggleReturns={toggleReturns} />
         <div className="flex-1 relative min-w-0 flex flex-col">
           {returnsOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-2 z-50 pointer-events-auto block">
@@ -79,6 +63,8 @@ export function MixerPanel() {
                 sidechainTrackId={track.sidechainTrackId}
                 sidechainSensitivity={track.sidechainSensitivity}
                 trackList={tracks}
+                audioSource={track.audioSource}
+                recordArmed={track.recordArmed}
               />
             ))}
           </div>

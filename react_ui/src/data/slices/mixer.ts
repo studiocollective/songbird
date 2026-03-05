@@ -41,6 +41,17 @@ export interface AudioSource {
   sourceTrackId?: number;
 }
 
+export interface AudioClip {
+  id: string;
+  filePath: string;       // relative to project samples/ dir
+  startBeat: number;      // position on timeline
+  duration: number;       // duration in beats
+  cropStart: number;      // sample crop start (seconds)
+  cropEnd: number;        // sample crop end (seconds)
+  looping: boolean;
+  quantized: boolean;
+}
+
 export interface Track {
   id: number;
   name: string;
@@ -54,6 +65,7 @@ export interface Track {
   fx: PluginSlot;           // Insert effect (e.g. reverb, delay)
   channelStrip: PluginSlot;
   notes: NoteData[];
+  loopLengthBeats?: number;
   automation?: AutomationCurve[];
   sends?: number[];
   isReturn?: boolean;
@@ -64,6 +76,8 @@ export interface Track {
   recordArmed?: boolean;
   hasRecordedData?: boolean;
   audioSource?: AudioSource | null;
+  // Audio clips (for audio tracks)
+  audioClips?: AudioClip[];
 }
 
 const defaultTracks: Track[] = [];
@@ -93,6 +107,12 @@ export interface MixerState {
   closeMidiEditor: () => void;
   setMidiEditorGridDiv: (div: number) => void;
 
+  // Sample Editor
+  sampleEditorOpen: boolean;
+  selectedAudioClip: { trackId: number; clipId: string } | null;
+  openSampleEditor: (trackId: number, clipId: string) => void;
+  closeSampleEditor: () => void;
+
   toggleMixer: () => void;
   toggleReturns: () => void;
   toggleMute: (id: number) => void;
@@ -108,6 +128,7 @@ export interface MixerState {
   setAudioRecordArm: (id: number, armed: boolean) => void;
   setAudioSource: (id: number, source: AudioSource | null) => void;
   addAudioTrack: () => Promise<number>;
+  addMidiTrack: () => Promise<number>;
   removeAudioTrack: (id: number) => void;
   clearRecordedData: (id: number) => void;
   setSidechainSensitivity: (destId: number, value: number) => void;
@@ -150,14 +171,28 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   openMidiEditor: (trackId, sectionIndex) => set({
     midiEditorOpen: true,
     selectedClip: { trackId, sectionIndex },
-    mixerOpen: false,
+    sampleEditorOpen: false,
+    selectedAudioClip: null,
   }),
   closeMidiEditor: () => set({
     midiEditorOpen: false,
     selectedClip: null,
-    mixerOpen: true,
   }),
   setMidiEditorGridDiv: (div) => set({ midiEditorGridDiv: div }),
+
+  // Sample Editor
+  sampleEditorOpen: false,
+  selectedAudioClip: null,
+  openSampleEditor: (trackId, clipId) => set({
+    sampleEditorOpen: true,
+    selectedAudioClip: { trackId, clipId },
+    midiEditorOpen: false,
+    selectedClip: null,
+  }),
+  closeSampleEditor: () => set({
+    sampleEditorOpen: false,
+    selectedAudioClip: null,
+  }),
 
   availableInstruments: [],
   availableChannelStrips: [],
@@ -316,6 +351,11 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   },
   addAudioTrack: async () => {
     const result = await nativeFunction('addAudioTrack')();
+    const data = typeof result === 'string' ? JSON.parse(result) : result;
+    return data?.trackId ?? -1;
+  },
+  addMidiTrack: async () => {
+    const result = await nativeFunction('addMidiTrack')();
     const data = typeof result === 'string' ? JSON.parse(result) : result;
     return data?.trackId ?? -1;
   },

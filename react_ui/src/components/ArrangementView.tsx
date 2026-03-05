@@ -4,10 +4,21 @@ import type { NoteData } from '@/data/slices/mixer';
 import { Chord } from '@tonaljs/tonal';
 import { AutomationOverlay } from './AutomationOverlay';
 
+// --- Zoom constants ---
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 6;
+const BASE_BAR_WIDTH = 80; // pixels per bar at zoom=1
+
 export function ArrangementView() {
   const { tracks, sections, totalBars: storeTotalBars } = useMixerStore();
   const { looping, loopBars, loopStartBar } = useTransportStore();
   const [showAutomation, setShowAutomation] = useState(false);
+  const zoomRef = useRef(1.0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rulerScrollRef = useRef<HTMLDivElement>(null);
+  const lanesScrollRef = useRef<HTMLDivElement>(null);
+  const pendingZoom = useRef<{ zoom: number; scrollLeft: number } | null>(null);
+  const rafId = useRef<number | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,158 +42,305 @@ export function ArrangementView() {
   }, 4); // minimum 4 beats = 1 bar
   const totalBars = storeTotalBars > 1 ? storeTotalBars : Math.max(1, Math.ceil(maxBeat / 4));
 
-  // Loop region position
-  const loopStartPct = looping && loopBars > 0
-    ? Math.min((loopStartBar / totalBars) * 100, 100)
-    : 0;
-  const loopWidthPct = looping && loopBars > 0
-    ? Math.min(((loopBars - loopStartBar) / totalBars) * 100, 100 - loopStartPct)
-    : 0;
+  // Set initial --bar-w CSS variable
+  useEffect(() => {
+    containerRef.current?.style.setProperty('--bar-w', `${BASE_BAR_WIDTH}px`);
+  }, []);
+
+  // Zoom with Alt/Cmd + scroll wheel — rAF-throttled CSS variable updates
+  useEffect(() => {
+    const el = lanesScrollRef.current;
+    const root = containerRef.current;
+    if (!el || !root) return;
+
+    const flushZoom = () => {
+      rafId.current = null;
+      const p = pendingZoom.current;
+      if (!p) return;
+      pendingZoom.current = null;
+      // Single DOM write per frame — CSS engine recalcs all calc() positions
+      root.style.setProperty('--bar-w', `${BASE_BAR_WIDTH * p.zoom}px`);
+      el.scrollLeft = p.scrollLeft;
+      if (rulerScrollRef.current) rulerScrollRef.current.scrollLeft = p.scrollLeft;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.altKey || e.metaKey) {
+        e.preventDefault();
+        const rect = el.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left + el.scrollLeft;
+        const oldZoom = zoomRef.current;
+        // Continuous exponential zoom proportional to scroll delta
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM,
+          oldZoom * Math.pow(2, -e.deltaY * 0.004)));
+        zoomRef.current = newZoom;
+        // Compute target scroll position
+        const scale = newZoom / oldZoom;
+        const newScrollLeft = mouseX * scale - (e.clientX - rect.left);
+        // Coalesce into pending — only one layout per frame
+        pendingZoom.current = { zoom: newZoom, scrollLeft: newScrollLeft };
+        if (rafId.current === null) {
+          rafId.current = requestAnimationFrame(flushZoom);
+        }
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      if (rafId.current !== null) cancelAnimationFrame(rafId.current);
+    };
+  }, []);
+
+  // Sync ruler scroll with lanes scroll
+  const handleLanesScroll = useCallback(() => {
+    if (lanesScrollRef.current && rulerScrollRef.current) {
+      rulerScrollRef.current.scrollLeft = lanesScrollRef.current.scrollLeft;
+    }
+  }, []);
 
   return (
-    <div className={container}>
+    <div className={container} ref={containerRef}>
       {/* Timeline ruler */}
       <div className={rulerRow}>
         <div className={rulerSpacer} />
-        <div className={rulerTrack}>
-          {/* Loop region overlay on ruler */}
-          {looping && loopWidthPct > 0 && (
-            <LoopRegion
-              loopStartBar={loopStartBar}
-              loopEndBar={loopBars}
-              totalBars={totalBars}
-              loopStartPct={loopStartPct}
-              loopWidthPct={loopWidthPct}
-            />
-          )}
-          {/* Section labels in top half */}
-          {sections.map((sec, i) => (
-            <div
-              key={i}
-              className={sectionLabel}
-              style={{
-                '--label-left': `${(sec.start / totalBars) * 100}%`,
-                '--label-width': `${(sec.length / totalBars) * 100}%`,
-              } as React.CSSProperties}
-            >
-              {sec.name}
-            </div>
-          ))}
-          {/* Bar numbers in bottom half */}
-          {Array.from({ length: totalBars }, (_, i) => (
-            <div
-              key={i}
-              className={barNumber}
-              style={{
-                '--bar-left': `${(i / totalBars) * 100}%`,
-                '--bar-width': `${(1 / totalBars) * 100}%`,
-              } as React.CSSProperties}
-            >
-              {i + 1}
-            </div>
-          ))}
-          {/* Playhead removed from ruler as per request */}
+        <div className={rulerTrack} ref={rulerScrollRef}>
+          <div style={{ width: `calc(${totalBars} * var(--bar-w, ${BASE_BAR_WIDTH}px))`, minWidth: '100%' }} className="relative h-full">
+            {/* Loop region overlay on ruler */}
+            {looping && loopBars > 0 && (loopBars - loopStartBar) > 0 && (
+              <LoopRegion
+                loopStartBar={loopStartBar}
+                loopEndBar={loopBars}
+                totalBars={totalBars}
+              />
+            )}
+            {/* Section labels in top half */}
+            {sections.map((sec, i) => (
+              <div
+                key={i}
+                className={sectionLabel}
+                style={{
+                  left: `calc(${sec.start} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                  width: `calc(${sec.length} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                }}
+              >
+                {sec.name}
+              </div>
+            ))}
+            {/* Bar numbers in bottom half */}
+            {Array.from({ length: totalBars }, (_, i) => (
+              <div
+                key={i}
+                className={barNumber}
+                style={{
+                  left: `calc(${i} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                  width: `var(--bar-w, ${BASE_BAR_WIDTH}px)`,
+                }}
+              >
+                {i + 1}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Track lanes */}
-      <div className={lanesScroll}>
-        {arrangementTracks.map((track) => (
-          <div key={track.id} className={laneRow}>
-            <div className={laneHeader}>
-              <div
-                className={colorDot}
-                style={{ '--dot-color': track.color } as React.CSSProperties}
-              />
-              <span className={trackName}>{track.name}</span>
-              <div className={muteSoloGroup}>
-                <button
-                  onClick={() => useMixerStore.getState().toggleMute(track.id)}
-                  className={`${muteSoloBtn} ${
-                    track.muted ? muteBtnActive : muteSoloBtnInactive
-                  }`}
-                >
-                  M
-                </button>
-                <button
-                  onClick={() => useMixerStore.getState().toggleSolo(track.id)}
-                  className={`${muteSoloBtn} ${
-                    track.solo ? soloBtnActive : muteSoloBtnInactive
-                  }`}
-                >
-                  S
-                </button>
+      {/* Track lanes — scrolls both X (zoom) and Y (many tracks) */}
+      <div className={lanesScroll} ref={lanesScrollRef} onScroll={handleLanesScroll}>
+        <div style={{ width: `calc(${totalBars} * var(--bar-w, ${BASE_BAR_WIDTH}px))`, minWidth: '100%' }}>
+          {arrangementTracks.map((track) => (
+            <div key={track.id} className={laneRow}>
+              <div className={laneHeader}>
+                <div
+                  className={colorDot}
+                  style={{ '--dot-color': track.color } as React.CSSProperties}
+                />
+                <span className={trackName}>{track.name}</span>
+                <div className={muteSoloGroup}>
+                  <button
+                    onClick={() => useMixerStore.getState().toggleMute(track.id)}
+                    className={`${muteSoloBtn} ${
+                      track.muted ? muteBtnActive : muteSoloBtnInactive
+                    }`}
+                  >
+                    M
+                  </button>
+                  <button
+                    onClick={() => useMixerStore.getState().toggleSolo(track.id)}
+                    className={`${muteSoloBtn} ${
+                      track.solo ? soloBtnActive : muteSoloBtnInactive
+                    }`}
+                  >
+                    S
+                  </button>
+                </div>
+              </div>
+
+              <div className={laneContent}>
+                {/* Section background bands */}
+                {sections.map((sec, i) => (
+                  <div
+                    key={`sec-${i}`}
+                    className={`${sectionBg} ${sec.color}`}
+                    style={{
+                      left: `calc(${sec.start} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                      width: `calc(${sec.length} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                    }}
+                  />
+                ))}
+
+                {/* Grid lines for each bar */}
+                {Array.from({ length: totalBars }, (_, i) => (
+                  <div
+                    key={i}
+                    className={gridLine}
+                    style={{ left: `calc(${i} * var(--bar-w, ${BASE_BAR_WIDTH}px))` }}
+                  />
+                ))}
+
+                {/* Audio tracks: show audio clips or empty source options */}
+                {track.type === 'audio' ? (
+                  <div className="absolute inset-0">
+                    {track.audioClips && track.audioClips.length > 0 ? (
+                      track.audioClips.map((clip) => {
+                        return (
+                          <div
+                            key={clip.id}
+                            className={audioClipBlock}
+                            style={{
+                              left: `calc(${clip.startBeat / 4} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                              width: `calc(${clip.duration / 4} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                              '--clip-color': track.color,
+                            } as React.CSSProperties}
+                            onClick={() => useMixerStore.getState().openSampleEditor(track.id, clip.id)}
+                          >
+                            <div className={audioClipWaveform}>
+                              {/* Waveform placeholder bars */}
+                              {Array.from({ length: 24 }, (_, i) => (
+                                <div
+                                  key={i}
+                                  className={waveformBar}
+                                  style={{
+                                    height: `${20 + Math.sin(i * 0.8) * 30 + Math.sin(i * 2.3 + 3) * 15}%`,
+                                    backgroundColor: track.color,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <span className={audioClipLabel}>{clip.filePath.split('/').pop()}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className={audioEmptyLane}>
+                        <button
+                          className={audioSourceBtn}
+                          title="Record audio"
+                          onClick={() => useMixerStore.getState().setAudioRecordArm(track.id, true)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.3"/>
+                            <circle cx="12" cy="12" r="10"/>
+                          </svg>
+                          <span>Record</span>
+                        </button>
+                        <button
+                          className={audioSourceBtn}
+                          title="Import sample"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          <span>Sample</span>
+                        </button>
+                        <button
+                          className={`${audioSourceBtn} opacity-40`}
+                          title="Generate with Lyria (coming soon)"
+                          disabled
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                          </svg>
+                          <span>Generate</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* MIDI notes mini piano-roll — clickable to open editor */}
+                    <div
+                        className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0 cursor-pointer`}
+                        onClick={(e) => {
+                          // Determine which section was clicked (pixel-based)
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const clickedPx = e.clientX - rect.left;
+                          const currentBarW = BASE_BAR_WIDTH * zoomRef.current;
+                          const clickedBar = clickedPx / currentBarW;
+                          let sectionIdx = 0;
+                          for (let si = 0; si < sections.length; si++) {
+                            const sec = sections[si];
+                            if (clickedBar >= sec.start && clickedBar < sec.start + sec.length) {
+                              sectionIdx = si;
+                              break;
+                            }
+                          }
+                          useMixerStore.getState().openMidiEditor(track.id, sectionIdx);
+                        }}
+                      >
+                        {track.notes && track.notes.length > 0 && (
+                          <NoteClip
+                            notes={track.notes}
+                            color={track.color}
+                            totalBars={totalBars}
+                          />
+                        )}
+                      </div>
+                  </>
+                )}
+
+                {/* Automation Curves Layer */}
+                {showAutomation && track.automation && track.automation.length > 0 && (
+                  <div className="absolute inset-0 z-30 pointer-events-none">
+                      <AutomationOverlay 
+                        automation={track.automation} 
+                        totalBars={totalBars} 
+                        color={track.color} 
+                      />
+                  </div>
+                )}
+
+                {/* Playhead line on lane */}
+                <Playhead totalBars={totalBars} className={playheadLane} />
               </div>
             </div>
+          ))}
 
-            <div className={laneContent}>
-              {/* Section background bands */}
-              {sections.map((sec, i) => (
-                <div
-                  key={`sec-${i}`}
-                  className={`${sectionBg} ${sec.color}`}
-                  style={{
-                    '--sec-left': `${(sec.start / totalBars) * 100}%`,
-                    '--sec-width': `${(sec.length / totalBars) * 100}%`,
-                  } as React.CSSProperties}
-                />
-              ))}
-
-              {/* Grid lines for each bar */}
-              {Array.from({ length: totalBars }, (_, i) => (
-                <div
-                  key={i}
-                  className={gridLine}
-                  style={{
-                    '--grid-left': `${(i / totalBars) * 100}%`,
-                  } as React.CSSProperties}
-                />
-              ))}
-
-              {/* MIDI notes mini piano-roll — clickable to open editor */}
-              {track.notes && track.notes.length > 0 && (
-                <div
-                  className={`transition-opacity duration-300 ${showAutomation && track.automation && track.automation.length > 0 ? 'opacity-30' : 'opacity-100'} absolute inset-0 cursor-pointer`}
-                  onClick={(e) => {
-                    // Determine which section was clicked
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pct = (e.clientX - rect.left) / rect.width;
-                    const clickedBar = pct * totalBars;
-                    let sectionIdx = 0;
-                    for (let si = 0; si < sections.length; si++) {
-                      const sec = sections[si];
-                      if (clickedBar >= sec.start && clickedBar < sec.start + sec.length) {
-                        sectionIdx = si;
-                        break;
-                      }
-                    }
-                    useMixerStore.getState().openMidiEditor(track.id, sectionIdx);
-                  }}
-                >
-                    <NoteClip
-                      notes={track.notes}
-                      color={track.color}
-                      totalBars={totalBars}
-                    />
-                </div>
-              )}
-
-              {/* Automation Curves Layer */}
-              {showAutomation && track.automation && track.automation.length > 0 && (
-                <div className="absolute inset-0 z-30 pointer-events-none">
-                    <AutomationOverlay 
-                      automation={track.automation} 
-                      totalBars={totalBars} 
-                      color={track.color} 
-                    />
-                </div>
-              )}
-
-              {/* Playhead line on lane */}
-              <Playhead totalBars={totalBars} className={playheadLane} />
+          {/* Track creation buttons */}
+          <div className={addTrackRow}>
+            <div className={addTrackSpacer} />
+            <div className={addTrackContent}>
+              <button
+                className={addTrackBtn}
+                onClick={() => useMixerStore.getState().addAudioTrack()}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Audio
+              </button>
+              <button
+                className={addTrackBtn}
+                onClick={() => useMixerStore.getState().addMidiTrack()}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                MIDI
+              </button>
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
@@ -194,14 +352,10 @@ function LoopRegion({
   loopStartBar,
   loopEndBar,
   totalBars,
-  loopStartPct,
-  loopWidthPct,
 }: {
   loopStartBar: number;
   loopEndBar: number;
   totalBars: number;
-  loopStartPct: number;
-  loopWidthPct: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<'none' | 'move' | 'resize-left' | 'resize-right'>('none');
@@ -209,13 +363,21 @@ function LoopRegion({
 
   const setLoopRange = useTransportStore.getState().setLoopRange;
 
+  // Read current bar width from CSS variable at drag time
+  const getBarWidth = useCallback((): number => {
+    const root = containerRef.current?.closest('[style*="--bar-w"]') as HTMLElement | null;
+    if (!root) return BASE_BAR_WIDTH;
+    const val = getComputedStyle(root).getPropertyValue('--bar-w');
+    return parseFloat(val) || BASE_BAR_WIDTH;
+  }, []);
+
   const getBarFromX = useCallback((clientX: number): number => {
     const parent = containerRef.current?.parentElement;
     if (!parent) return 0;
     const rect = parent.getBoundingClientRect();
-    const pct = (clientX - rect.left) / rect.width;
-    return Math.round(Math.max(0, Math.min(totalBars, pct * totalBars)));
-  }, [totalBars]);
+    const px = clientX - rect.left + parent.scrollLeft;
+    return Math.round(Math.max(0, Math.min(totalBars, px / getBarWidth())));
+  }, [totalBars, getBarWidth]);
 
   const getCursorZone = useCallback((clientX: number): 'left' | 'right' | 'body' => {
     const el = containerRef.current;
@@ -285,8 +447,8 @@ function LoopRegion({
       ref={containerRef}
       className={loopRegionRuler}
       style={{
-        left: `${loopStartPct}%`,
-        width: `${loopWidthPct}%`,
+        left: `calc(${loopStartBar} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+        width: `calc(${loopEndBar - loopStartBar} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -517,19 +679,17 @@ const rulerRow = `flex shrink-0`;
 const rulerSpacer = `w-44 shrink-0 bg-[hsl(var(--background))] border-b border-r border-[hsl(var(--border))]`;
 const rulerTrack = `
   flex-1 h-10 bg-[hsl(var(--background))] border-b border-[hsl(var(--border))]
-  flex items-end relative overflow-hidden`;
+  relative overflow-x-auto overflow-y-hidden`;
 
 const barNumber = `
   absolute bottom-0 h-5 flex items-center justify-center
   text-[9px] font-mono text-[hsl(var(--muted-foreground))]
-  border-r border-[hsl(var(--border))]/50
-  left-[var(--bar-left)] w-[var(--bar-width)]`;
+  border-r border-[hsl(var(--border))]/50`;
 
 const sectionLabel = `
   absolute top-0 h-5 flex items-center justify-center
   text-[10px] font-medium text-[hsl(var(--muted-foreground))]
-  border-x border-[hsl(var(--border))]/50
-  left-[var(--label-left)] w-[var(--label-width)]`;
+  border-x border-[hsl(var(--border))]/50`;
 
 // Loop region overlays
 const loopRegionRuler = `
@@ -549,12 +709,12 @@ const playheadLane = `
   bg-[hsl(var(--foreground))]/60 z-30
   pointer-events-none`;
 
-const lanesScroll = `flex-1 overflow-y-auto`;
+const lanesScroll = `flex-1 overflow-auto`;
 
 const laneRow = `flex h-16 border-b border-[hsl(var(--border))]/50 group`;
 const laneHeader = `
-  w-44 shrink-0 bg-[hsl(var(--background))]/80 border-r border-[hsl(var(--border))]
-  flex items-center px-3 gap-2`;
+  w-44 shrink-0 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]
+  flex items-center px-3 gap-2 sticky left-0 z-30`;
 const colorDot = `w-2.5 h-2.5 rounded-full shrink-0 bg-[var(--dot-color)]`;
 const trackName = `text-xs text-[hsl(var(--foreground))] font-medium truncate flex-1`;
 
@@ -568,12 +728,10 @@ const laneContent = `flex-1 relative`;
 
 const sectionBg = `
   absolute inset-y-0 border-r border-[hsl(var(--border))]/30
-  left-[var(--sec-left)] w-[var(--sec-width)]
   z-0 pointer-events-none`;
 
 const gridLine = `
   absolute inset-y-0 w-px bg-[hsl(var(--border))]/30
-  left-[var(--grid-left)]
   z-10 pointer-events-none`;
 
 const clip = `
@@ -596,3 +754,48 @@ const chordLabelText = `
   border border-[hsl(var(--border))]/30
   shadow-sm whitespace-nowrap
 `;
+
+// --- Audio clip styles ---
+const audioClipBlock = `
+  absolute top-1.5 bottom-1.5 rounded-sm overflow-hidden cursor-pointer
+  bg-[var(--clip-color)]/20 border border-[var(--clip-color)]/50
+  hover:bg-[var(--clip-color)]/30 transition-colors
+  z-20 flex flex-col`;
+
+const audioClipWaveform = `
+  flex-1 flex items-center gap-px px-1 overflow-hidden`;
+
+const waveformBar = `
+  w-[2px] min-w-[2px] rounded-full opacity-70`;
+
+const audioClipLabel = `
+  text-[8px] text-[hsl(var(--foreground))]/70 px-1.5 pb-0.5 truncate font-medium`;
+
+// --- Audio track empty-state ---
+const audioEmptyLane = `
+  absolute inset-0 flex items-center justify-center gap-3
+  text-[hsl(var(--muted-foreground))]`;
+
+const audioSourceBtn = `
+  flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium
+  bg-[hsl(var(--muted))]/50 hover:bg-[hsl(var(--muted))]
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors cursor-pointer border border-[hsl(var(--border))]/30
+  hover:border-[hsl(var(--border))]/60`;
+
+// --- Add track buttons ---
+const addTrackRow = `flex h-10 border-b border-[hsl(var(--border))]/30`;
+
+const addTrackSpacer = `
+  w-44 shrink-0 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]
+  sticky left-0 z-30`;
+
+const addTrackContent = `
+  flex-1 flex items-center gap-2 px-3`;
+
+const addTrackBtn = `
+  flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-semibold
+  bg-[hsl(var(--muted))]/40 hover:bg-[hsl(var(--muted))]/80
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors cursor-pointer border border-dashed border-[hsl(var(--border))]/40
+  hover:border-[hsl(var(--border))]/70`;

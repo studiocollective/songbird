@@ -10,6 +10,9 @@ namespace te = tracktion;
  * PlaybackInfo — polls audio levels, transport position, and stereo analysis
  * at ~30Hz and pushes the data to the WebView as JSON events.
  *
+ * Uses per-track LevelMeasurer::Client for track levels, and
+ * EditPlaybackContext::masterLevels for true master output levels + raw FFT.
+ *
  * Events emitted:
  *   "audioLevels"        — [[dBL, dBR], ...] per track + master
  *   "transportPosition"  — { position, bar, looping, loopLength, loopBars }
@@ -23,7 +26,9 @@ public:
 
     void setEdit(te::Edit* edit);
     void setWebView(juce::WebBrowserComponent* wv);
-    void reattachAnalyzer(); // Call after BirdLoader::populateEdit to re-insert the analyzer plugin
+
+    // Called from masterLevels.bufferCallback with raw master audio
+    void processMasterBuffer(const juce::AudioBuffer<float>& buffer, int start, int numSamples);
 
 private:
     void attachClients();
@@ -36,13 +41,21 @@ private:
     // Per-track level metering clients
     std::vector<std::unique_ptr<te::LevelMeasurer::Client>> trackClients;
 
-    // Stereo analysis
-    float stereoWidth = 0.0f;        // 0..1 (mono..wide)
-    float phaseCorrelation = 1.0f;   // -1..+1 (out of phase..mono)
-    float stereoBalance = 0.0f;      // -1..+1 (full left..full right)
+    // Master output level client (from EditPlaybackContext::masterLevels)
+    std::unique_ptr<te::LevelMeasurer::Client> masterClient;
+    bool masterClientAttached = false;
 
-    // Master Analyzer Plugin
-    te::Plugin::Ptr analyzerPlugin;
+    // Stereo analysis (smoothed values emitted to UI)
+    float stereoWidth = 0.0f;
+    float phaseCorrelation = 1.0f;
+    float stereoBalance = 0.0f;
+
+    // RMS accumulation for stereo analysis (fed from raw master buffer)
+    double rmsSumLSquared = 0.0;
+    double rmsSumRSquared = 0.0;
+    double rmsSumLR = 0.0;
+    int    rmsFrameCount = 0;
+    bool   analyzerAlive = false;
 
     // FFT processing
     static constexpr int fftOrder = 10;
@@ -54,7 +67,4 @@ private:
 
     // Spectrum — 16 bands derived from real FFT
     std::vector<float> spectrumMagnitudes;
-
-public:
-    void processMasterBuffer(const juce::AudioBuffer<float>& buffer, int numSamples);
 };

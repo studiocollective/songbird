@@ -1,10 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTransportStore, useMixerStore, useChatStore } from '@/data/store';
 import { cn } from '@/lib/utils';
 import { Juce, isPlugin } from '@/lib';
+import { nativeFunction } from '@/data/bridge';
+
+const setProjectScale = nativeFunction('setProjectScale');
 
 export function Transport() {
-  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature } = useTransportStore();
+  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature, scale, setScale } = useTransportStore();
   const { toggleMixer, mixerOpen } = useMixerStore();
   const { rightPanel, setRightPanel } = useChatStore();
 
@@ -35,6 +38,11 @@ export function Transport() {
     setExportMenuOpen(false);
     if (isPlugin) Juce.getNativeFunction('exportSheetMusic')?.();
   };
+
+  const handleScaleChange = useCallback((newScale: { root: string; mode: string } | null) => {
+    setScale(newScale);
+    setProjectScale(newScale?.root ?? '', newScale?.mode ?? '');
+  }, [setScale]);
 
   return (
     <div className={bar}>
@@ -94,6 +102,36 @@ export function Transport() {
             <span className={keyText}>{keySignature}</span>
           </>
         )}
+        <div className={`ml-2 mr-2 ${divider}`} />
+        <span className={dimLabel}>Scale</span>
+        <select
+          value={scale?.root ?? ''}
+          onChange={(e) => {
+            const root = e.target.value;
+            if (!root) { handleScaleChange(null); return; }
+            handleScaleChange({ root, mode: scale?.mode ?? 'ionian' });
+          }}
+          className={scaleSelect}
+        >
+          <option value="">—</option>
+          {['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+        <select
+          value={scale?.mode ?? ''}
+          onChange={(e) => {
+            const mode = e.target.value;
+            if (!mode || !scale) return;
+            handleScaleChange({ ...scale, mode });
+          }}
+          className={scaleSelect}
+          disabled={!scale}
+        >
+          {['ionian','dorian','phrygian','lydian','mixolydian','aeolian','locrian'].map((m) => (
+            <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+          ))}
+        </select>
       </div>
 
       <div className={divider} />
@@ -217,3 +255,9 @@ const title = `text-sm font-medium text-[hsl(var(--muted-foreground))] tracking-
 const panelBtn = `px-3 h-7 rounded text-xs font-medium transition-colors`;
 const panelBtnActive = `bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]`;
 const panelBtnInactive = `text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]`;
+
+const scaleSelect = `
+  h-7 bg-[hsl(var(--card))] border border-[hsl(var(--border))]
+  rounded text-xs text-[hsl(var(--foreground))] font-mono px-1
+  focus:outline-none focus:border-[hsl(var(--ring))]
+  cursor-pointer appearance-none`;

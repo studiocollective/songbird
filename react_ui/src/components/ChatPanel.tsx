@@ -13,10 +13,11 @@ export function ChatPanel() {
     isThinking, isStreaming, thinkingText, toolUseLabel,
     activeThreadId, threads, threadMenuOpen,
     setChatInput, setApiKey, setSelectedModel,
-    addMessage, updateLastMessage,
+    addMessage, updateLastMessage, setLastMessageThinking,
     setThinking, setStreaming, setThinkingText, setToolUseLabel,
     newThread, switchThread, deleteThread, toggleThreadMenu,
     persistCurrentThread, getRecentSummaries, setThreadSummary,
+    setThreadTitle,
   } = useChatStore();
   const [tempKey, setTempKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(true);
@@ -154,16 +155,17 @@ export function ChatPanel() {
               hasReceivedText = true;
               setThinking(false);
               setStreaming(true);
-              setThinkingText('');
               addMessage('assistant', accumulated);
             } else {
               updateLastMessage(accumulated);
             }
           },
           onThought: (_delta, accumulated) => {
+            console.log('[Chat] Thinking:', accumulated.slice(-80));
             setThinkingText(accumulated);
           },
           onFunctionCall: (name) => {
+            console.log(`[Chat] Tool call started: ${name}`);
             setToolUseLabel(TOOL_LABELS[name] || `Running ${name}…`);
           },
         },
@@ -237,6 +239,13 @@ export function ChatPanel() {
         controller.signal,
       );
 
+      console.log('[Chat] streamMessage finished:', {
+        hasReceivedText,
+        contentLength: result.content?.length ?? 0,
+        error: result.error,
+        aborted: controller.signal.aborted,
+      });
+
       // Handle error response
       if (result.error) {
         if (!hasReceivedText) {
@@ -248,9 +257,9 @@ export function ChatPanel() {
         }
       }
 
-      // Handle case where no text was received and no error (e.g. abort with no content)
-      if (!hasReceivedText && !result.error && controller.signal.aborted) {
-        // User stopped before any text — nothing to show
+      // Handle tool-only response (model used tools but produced no text)
+      if (!hasReceivedText && !result.error && !controller.signal.aborted) {
+        addMessage('assistant', '✅ Done.');
       }
     } catch (e) {
       console.error(e);
@@ -263,12 +272,29 @@ export function ChatPanel() {
         );
       }
     } finally {
+      // Save thinking text to the last assistant message before clearing
+      const finalThinking = useChatStore.getState().thinkingText;
+      if (finalThinking) {
+        setLastMessageThinking(finalThinking);
+      }
+
       setThinking(false);
       setStreaming(false);
       setThinkingText('');
       setToolUseLabel(null);
       abortRef.current = null;
       persistCurrentThread();
+
+      // Auto-title the thread after the first exchange
+      const currentThread = useChatStore.getState().threads.find(
+        t => t.id === useChatStore.getState().activeThreadId
+      );
+      if (currentThread && currentThread.title === 'New Chat') {
+        const firstUserMsg = useChatStore.getState().chatMessages.find(m => m.role === 'user');
+        if (firstUserMsg) {
+          setThreadTitle(firstUserMsg.content.slice(0, 40) + (firstUserMsg.content.length > 40 ? '…' : ''));
+        }
+      }
 
       // Drain the queue — send the next message if one was queued
       setMessageQueue(q => {
@@ -348,8 +374,9 @@ export function ChatPanel() {
             onChange={(e) => setSelectedModel(e.target.value)}
             className={modelSelect}
           >
-            <option value="gemini-3-flash-preview">Flash</option>
             <option value="gemini-3.1-pro-preview">Pro</option>
+            <option value="gemini-3-flash-preview">Flash</option>
+            <option value="gemini-3.1-flash-lite-preview">Flash Lite</option>
           </select>
         </div>
 
@@ -415,26 +442,29 @@ export function ChatPanel() {
                   <MarkdownRenderer content={msg.content} />
                 </div>
               ) : (
-                <MarkdownRenderer content={msg.content} />
+                <>
+                  {msg.thinking && (
+                    <details className={persistedThinkingDetails}>
+                      <summary className={persistedThinkingSummary}>
+                        <span className={thinkingCaret}>▶</span>
+                        <span>Thought process</span>
+                      </summary>
+                      <div className={persistedThinkingContent}>
+                        <MarkdownRenderer content={msg.thinking} />
+                      </div>
+                    </details>
+                  )}
+                  <MarkdownRenderer content={msg.content} />
+                </>
               )}
             </div>
           ))}
 
-          {/* Tool use indicator */}
-          {toolUseLabel && (
-            <div className={assistantOuter}>
-              <div className={toolIndicator}>
-                <span className={toolIcon}>🔧</span>
-                <span>{toolUseLabel}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Thinking indicator — collapsible */}
+          {/* Thinking indicator — collapsed by default */}
           {isThinking && (
             <div className={assistantOuter}>
               {thinkingText ? (
-                <details className={thinkingDetails} open>
+                <details className={thinkingDetails}>
                   <summary className={thinkingSummary}>
                     <span className={thinkingIcon}>✨</span>
                     <span className={thinkingLabel}>Thinking…</span>
@@ -452,6 +482,26 @@ export function ChatPanel() {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Tool use indicator — shown outside thinking */}
+          {toolUseLabel && (
+            <div className={assistantOuter}>
+              <div className={toolIndicator}>
+                <span className={toolIcon}>🔧</span>
+                <span>{toolUseLabel}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Generating spinner — shows while streaming */}
+          {isStreaming && !isThinking && (
+            <div className={assistantOuter}>
+              <div className={generatingIndicator}>
+                <span className={spinner} />
+                <span>Generating…</span>
+              </div>
             </div>
           )}
 
@@ -588,6 +638,30 @@ const toolIndicator = `
   text-[11px] text-[hsl(var(--muted-foreground))]
   italic`;
 const toolIcon = `text-sm`;
+
+// --- Persisted thinking on completed messages ---
+const persistedThinkingDetails = `
+  text-[11px] text-[hsl(var(--muted-foreground))]
+  rounded overflow-hidden mb-1`;
+const persistedThinkingSummary = `
+  flex items-center gap-1 px-1 py-0.5 cursor-pointer
+  select-none list-none [&::-webkit-details-marker]:hidden
+  hover:text-[hsl(var(--foreground))] transition-colors`;
+const thinkingCaret = `
+  text-[8px] transition-transform duration-200
+  [details[open]>&]:rotate-90`;
+const persistedThinkingContent = `
+  px-1 pb-1 text-[10px] opacity-70
+  border-l-2 border-[hsl(var(--border))] ml-1 pl-2
+  overflow-hidden`;
+
+// --- Generating indicator ---
+const generatingIndicator = `
+  inline-flex items-center gap-1.5 px-3 py-1.5
+  text-[11px] text-[hsl(var(--muted-foreground))] italic`;
+const spinner = `
+  w-3 h-3 border-2 border-[hsl(var(--muted-foreground))]/30
+  border-t-[hsl(var(--muted-foreground))] rounded-full animate-spin`;
 
 // --- Input ---
 const inputWrapper = `shrink-0 border-t border-[hsl(var(--border))] p-2 space-y-1.5`;

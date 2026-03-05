@@ -203,8 +203,9 @@ const SET_LYRIA_QUANTIZE_TOOL = {
 };
 
 const MODELS = [
-  'gemini-3-flash-preview',
   'gemini-3.1-pro-preview',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
 ];
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -276,7 +277,8 @@ export class GeminiService {
       temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 16384,
+      thinkingConfig: { includeThoughts: true },
     };
 
     const tools = onToolCall
@@ -293,16 +295,26 @@ export class GeminiService {
       if (signal?.aborted) return { content: accumulatedText };
 
       // Use tool declarations on all rounds (model may want to call multiple tools)
+      const textBefore = accumulatedText;
       const response = await this.executeStreamRequest(
         model, apiKey, systemPrompt, currentContents,
         tools,
         (delta, accumulated) => {
-          accumulatedText = accumulated;
-          callbacks.onChunk(delta, accumulated);
+          accumulatedText = textBefore + accumulated;
+          callbacks.onChunk(delta, accumulatedText);
         },
         callbacks.onThought,
         generationConfig, signal
       );
+
+      console.log(`[Gemini] Round ${round} result:`, {
+        contentLength: response.content?.length ?? 0,
+        hasFunctionCall: !!response.functionCall,
+        functionCallName: response.functionCall?.name,
+        modelPartsCount: response.modelParts?.length ?? 0,
+        error: response.error,
+        accumulatedText: accumulatedText.slice(0, 100),
+      });
 
       if (response.error) {
         return { content: accumulatedText, error: response.error };
@@ -461,42 +473,21 @@ export class GeminiService {
             const parts = candidate?.content?.parts;
             if (parts) {
               for (const part of parts) {
-                if ('text' in part) {
-                  accumulated += part.text as string;
-                  onChunk(part.text as string, accumulated);
+                // Always preserve every part as-is for thought signatures.
+                // Gemini 3 docs: "Don't concatenate parts with signatures together."
+                modelParts.push({ ...part });
 
-                  const lastPart = modelParts[modelParts.length - 1];
-                  if (lastPart && 'text' in lastPart) {
-                    lastPart.text = (lastPart.text as string) + part.text;
-                    for (const k of Object.keys(part)) {
-                      if (k !== 'text') lastPart[k] = part[k as keyof typeof part];
-                    }
-                  } else {
-                    modelParts.push({ ...part });
-                  }
-                } else if ('functionCall' in part) {
-                  functionCall = part.functionCall as { name: string; args: Record<string, unknown> };
-                  const existing = modelParts.find(p => 'functionCall' in p && (p.functionCall as { name: string }).name === functionCall?.name);
-                  
-                  if (existing) {
-                    Object.assign(existing, part);
-                  } else {
-                    modelParts.push({ ...part });
-                  }
-                } else if ('thought' in part) {
-                  // Stream thinking text to UI
-                  const thoughtText = part.thought as string;
+                // Gemini returns thought summaries as { text: "...", thought: true }
+                // Check for thought flag FIRST — route to onThought, not onChunk
+                if (part.thought === true && 'text' in part && (part.text as string).length > 0) {
+                  const thoughtText = part.text as string;
                   thoughtAccumulated += thoughtText;
                   onThought?.(thoughtText, thoughtAccumulated);
-
-                  const lastPart = modelParts[modelParts.length - 1];
-                  if (lastPart && 'thought' in lastPart) {
-                    lastPart.thought = (lastPart.thought as string) + part.thought;
-                  } else {
-                    modelParts.push({ ...part });
-                  }
-                } else {
-                  modelParts.push({ ...part });
+                } else if ('text' in part && (part.text as string).length > 0) {
+                  accumulated += part.text as string;
+                  onChunk(part.text as string, accumulated);
+                } else if ('functionCall' in part) {
+                  functionCall = part.functionCall as { name: string; args: Record<string, unknown> };
                 }
               }
             }
@@ -508,6 +499,15 @@ export class GeminiService {
         // Yield to browser on every chunk to keep UI responsive
         await this.yieldToBrowser();
       }
+
+      console.log(`[Gemini] ${model} stream complete:`, {
+        textLength: accumulated.length,
+        thoughtLength: thoughtAccumulated.length,
+        hasFunctionCall: !!functionCall,
+        functionCallName: functionCall?.name,
+        partsCount: modelParts.length,
+        partTypes: modelParts.map(p => Object.keys(p).join(',')),
+      });
 
       return { content: accumulated, functionCall, modelParts };
     } catch (e) {

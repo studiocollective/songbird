@@ -42,6 +42,7 @@ struct BirdChannel {
     std::string fx;              // fx keyword (e.g. "delay", "reverb")
     std::string strip;           // channel strip keyword (e.g. "console1")
     std::vector<BirdNote> notes; // resolved notes
+    double patternBeats = 0;     // original pattern length in beats (before expansion)
     
     // Continuous automation curves attached to this channel (section-level)
     std::map<std::string, BirdAutomationCurve> automation;
@@ -62,6 +63,9 @@ struct BirdArrangementEntry {
 // --- Parse result ---
 struct BirdParseResult {
     int bars = 1;                                    // cycle length in bars (total if arrangement exists)
+    int bpm = 0;                                     // project BPM (0 = not specified, use default 120)
+    std::string scaleRoot;                           // scale root note (e.g. "C", "F#") — empty if not set
+    std::string scaleMode;                           // scale mode (e.g. "ionian", "dorian") — empty if not set
     int keySharpsFlats = 0;                          // key signature: >0 for sharps, <0 for flats
     bool keyIsMinor = false;                         // true if key signature is minor
     std::string keyName = "";                        // Original key string (e.g. "C min")

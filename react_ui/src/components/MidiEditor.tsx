@@ -3,7 +3,7 @@ import { useMixerStore, useTransportStore } from '@/data/store';
 import { nativeFunction } from '@/data/bridge';
 import type { NoteData } from '@/data/slices/mixer';
 import { SheetMusicView } from './SheetMusicView';
-import './midi-editor.css';
+import { cn } from '@/lib/utils';
 
 type ViewMode = 'pianoRoll' | 'sheetMusic';
 
@@ -11,6 +11,7 @@ type ViewMode = 'pianoRoll' | 'sheetMusic';
 const midiAddNote = nativeFunction('midiAddNote');
 const midiRemoveNote = nativeFunction('midiRemoveNote');
 const midiMoveNote = nativeFunction('midiMoveNote');
+const midiSetLoopLength = nativeFunction('midiSetLoopLength');
 
 // --- Constants ---
 const PIANO_KEY_WIDTH = 48;
@@ -34,6 +35,29 @@ function isBlackKey(pitch: number): boolean {
   return BLACK_KEYS.has(pitch % 12);
 }
 
+// --- Scale helpers ---
+const NOTE_TO_SEMITONE: Record<string, number> = {
+  'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+  'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11,
+};
+
+const MODE_INTERVALS: Record<string, number[]> = {
+  ionian:     [0, 2, 4, 5, 7, 9, 11],
+  dorian:     [0, 2, 3, 5, 7, 9, 10],
+  phrygian:   [0, 1, 3, 5, 7, 8, 10],
+  lydian:     [0, 2, 4, 6, 7, 9, 11],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  aeolian:    [0, 2, 3, 5, 7, 8, 10],
+  locrian:    [0, 1, 3, 5, 6, 8, 10],
+};
+
+function getScalePitchClasses(root: string, mode: string): Set<number> {
+  const rootSemitone = NOTE_TO_SEMITONE[root];
+  const intervals = MODE_INTERVALS[mode];
+  if (rootSemitone == null || !intervals) return new Set();
+  return new Set(intervals.map((i) => (rootSemitone + i) % 12));
+}
+
 export function MidiEditor() {
   const {
     tracks, sections, totalBars,
@@ -44,23 +68,43 @@ export function MidiEditor() {
   const setMidiEditorGridDiv = useMixerStore((s) => s.setMidiEditorGridDiv);
 
   const gridRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('pianoRoll');
   const [swing, setSwing] = useState(0);
-  const [beatWidth, setBeatWidth] = useState(40);
+  const [highlightScale, setHighlightScale] = useState(false);
+  const scale = useTransportStore((s) => s.scale);
+  const [baseBeatWidth, setBaseBeatWidth] = useState(40);
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const beatWidth = baseBeatWidth * zoomLevel;
 
-  // Compute beatWidth from gridRef body width
+  // Compute beatWidth from editor container width (not gridRef which unmounts on view toggle)
   useEffect(() => {
-    const el = gridRef.current;
+    const el = editorRef.current;
     if (!el || !selectedClip) return;
     const section = sections[selectedClip.sectionIndex];
     const secBeats = section ? section.length * 4 : totalBars * 4;
     const resizeObs = new ResizeObserver(() => {
       const w = el.clientWidth - PIANO_KEY_WIDTH;
-      setBeatWidth(Math.max(20, w / secBeats));
+      setBaseBeatWidth(Math.max(20, w / secBeats));
     });
     resizeObs.observe(el);
     return () => resizeObs.disconnect();
   }, [selectedClip, sections, totalBars]);
+
+  // Zoom with Option/Cmd + scroll wheel
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.altKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoomLevel((z) => Math.min(4, Math.max(0.5, z * delta)));
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   // Scroll to the octave with the most notes on mount
   useEffect(() => {
@@ -117,7 +161,7 @@ export function MidiEditor() {
   );
 
   return (
-    <div className="midi-editor">
+    <div className={editorRoot} ref={editorRef}>
       {/* Header bar */}
       <MidiEditorHeader
         trackName={track.name}
@@ -130,22 +174,27 @@ export function MidiEditor() {
         onViewModeChange={setViewMode}
         swing={swing}
         onSwingChange={setSwing}
+        highlightScale={highlightScale}
+        onHighlightScaleChange={setHighlightScale}
+        hasScale={!!scale}
         onClose={closeMidiEditor}
       />
 
       {viewMode === 'pianoRoll' ? (
-        <div className="midi-editor__body" ref={gridRef}>
+        <div className={editorBody} ref={gridRef}>
           {/* Note grid (piano keys rendered inline as sticky-left) */}
           <NoteGrid
             notes={sectionNotes}
             trackId={selectedClip.trackId}
-            sectionName={sectionName}
+            sectionIndex={selectedClip.sectionIndex}
             sectionStartBeat={sectionStartBeat}
             sectionLengthBeats={sectionLengthBeats}
             sectionLengthBars={sectionLengthBars}
             gridDiv={midiEditorGridDiv}
             beatWidth={beatWidth}
             color={track.color}
+            scalePitchClasses={highlightScale && scale ? getScalePitchClasses(scale.root, scale.mode) : null}
+            loopLengthBeats={track.loopLengthBeats ?? 0}
           />
         </div>
       ) : (
@@ -157,16 +206,18 @@ export function MidiEditor() {
           color={track.color}
         />
       )}
-      {/* Velocity lane */}
-      <VelocityLane
+      {/* Velocity lane — only in piano roll mode */}
+      {viewMode === 'pianoRoll' && (
+        <VelocityLane
         notes={sectionNotes}
         trackId={selectedClip.trackId}
-        sectionName={sectionName}
+        sectionIndex={selectedClip.sectionIndex}
         sectionStartBeat={sectionStartBeat}
         sectionLengthBeats={sectionLengthBeats}
         beatWidth={beatWidth}
         color={track.color}
       />
+      )}
     </div>
   );
 }
@@ -196,7 +247,7 @@ interface SelectionRect {
 function MidiEditorHeader({
   trackName, trackColor, sectionName, sectionBars,
   gridDiv, onGridDivChange, viewMode, onViewModeChange,
-  swing, onSwingChange, onClose,
+  swing, onSwingChange, highlightScale, onHighlightScaleChange, hasScale, onClose,
 }: {
   trackName: string;
   trackColor: string;
@@ -208,24 +259,38 @@ function MidiEditorHeader({
   onViewModeChange: (mode: ViewMode) => void;
   swing: number;
   onSwingChange: (v: number) => void;
+  highlightScale: boolean;
+  onHighlightScaleChange: (v: boolean) => void;
+  hasScale: boolean;
   onClose: () => void;
 }) {
   return (
-    <div className="midi-editor__header">
-      <div className="midi-editor__header-left">
-        <div className="midi-editor__track-dot" style={{ backgroundColor: trackColor }} />
-        <span className="midi-editor__track-name">{trackName}</span>
-        <span className="midi-editor__section-badge">{sectionName}</span>
-        <span className="midi-editor__section-length">{sectionBars} bar{sectionBars !== 1 ? 's' : ''}</span>
+    <div className={headerCls}>
+      <div className={headerLeft}>
+        <div className={trackDot} style={{ backgroundColor: trackColor }} />
+        <span className={trackNameCls}>{trackName}</span>
+        <span className={sectionBadge}>{sectionName}</span>
+        <span className={sectionLength}>{sectionBars} bar{sectionBars !== 1 ? 's' : ''}</span>
+        {/* Scale highlight toggle */}
+        {viewMode === 'pianoRoll' && (
+          <button
+            className={cn(scaleBtn, highlightScale && scaleBtnActive)}
+            onClick={() => onHighlightScaleChange(!highlightScale)}
+            disabled={!hasScale}
+            title={hasScale ? (highlightScale ? 'Hide scale overlay' : 'Highlight scale notes') : 'Set a scale in the transport bar first'}
+          >
+            Scale
+          </button>
+        )}
       </div>
-      <div className="midi-editor__header-right">
+      <div className={headerRight}>
         {/* Grid division selector (only relevant in piano roll mode) */}
         {viewMode === 'pianoRoll' && (
-          <div className="midi-editor__grid-selector">
+          <div className={gridSelector}>
             {GRID_DIVISIONS.map((d) => (
               <button
                 key={d}
-                className={`midi-editor__grid-btn ${d === gridDiv ? 'midi-editor__grid-btn--active' : ''}`}
+                className={cn(gridBtnCls, d === gridDiv && gridBtnActive)}
                 onClick={() => onGridDivChange(d)}
               >
                 1/{d}
@@ -236,36 +301,36 @@ function MidiEditorHeader({
 
         {/* Swing slider */}
         {viewMode === 'pianoRoll' && (
-          <div className="midi-editor__swing-control">
-            <label className="midi-editor__swing-label">Swing</label>
+          <div className={swingControl}>
+            <label className={swingLabel}>Swing</label>
             <input
               type="range"
               min={0}
               max={100}
               value={swing}
               onChange={(e) => onSwingChange(Number(e.target.value))}
-              className="midi-editor__swing-slider"
+              className={swingSlider}
             />
-            <span className="midi-editor__swing-value">{swing}%</span>
+            <span className={swingValue}>{swing}%</span>
           </div>
         )}
 
         {/* View toggle */}
-        <div className="midi-editor__view-toggle">
+        <div className={viewToggle}>
           <button
-            className={`midi-editor__view-btn ${viewMode === 'pianoRoll' ? 'midi-editor__view-btn--active' : ''}`}
+            className={cn(viewBtnCls, viewMode === 'pianoRoll' && viewBtnActive)}
             onClick={() => onViewModeChange('pianoRoll')}
           >
             Piano Roll
           </button>
           <button
-            className={`midi-editor__view-btn ${viewMode === 'sheetMusic' ? 'midi-editor__view-btn--active' : ''}`}
+            className={cn(viewBtnCls, viewMode === 'sheetMusic' && viewBtnActive)}
             onClick={() => onViewModeChange('sheetMusic')}
           >
             Sheet Music
           </button>
         </div>
-        <button className="midi-editor__close-btn" onClick={onClose} title="Close (Esc)">
+        <button className={closeBtn} onClick={onClose} title="Close (Esc)">
           ✕
         </button>
       </div>
@@ -275,18 +340,20 @@ function MidiEditorHeader({
 
 // --- Note Grid ---
 function NoteGrid({
-  notes, trackId, sectionName, sectionStartBeat, sectionLengthBeats, sectionLengthBars,
-  gridDiv, beatWidth, color,
+  notes, trackId, sectionIndex, sectionStartBeat, sectionLengthBeats, sectionLengthBars,
+  gridDiv, beatWidth, color, scalePitchClasses, loopLengthBeats,
 }: {
   notes: NoteData[];
   trackId: number;
-  sectionName: string;
+  sectionIndex: number;
   sectionStartBeat: number;
   sectionLengthBeats: number;
   sectionLengthBars: number;
   gridDiv: number;
   beatWidth: number;
   color: string;
+  scalePitchClasses: Set<number> | null;
+  loopLengthBeats: number;
 }) {
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const gridAreaRef = useRef<HTMLDivElement>(null);
@@ -321,13 +388,49 @@ function NoteGrid({
 
   const gridStepBeats = 4 / gridDiv;
 
+  // Loop boundary (section-relative beats) — auto-detect from rightmost note
+  // Loop boundary from track state (0 = no looping = full section)
+  const [loopEndBeats, setLoopEndBeats] = useState(
+    loopLengthBeats > 0 ? loopLengthBeats : sectionLengthBeats
+  );
+  const loopEndRef = useRef(loopEndBeats);
+  useEffect(() => { loopEndRef.current = loopEndBeats; }, [loopEndBeats]);
+
+  // Drag the loop marker
+  const handleLoopDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const gridEl = gridAreaRef.current;
+    if (!gridEl) return;
+
+    const onMove = (me: MouseEvent) => {
+      const rect = gridEl.getBoundingClientRect();
+      const relX = me.clientX - rect.left - PIANO_KEY_WIDTH;
+      const beat = relX / beatWidth;
+      // Snap to bar boundaries (every 4 beats), minimum 1 bar
+      const snappedBars = Math.max(1, Math.round(beat / 4));
+      setLoopEndBeats(Math.min(snappedBars * 4, sectionLengthBeats));
+    };
+
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const finalLoop = loopEndRef.current;
+      // Call native function: 0 = disable looping, >0 = set loop length
+      const loopBeats = finalLoop >= sectionLengthBeats ? 0 : finalLoop;
+      midiSetLoopLength(trackId, loopBeats);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [beatWidth, sectionLengthBeats, trackId]);
 
   const gridWidth = sectionLengthBeats * beatWidth;
   const gridHeight = TOTAL_KEYS * ROW_HEIGHT;
 
   // Snap a beat position to the grid
   const snapBeat = useCallback((beat: number) => {
-    return Math.round(beat / gridStepBeats) * gridStepBeats;
+    return Math.floor(beat / gridStepBeats) * gridStepBeats;
   }, [gridStepBeats]);
 
   // Convert pixel X to beat (section-relative), accounting for scroll
@@ -349,16 +452,16 @@ function NoteGrid({
     return Math.max(MIN_PITCH, Math.min(MAX_PITCH, MAX_PITCH - row));
   }, []);
 
-  // Find note index at a given pitch + beat
+  // Find note index at a given pitch + beat (uses grid-step tolerance for hit-testing)
   const findNoteAt = useCallback((pitch: number, beat: number): number => {
     return localNotes.findIndex(
-      (n) => n.pitch === pitch && n.beat <= beat && n.beat + n.duration > beat
+      (n) => n.pitch === pitch && beat >= n.beat && beat < n.beat + n.duration + 0.01
     );
   }, [localNotes]);
 
   // Mouse down on grid: start tracking for click-vs-drag
   const handleGridMouseDown = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.midi-editor__note')) return;
+    if ((e.target as HTMLElement).closest('.midi-note')) return;
 
     // Always start tracking — we'll decide on mouseup whether it's click or drag
     setSelectionRect({
@@ -429,7 +532,7 @@ function NoteGrid({
           const snappedAbsoluteBeat = sectionStartBeat + snappedBeat;
           const newNote: NoteData = { pitch, beat: snappedAbsoluteBeat, duration: gridStepBeats, velocity: 100 };
           setLocalNotes([...localNotes, newNote]);
-          midiAddNote(trackId, sectionName, pitch, snappedBeat, gridStepBeats, 100);
+          midiAddNote(trackId, sectionIndex, pitch, snappedBeat, gridStepBeats, 100);
         }
       }
 
@@ -542,7 +645,7 @@ function NoteGrid({
             }
           });
           setLocalNotes(newNotes);
-          midiMoveNote(trackId, sectionName,
+          midiMoveNote(trackId, sectionIndex,
             note.pitch, note.beat - sectionStartBeat,
             dragState.type === 'move' ? dragState.currentPitch : note.pitch,
             (dragState.type === 'move' ? dragState.currentBeat : note.beat) - sectionStartBeat,
@@ -560,7 +663,7 @@ function NoteGrid({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, trackId, sectionName, sectionStartBeat, localNotes, beatWidth, gridStepBeats, snapBeat]);
+  }, [dragState, trackId, sectionIndex, sectionStartBeat, localNotes, beatWidth, gridStepBeats, snapBeat]);
 
   // Keyboard shortcuts: Delete, Backspace, Arrow keys
   useEffect(() => {
@@ -574,7 +677,7 @@ function NoteGrid({
         for (const idx of toRemove) {
           const note = localNotes[idx];
           if (note) {
-            midiRemoveNote(trackId, sectionName, note.pitch, note.beat - sectionStartBeat);
+            midiRemoveNote(trackId, sectionIndex, note.pitch, note.beat - sectionStartBeat);
           }
         }
         setLocalNotes(localNotes.filter((_, i) => !selectedIndices.has(i)));
@@ -611,7 +714,7 @@ function NoteGrid({
         const newPitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, oldPitch + pitchDelta));
         const newBeat = Math.max(sectionStartBeat, oldBeat + beatDelta);
 
-        midiMoveNote(trackId, sectionName,
+        midiMoveNote(trackId, sectionIndex,
           oldPitch, oldBeat - sectionStartBeat,
           newPitch, newBeat - sectionStartBeat,
           note.duration
@@ -623,7 +726,7 @@ function NoteGrid({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndices, localNotes, trackId, sectionName, sectionStartBeat, gridStepBeats]);
+  }, [selectedIndices, localNotes, trackId, sectionIndex, sectionStartBeat, gridStepBeats]);
 
   // Note hover for edge detection
   const handleNoteMouseMove = useCallback((e: React.MouseEvent, note: NoteData) => {
@@ -658,16 +761,10 @@ function NoteGrid({
       const top = (MAX_PITCH - displayPitch) * ROW_HEIGHT;
       const opacity = 0.5 + (note.velocity / 127) * 0.5;
 
-      const classes = [
-        'midi-editor__note',
-        isDragging ? 'midi-editor__note--dragging' : '',
-        isSelected ? 'midi-editor__note--selected' : '',
-      ].filter(Boolean).join(' ');
-
       return (
         <div
           key={`${note.pitch}-${note.beat}-${i}`}
-          className={classes}
+          className={cn('midi-note', noteBaseCls, isDragging && noteDragging, isSelected && noteSelected)}
           style={{
             left: `${left}px`,
             top: `${top}px`,
@@ -695,10 +792,15 @@ function NoteGrid({
     // Layer 1: bar lines (thickest)
     // Layer 2: beat lines
     // Layer 3: sub-beat lines (thinnest)
+    // Read theme-aware colors from CSS custom properties
+    const style = getComputedStyle(document.documentElement);
+    const barColor = `hsl(${style.getPropertyValue('--grid-line-bar').trim()})`;
+    const beatColor = `hsl(${style.getPropertyValue('--grid-line-beat').trim()})`;
+    const subColor = `hsl(${style.getPropertyValue('--grid-line-sub').trim()})`;
     const layers = [
-      `repeating-linear-gradient(90deg, hsl(0 0% 50% / 0.5) 0px, hsl(0 0% 50% / 0.5) 1px, transparent 1px, transparent ${barPx}px)`,
-      `repeating-linear-gradient(90deg, hsl(0 0% 50% / 0.25) 0px, hsl(0 0% 50% / 0.25) 1px, transparent 1px, transparent ${beatPx}px)`,
-      `repeating-linear-gradient(90deg, hsl(0 0% 50% / 0.12) 0px, hsl(0 0% 50% / 0.12) 1px, transparent 1px, transparent ${subBeatPx}px)`,
+      `repeating-linear-gradient(90deg, ${barColor} 0px, ${barColor} 1px, transparent 1px, transparent ${barPx}px)`,
+      `repeating-linear-gradient(90deg, ${beatColor} 0px, ${beatColor} 1px, transparent 1px, transparent ${beatPx}px)`,
+      `repeating-linear-gradient(90deg, ${subColor} 0px, ${subColor} 1px, transparent 1px, transparent ${subBeatPx}px)`,
     ];
 
     return {
@@ -714,16 +816,17 @@ function NoteGrid({
       const top = (MAX_PITCH - pitch) * ROW_HEIGHT;
       const bk = isBlackKey(pitch);
       const isC = pitch % 12 === 0;
+      const outOfScale = scalePitchClasses ? !scalePitchClasses.has(pitch % 12) : false;
       rows.push(
         <div
           key={pitch}
-          className={`midi-editor__grid-row ${bk ? 'midi-editor__grid-row--black' : ''} ${isC ? 'midi-editor__grid-row--c' : ''}`}
+          className={cn(gridRow, bk && gridRowBlack, isC && gridRowC, outOfScale && gridRowOutOfScale)}
           style={{ top: `${top}px`, height: `${ROW_HEIGHT}px` }}
         />
       );
     }
     return rows;
-  }, []);
+  }, [scalePitchClasses]);
 
   // Piano keys (rendered inside the grid so they scroll together)
   const pianoKeys = useMemo(() => {
@@ -736,10 +839,10 @@ function NoteGrid({
       keys.push(
         <div
           key={pitch}
-          className={`midi-editor__key ${bk ? 'midi-editor__key--black' : 'midi-editor__key--white'} ${isC ? 'midi-editor__key--c' : ''}`}
+          className={cn(keyBase, bk ? keyBlack : keyWhite, isC && keyC)}
           style={{ top: `${top}px` }}
         >
-          {isC && <span className="midi-editor__key-label">{name}</span>}
+          {!bk && <span className={keyLabelCls}>{name}</span>}
         </div>
       );
     }
@@ -752,7 +855,7 @@ function NoteGrid({
     for (let bar = 0; bar < sectionLengthBars; bar++) {
       const x = PIANO_KEY_WIDTH + bar * 4 * beatWidth;
       labels.push(
-        <span key={bar} className="midi-editor__bar-label" style={{ left: `${x}px` }}>
+        <span key={bar} className={barLabelCls} style={{ left: `${x}px` }}>
           {bar + 1}
         </span>
       );
@@ -771,34 +874,58 @@ function NoteGrid({
   }, [selectionRect]);
 
   return (
-    <div className="midi-editor__grid-container" ref={gridContainerRef}>
+    <div className={gridContainer} ref={gridContainerRef}>
       {/* Bar numbers */}
-      <div className="midi-editor__bar-labels" style={{ width: `${PIANO_KEY_WIDTH + gridWidth}px` }}>
+      <div className={barLabelsCls} style={{ width: `${PIANO_KEY_WIDTH + gridWidth}px` }}>
         {barLabels}
       </div>
 
       {/* Grid area */}
       <div
-        className="midi-editor__grid"
+        className={gridArea}
         ref={gridAreaRef}
         style={{
           width: `${PIANO_KEY_WIDTH + gridWidth}px`,
           height: `${gridHeight}px`,
-          ...gridBackground,
         }}
         onMouseDown={handleGridMouseDown}
       >
         {/* Piano keys — sticky left inside the grid */}
-        <div className="midi-editor__keyboard" style={{ height: `${gridHeight}px` }}>
+        <div className={keyboardCls} style={{ height: `${gridHeight}px` }}>
           {pianoKeys}
         </div>
 
         {rowBackgrounds}
+
+        {/* Grid lines overlay — sits above rows, below notes */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[1]"
+          style={gridBackground}
+        />
+
+        {/* Loop boundary: dimmed area beyond loop */}
+        {loopEndBeats < sectionLengthBeats && (
+          <div
+            className="absolute top-0 right-0 bottom-0 bg-black/40 pointer-events-none z-[5]"
+            style={{ left: `${PIANO_KEY_WIDTH + loopEndBeats * beatWidth}px` }}
+          />
+        )}
+
+        {/* Loop boundary marker (draggable) */}
+        {loopEndBeats < sectionLengthBeats && (
+          <div
+            className="absolute top-0 bottom-0 w-1.5 cursor-col-resize z-[15] border-l-2 border-[hsl(45_100%_60%)]"
+            style={{ left: `${PIANO_KEY_WIDTH + loopEndBeats * beatWidth - 3}px` }}
+            onMouseDown={handleLoopDrag}
+            title={`Loop: ${loopEndBeats / 4} bars`}
+          />
+        )}
+
         {noteElements}
 
         {/* Selection rectangle */}
         {selRectStyle && (
-          <div className="midi-editor__selection-rect" style={selRectStyle} />
+          <div className={selectionRectCls} style={selRectStyle} />
         )}
 
         {/* Playhead */}
@@ -869,25 +996,32 @@ function MidiEditorPlayhead({
     };
   }, [sectionStartBeat, sectionLengthBeats, gridWidth, pianoKeyWidth]);
 
-  return <div ref={elRef} className="midi-editor__playhead" />;
+  return <div ref={elRef} className={playheadCls} />;
 }
 
 // --- Velocity Lane ---
 function VelocityLane({
-  notes, trackId, sectionName, sectionStartBeat, beatWidth, color,
+  notes, trackId, sectionIndex, sectionStartBeat, beatWidth, color,
 }: {
   notes: NoteData[];
   trackId: number;
-  sectionName: string;
+  sectionIndex: number;
   sectionStartBeat: number;
   sectionLengthBeats: number;
   beatWidth: number;
   color: string;
 }) {
+  // Local velocity overrides for optimistic update during drag
+  const [velOverrides, setVelOverrides] = useState<Map<number, number>>(new Map());
+
+  // Clear overrides when notes change from store
+  useEffect(() => {
+    setVelOverrides(new Map());
+  }, [notes]);
+
   const handleVelocityDrag = useCallback((e: React.MouseEvent, noteIdx: number) => {
     e.preventDefault();
     e.stopPropagation();
-    const barEl = e.currentTarget as HTMLElement;
     const startY = e.clientY;
     const note = notes[noteIdx];
     const startVel = note.velocity;
@@ -895,40 +1029,39 @@ function VelocityLane({
     const onMove = (me: MouseEvent) => {
       const dy = startY - me.clientY;
       const newVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 0.5)));
-      barEl.style.height = `${(newVel / 127) * (VELOCITY_LANE_HEIGHT - 8)}px`;
-      barEl.dataset.pendingVel = String(newVel);
-      barEl.title = `Velocity: ${newVel}`;
+      setVelOverrides((prev) => new Map(prev).set(noteIdx, newVel));
     };
 
-    const onUp = () => {
+    const onUp = (me: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      const pendingVel = Number(barEl.dataset.pendingVel ?? startVel);
-      if (pendingVel !== startVel) {
-        // Change velocity via remove + add with new velocity
+      const dy = startY - me.clientY;
+      const finalVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 0.5)));
+      if (finalVel !== startVel) {
         const beatRel = note.beat - sectionStartBeat;
-        midiRemoveNote(trackId, sectionName, note.pitch, beatRel);
-        midiAddNote(trackId, sectionName, note.pitch, beatRel, note.duration, pendingVel);
+        midiRemoveNote(trackId, sectionIndex, note.pitch, beatRel);
+        midiAddNote(trackId, sectionIndex, note.pitch, beatRel, note.duration, finalVel);
       }
     };
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [notes, trackId, sectionName, sectionStartBeat]);
+  }, [notes, trackId, sectionIndex, sectionStartBeat]);
 
   return (
-    <div className="midi-editor__velocity-lane">
-      <div className="midi-editor__velocity-label">VEL</div>
-      <div className="midi-editor__velocity-bars">
+    <div className={velLane}>
+      <div className={velLabel}>VEL</div>
+      <div className={velBars}>
         {notes.map((note, i) => {
           const beatRelative = note.beat - sectionStartBeat;
           const left = beatRelative * beatWidth;
-          const height = (note.velocity / 127) * (VELOCITY_LANE_HEIGHT - 8);
+          const vel = velOverrides.get(i) ?? note.velocity;
+          const height = (vel / 127) * (VELOCITY_LANE_HEIGHT - 8);
 
           return (
             <div
               key={`vel-${i}`}
-              className="midi-editor__velocity-bar"
+              className={velBarCls}
               style={{
                 left: `${left}px`,
                 height: `${height}px`,
@@ -936,7 +1069,7 @@ function VelocityLane({
                 width: `${Math.max(3, note.duration * beatWidth - 2)}px`,
               }}
               onMouseDown={(e) => handleVelocityDrag(e, i)}
-              title={`Velocity: ${note.velocity}`}
+              title={`Velocity: ${vel}`}
             />
           );
         })}
@@ -944,3 +1077,133 @@ function VelocityLane({
     </div>
   );
 }
+
+// ═══════════════════════════════════════
+// Tailwind class constants — MIDI Editor
+// ═══════════════════════════════════════
+
+const editorRoot = `
+  flex flex-col bg-[hsl(var(--mixer))] border-t border-[hsl(var(--border))]
+  h-[360px] overflow-hidden`;
+
+// --- Header ---
+const headerCls = `
+  flex items-center justify-between h-9 px-3
+  bg-[hsl(var(--background))] border-b border-[hsl(var(--border))] shrink-0`;
+const headerLeft = `flex items-center gap-2`;
+const headerRight = `flex items-center gap-3`;
+
+const trackDot = `w-2.5 h-2.5 rounded-full`;
+const trackNameCls = `text-xs font-semibold text-[hsl(var(--foreground))]`;
+const sectionBadge = `
+  text-[10px] font-medium px-2 py-0.5 rounded
+  bg-[hsl(var(--accent))] text-[hsl(var(--muted-foreground))]
+  uppercase tracking-wide`;
+const sectionLength = `text-[10px] text-[hsl(var(--muted-foreground))] tabular-nums`;
+
+// Grid division buttons
+const gridSelector = `flex gap-0.5`;
+const gridBtnCls = `
+  text-[10px] px-1.5 py-0.5 rounded-sm border-none cursor-pointer
+  bg-transparent text-[hsl(var(--muted-foreground))] transition-all tabular-nums
+  hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]`;
+const gridBtnActive = `!bg-[hsl(var(--primary))] !text-[hsl(var(--primary-foreground))]`;
+
+// Swing
+const swingControl = `flex items-center gap-1.5 ml-1`;
+const swingLabel = `text-[11px] text-[hsl(var(--muted-foreground))] whitespace-nowrap`;
+const swingSlider = `w-16 h-1 accent-[hsl(var(--primary))] cursor-pointer`;
+const swingValue = `text-[11px] text-[hsl(var(--muted-foreground))] tabular-nums min-w-7 text-right`;
+
+// Close
+const closeBtn = `
+  text-sm px-1.5 py-0.5 rounded border-none cursor-pointer bg-transparent
+  text-[hsl(var(--muted-foreground))] transition-all leading-none
+  hover:bg-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive-foreground))]`;
+
+// Scale button
+const scaleBtn = `
+  text-[10px] font-medium px-2.5 py-[3px] rounded-sm border-none cursor-pointer
+  bg-transparent text-[hsl(var(--muted-foreground))] transition-all
+  hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]
+  disabled:opacity-35 disabled:cursor-not-allowed`;
+const scaleBtnActive = `!bg-[hsl(var(--selection))] !text-[hsl(var(--primary-foreground))]`;
+
+// View toggle
+const viewToggle = `flex gap-px bg-[hsl(var(--border))] rounded overflow-hidden`;
+const viewBtnCls = `
+  text-[10px] font-medium px-2.5 py-[3px] border-none cursor-pointer
+  bg-[hsl(var(--background))] text-[hsl(var(--muted-foreground))] transition-all whitespace-nowrap
+  hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]`;
+const viewBtnActive = `!bg-[hsl(var(--primary))] !text-[hsl(var(--primary-foreground))]`;
+
+// --- Body ---
+const editorBody = `
+  flex-1 overflow-auto min-h-0
+  [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]`;
+
+// --- Grid ---
+const gridContainer = `flex flex-col min-w-full`;
+const barLabelsCls = `
+  sticky top-0 z-[45] h-5 shrink-0
+  border-b border-[hsl(var(--border))] bg-[hsl(var(--mixer))]`;
+const barLabelCls = `
+  absolute top-0 h-5 flex items-center pl-1.5
+  text-[9px] font-medium text-[hsl(var(--muted-foreground))] tabular-nums`;
+const gridArea = `relative select-none cursor-[var(--pencil-cursor)]`;
+
+// Grid rows
+const gridRow = `absolute left-12 right-0 pointer-events-none`;
+const gridRowBlack = `bg-[hsl(var(--background)/0.5)]`;
+const gridRowC = `border-b border-[hsl(var(--border)/0.4)]`;
+const gridRowOutOfScale = `!bg-[hsl(var(--grid-out-of-scale))]`;
+
+// --- Piano keys ---
+const keyboardCls = `sticky left-0 top-0 w-12 z-50 bg-[hsl(var(--mixer))] pointer-events-none`;
+const keyBase = `absolute left-0 h-3.5 flex items-center justify-end pr-1 box-border`;
+const keyWhite = `
+  w-12 bg-white z-[1]
+  border-b border-b-[hsl(0_0%_82%)] border-r border-r-[hsl(0_0%_75%)]`;
+const keyBlack = `
+  w-[34px] bg-[hsl(0_0%_18%)] z-[2]
+  border-b border-b-[hsl(0_0%_10%)] border-r border-r-[hsl(0_0%_10%)]`;
+const keyC = `!border-b-[hsl(0_0%_65%)]`;
+const keyLabelCls = `text-[8px] font-semibold text-[hsl(0_0%_50%)] tabular-nums`;
+
+// --- Notes ---
+const noteBaseCls = `
+  absolute rounded-sm z-10 transition-shadow
+  border border-white/15
+  hover:shadow-[0_0_0_1px_rgba(255,255,255,0.3)] hover:z-20`;
+const noteSelected = `
+  !border-2 !border-[hsl(190_100%_70%)] !z-[25]
+  shadow-[0_0_0_1px_hsl(190_100%_50%),0_0_8px_hsl(190_100%_50%/0.4)]`;
+const noteDragging = `!opacity-80 !z-30 shadow-[0_2px_8px_rgba(0,0,0,0.3)]`;
+
+// Selection rectangle
+const selectionRectCls = `
+  fixed border border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.1)]
+  z-[9999] pointer-events-none`;
+
+// Playhead
+const playheadCls = `
+  absolute top-0 bottom-0 w-px z-40 pointer-events-none
+  bg-[hsl(var(--playhead))] shadow-[0_0_4px_hsl(var(--playhead)/0.3)]`;
+
+// --- Velocity lane ---
+const velLane = `
+  h-16 shrink-0 flex border-t border-[hsl(var(--border))]
+  bg-[hsl(var(--background)/0.5)] relative`;
+const velLabel = `
+  w-12 shrink-0 flex items-center justify-center
+  text-[8px] font-semibold tracking-widest
+  text-[hsl(var(--muted-foreground))] border-r border-[hsl(var(--border))]`;
+const velBars = `flex-1 relative overflow-hidden`;
+const velBarCls = `
+  absolute bottom-1 rounded-t-sm cursor-ns-resize
+  opacity-70 hover:opacity-100 hover:z-10 transition-opacity min-w-[3px]`;
+
+// --- Sheet music (exported for SheetMusicView) ---
+export const sheetMusicCls = `
+  flex-1 overflow-auto min-h-0 py-2 bg-[hsl(var(--background)/0.3)]
+  [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]`;

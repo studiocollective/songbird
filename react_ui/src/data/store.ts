@@ -40,7 +40,7 @@ export const useTransportStore = create<TransportState>()(
       partialize: (state) => {
         // Exclude properties that shouldn't echo back to C++
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { position, playing, currentBar, currentSection, lastPositionUpdate, loopLength, loopBars, loopStartBar, initialized, ...rest } = state;
+        const { position, playing, currentBar, currentSection, lastPositionUpdate, loopLength, loopBars, loopStartBar, initialized, keySignature, scale, bpm, looping, ...rest } = state;
         return rest;
       },
       onRehydrateStorage: () => () => onStoreHydrated(),
@@ -163,13 +163,23 @@ function processTrackNotes(data: string | object) {
   const sectionsData = Array.isArray(raw) ? [] : (raw.sections ?? []);
   const totalBars = Array.isArray(raw) ? 1 : (raw.totalBars ?? 1);
   const keySignature = Array.isArray(raw) ? null : (raw.keySignature ?? null);
+  const scale = Array.isArray(raw) ? null : (raw.scale ?? null);
+  const bpm = Array.isArray(raw) ? null : (raw.bpm ?? null);
 
   const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
   const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
   
   const existingTracks = useMixerStore.getState().tracks || [];
 
-  useTransportStore.getState().setKeySignature(keySignature);
+  // Update transport state from bird file data in a single batch
+  // (avoids triggering persist middleware multiple times during load)
+  const transportUpdate: Record<string, unknown> = {};
+  if (keySignature != null) transportUpdate.keySignature = keySignature;
+  else transportUpdate.keySignature = null;
+  if (scale != null) transportUpdate.scale = scale;
+  else transportUpdate.scale = null;
+  if (bpm != null && bpm > 0) transportUpdate.bpm = bpm;
+  useTransportStore.setState(transportUpdate);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tracks = trackData.map((t: any, i: number) => {
@@ -199,6 +209,7 @@ function processTrackNotes(data: string | object) {
         ? { pluginId: t.channelStrip.pluginId, pluginName: t.channelStrip.pluginName, bypassed: existing?.channelStrip?.bypassed ?? false }
         : emptySlot,
       notes: t.notes,
+      loopLengthBeats: t.loopLengthBeats ?? 0,
       isReturn: t.isReturn ?? false,
       isMaster: t.isMaster ?? false,
       sends: t.sends ?? existing?.sends ?? [0, 0, 0, 0],
@@ -224,11 +235,16 @@ function processTrackNotes(data: string | object) {
 }
 
 addStateListener('trackState', (data: unknown) => {
-  try {
-    processTrackNotes(data as string | object);
-  } catch (e) {
-    console.error('[trackState] Failed to parse:', e);
-  }
+  // Defer processing so JUCE's evaluateJavascript returns immediately,
+  // unblocking the C++ message thread (avoids 40s beach ball with 212KB JSON).
+  const captured = data;
+  setTimeout(() => {
+    try {
+      processTrackNotes(captured as string | object);
+    } catch (e) {
+      console.error('[trackState] Failed to parse:', e);
+    }
+  }, 0);
 });
 
 // Lightweight note update from MIDI editing (replaces expensive full trackState for note edits)

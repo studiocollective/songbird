@@ -3,6 +3,7 @@ import type { StateCreator } from 'zustand';
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string;
 }
 
 export interface ChatThread {
@@ -72,8 +73,9 @@ export interface ChatState {
   setStreaming: (v: boolean) => void;
   setThinkingText: (text: string) => void;
   setToolUseLabel: (label: string | null) => void;
-  addMessage: (role: 'user' | 'assistant', content: string) => void;
+  addMessage: (role: 'user' | 'assistant', content: string, thinking?: string) => void;
   updateLastMessage: (content: string) => void;
+  setLastMessageThinking: (thinking: string) => void;
   removeLastMessage: () => void;
   clearMessages: () => void;
 
@@ -118,7 +120,7 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     chatMessages: activeThread.messages,
     chatInput: '',
     apiKey: null,
-    selectedModel: 'gemini-3-flash-preview',
+    selectedModel: 'gemini-3.1-pro-preview',
     isThinking: false,
     isStreaming: false,
     thinkingText: '',
@@ -141,8 +143,8 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     setThinkingText: (thinkingText) => set({ thinkingText }),
     setToolUseLabel: (toolUseLabel) => set({ toolUseLabel }),
 
-    addMessage: (role, content) => {
-      set((s) => ({ chatMessages: [...s.chatMessages, { role, content }] }));
+    addMessage: (role, content, thinking) => {
+      set((s) => ({ chatMessages: [...s.chatMessages, { role, content, thinking }] }));
       // Auto-persist to thread storage
       setTimeout(() => get().persistCurrentThread(), 0);
     },
@@ -156,6 +158,16 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
         return { chatMessages: msgs };
       });
       // Debounced persist (don't persist every streaming chunk)
+    },
+
+    setLastMessageThinking: (thinking) => {
+      set((s) => {
+        const msgs = [...s.chatMessages];
+        if (msgs.length > 0) {
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], thinking };
+        }
+        return { chatMessages: msgs };
+      });
     },
 
     removeLastMessage: () => {

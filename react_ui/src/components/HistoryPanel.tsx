@@ -4,6 +4,7 @@ import { Juce, isPlugin } from '@/lib';
 interface HistoryEntry {
   hash: string;
   message: string;
+  author?: 'user' | 'ai' | 'system';
 }
 
 export function HistoryPanel() {
@@ -78,6 +79,7 @@ export function HistoryPanel() {
                     <span className={markerCol}>
                       {isHead ? '▶' : isRedoTip ? '⤴' : ''}
                     </span>
+                    {entry.author === 'ai' && <span className={aiBadge}>🤖</span>}
                     <span className={hashStyle}>{entry.hash}</span>
                     <span>{entry.message}</span>
                   </div>
@@ -133,3 +135,5 @@ const emptyLine = `
   text-[hsl(var(--muted-foreground))] italic`;
 
 const hashStyle = `text-[hsl(var(--progress))] mr-1.5 shrink-0`;
+
+const aiBadge = `text-[9px] mr-1 shrink-0 opacity-70`;

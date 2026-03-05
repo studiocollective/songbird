@@ -16,14 +16,8 @@ juce::String SongbirdEditor::describeMixerChange(const juce::String& oldJson, co
 
     juce::StringArray changes;
 
-    // Check top-level properties
-    for (auto& propName : juce::StringArray{"mixerOpen", "returnsOpen"})
-    {
-        auto oldVal = oldState.getProperty(juce::Identifier(propName), {});
-        auto newVal = newState.getProperty(juce::Identifier(propName), {});
-        if (oldVal != newVal)
-            changes.add(propName + " -> " + newVal.toString());
-    }
+    // Note: UI-only properties (mixerOpen, returnsOpen, selectedClip, midiEditorGridDiv, etc.)
+    // are intentionally NOT tracked here — they should not create commits.
 
     auto* oldTracks = oldState.getProperty("tracks", {}).getArray();
     auto* newTracks = newState.getProperty("tracks", {}).getArray();
@@ -76,14 +70,15 @@ juce::String SongbirdEditor::describeMixerChange(const juce::String& oldJson, co
 
     if (changes.isEmpty())
     {
-        DBG("StateSync: describeMixerChange found no tracked diffs — JSON strings differ by content");
-        return "Mixer update";
+        // No project-relevant changes (only UI state like selectedClip, mixer visibility, etc.)
+        return {};
     }
     return changes.joinIntoString(", ");
 }
 
 void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce::String& jsonValue)
 {
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
     // Skip if value is identical to what's already cached (echo suppression)
     auto it = stateCache.find(storeName);
     if (it != stateCache.end() && it->second == jsonValue)
@@ -103,9 +98,16 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
     {
         // Generate descriptive commit message by diffing old vs new state
         juce::String commitMsg = describeMixerChange(prevMixerJson, jsonValue);
+
+        // Save state cache so echo suppression works, but only commit if there are
+        // actual project-relevant changes (not just UI state like mixer visibility)
         saveStateCache();
-        saveEditState();
-        commitAndNotify(commitMsg, ProjectState::Mixer, false);
+
+        if (commitMsg.isNotEmpty())
+        {
+            saveEditState();
+            commitAndNotify(commitMsg, ProjectState::Mixer, false);
+        }
 
         // Normalize the cached JSON so echo string comparison works.
         stateCache[storeName] = juce::JSON::toString(juce::JSON::parse(jsonValue));
@@ -143,6 +145,9 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
 void SongbirdEditor::applyTransportState(const juce::var& state)
 {
     if (!edit) return;
+    // During initial load, populateEdit sets BPM/looping from the bird file.
+    // Reject stale persist echoes until loading is complete.
+    if (!isLoadFinished) return;
 
     auto& transport = edit->getTransport();
 

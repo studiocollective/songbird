@@ -7,6 +7,56 @@
 
 juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
 {
+    // Helper: rewrite the bpm/scale metadata block in the bird file.
+    // Places it after the leading comment header, separated by blank lines.
+    auto updateBirdMetaSection = [this]() {
+        if (!currentBirdFile.existsAsFile()) return;
+        auto content = currentBirdFile.loadFileAsString();
+        juce::StringArray lines;
+        lines.addLines(content);
+
+        // Remove existing bpm and scale lines
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            auto trimmed = lines[i].trimStart();
+            if (trimmed.startsWith("bpm ") ||
+                (trimmed.startsWith("scale ") && !trimmed.startsWith("scale_")))
+                lines.remove(i);
+        }
+
+        // Find the end of the leading comment header (only # lines, not blanks)
+        int headerEnd = 0;
+        while (headerEnd < lines.size() && lines[headerEnd].trimStart().startsWith("#"))
+            headerEnd++;
+
+        // Strip ALL blank lines between header and first content line
+        while (headerEnd < lines.size() && lines[headerEnd].trim().isEmpty())
+            lines.remove(headerEnd);
+
+        // Build meta lines
+        juce::StringArray meta;
+        if (lastParseResult.bpm > 0)
+            meta.add("bpm " + juce::String(lastParseResult.bpm));
+        if (!lastParseResult.scaleRoot.empty() && !lastParseResult.scaleMode.empty())
+            meta.add("scale " + juce::String(lastParseResult.scaleRoot) + " " + juce::String(lastParseResult.scaleMode));
+
+        // Insert meta section after the header with single blank line separators
+        if (meta.size() > 0) {
+            // Blank line after meta block (before content)
+            lines.insert(headerEnd, "");
+            // Insert meta lines
+            for (int i = meta.size() - 1; i >= 0; i--)
+                lines.insert(headerEnd, meta[i]);
+            // Blank line before meta block (after header) — only if there's a header
+            if (headerEnd > 0)
+                lines.insert(headerEnd, "");
+        }
+
+        auto newContent = lines.joinIntoString("\n") + "\n";
+        // Skip write if nothing actually changed (avoids spurious reload triggers)
+        if (newContent != content)
+            currentBirdFile.replaceWithText(newContent);
+    };
+
     return juce::WebBrowserComponent::Options{}
         // Load state from C++ cache (Zustand persist getItem)
         .withNativeFunction("loadState", [this](auto& args, auto complete) {
@@ -65,6 +115,13 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 obj->setProperty("hash", shortHash);
                 obj->setProperty("message", entry.message.trimEnd());
                 obj->setProperty("timestamp", entry.timestamp);
+                // Source tag for the UI to show who made the commit
+                juce::String sourceStr = "system";
+                if (entry.source == ProjectState::LLM)      sourceStr = "ai";
+                else if (entry.source == ProjectState::User) sourceStr = "user";
+                else if (entry.source == ProjectState::Mixer) sourceStr = "user";
+                else if (entry.source == ProjectState::Plugin) sourceStr = "user";
+                obj->setProperty("author", sourceStr);
                 commits.add(juce::var(obj));
 
                 if (headHash.startsWith(shortHash) || shortHash.startsWith(headHash.substring(0, 7)))
@@ -288,13 +345,66 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 // Auto-commit before LLM change for undo support
                 saveEditState();  // flush plugin state first
                 commitAndNotify("Pre-LLM state", ProjectState::LLM);
-                // Write to disk synchronously (fast), then schedule a debounced
-                // background parse + apply so the main thread is never blocked.
                 currentBirdFile.replaceWithText(content);
-                DBG("BirdUpdate: Wrote " + currentBirdFile.getFullPathName() + ", scheduling reload");
-                scheduleReload(content);
+
+                // Soft reload: parse + populateEdit (diffs against live state)
+                auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                if (result.error.empty()) {
+                    BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                    lastParseResult = result;
+                }
+
+                commitAndNotify("LLM edit", ProjectState::LLM);
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
             }
             complete("ok");
+        })
+        // Write current .bird file from user editor (⌘S save)
+        // Validates bird content before saving; returns {success, error?}
+        .withNativeFunction("writeBirdUser", [this](auto& args, auto complete) {
+            if (args.size() == 0 || !currentBirdFile.existsAsFile()) {
+                complete("{\"success\":false,\"error\":\"No file loaded\"}");
+                return;
+            }
+            juce::String content = args[0].toString();
+
+            // Validate: write to temp file, parse, check for errors
+            auto tmpFile = currentBirdFile.getSiblingFile(".bird_validate_tmp");
+            tmpFile.replaceWithText(content);
+            auto result = BirdLoader::parse(tmpFile.getFullPathName().toStdString());
+            tmpFile.deleteFile();
+
+            if (!result.error.empty()) {
+                juce::String errMsg = juce::String(result.error)
+                    .replace("\"", "\\\"");  // escape for JSON
+                complete("{\"success\":false,\"error\":\"" + errMsg + "\"}");
+                return;
+            }
+
+            // Valid — write to real file and soft-reload (same as undo path)
+            // Full loadBirdFile is too heavy: it re-registers listeners, pumps
+            // the message loop, and reloads state caches — causing beach ball.
+            juce::MessageManager::callAsync([this, content]() {
+                currentBirdFile.replaceWithText(content);
+
+                // Soft reload: parse + populateEdit with no progress callback
+                auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                if (result.error.empty()) {
+                    BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                    lastParseResult = result;
+                }
+
+                commitAndNotify("Edit bird file", ProjectState::User);
+
+                // Push updated track state to React
+                if (webView) {
+                    auto json = getTrackStateJSON();
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
+                }
+            });
+
+            complete("{\"success\":true}");
         })
         // Set mixer state for a single track (AI-driven mix control)
         // volume_db: float (-60 to +12), pan: float (-1.0 to 1.0), mute/solo: bool
@@ -372,15 +482,41 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             });
             complete("ok");
         })
+
         // Set project BPM
-        .withNativeFunction("setBpm", [this](auto& args, auto complete) {
+        .withNativeFunction("setBpm", [this, updateBirdMetaSection](auto& args, auto complete) {
             if (!edit || args.size() < 1) { complete("{\"success\":false}"); return; }
             double bpm = static_cast<double>(args[0]);
             if (bpm < 20.0 || bpm > 300.0) { complete("{\"success\":false,\"error\":\"BPM out of range 20-300\"}"); return; }
-            juce::MessageManager::callAsync([this, bpm, complete = std::move(complete)]() mutable {
+            juce::MessageManager::callAsync([this, bpm, updateBirdMetaSection, complete = std::move(complete)]() mutable {
                 edit->tempoSequence.getTempos()[0]->setBpm(bpm);
+                lastParseResult.bpm = static_cast<int>(bpm);
+                updateBirdMetaSection();
+                // Notify bird file panel of content change
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("birdContentChanged", juce::var("ok"));
                 DBG("Transport: BPM set to " + juce::String(bpm));
                 complete("{\"success\":true,\"bpm\":" + juce::String(bpm) + "}");
+            });
+        })
+        // Set project scale (lightweight — no re-parse / populateEdit)
+        .withNativeFunction("setProjectScale", [this, updateBirdMetaSection](auto& args, auto complete) {
+            // Args: (root: string, mode: string) or ("", "") to clear
+            juce::MessageManager::callAsync([this, args, updateBirdMetaSection, complete = std::move(complete)]() mutable {
+                juce::String root = args.size() > 0 ? args[0].toString() : "";
+                juce::String mode = args.size() > 1 ? args[1].toString() : "";
+
+                lastParseResult.scaleRoot = root.toStdString();
+                lastParseResult.scaleMode = mode.toStdString();
+                updateBirdMetaSection();
+
+                // Notify bird file panel — no trackState emission needed,
+                // scale is already set optimistically in React by setScale()
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("birdContentChanged", juce::var("ok"));
+
+                DBG("Scale: set to " + root + " " + mode);
+                complete("{\"success\":true}");
             });
         })
         
@@ -390,6 +526,15 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 if (edit) {
                     edit->getTransport().play(false);
                     DBG("Transport: Playing (Native)");
+                }
+            });
+            complete("ok");
+        })
+        .withNativeFunction("transportPause", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this]() {
+                if (edit) {
+                    edit->getTransport().stop(false, false);
+                    DBG("Transport: Paused (Native)");
                 }
             });
             complete("ok");
@@ -487,18 +632,19 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 }
 
                 juce::MessageManager::callAsync([this, targetFile, content]() {
-                    if (targetFile.existsAsFile()) {
-                        targetFile.replaceWithText(content);
-                        DBG("BirdSave: Updated " + targetFile.getFullPathName());
-                    } else {
+                    if (!targetFile.existsAsFile())
                         targetFile.create();
-                        targetFile.replaceWithText(content);
-                        DBG("BirdSave: Created " + targetFile.getFullPathName());
-                    }
-
-                    // Hot-reload: schedule debounced background reload
+                    targetFile.replaceWithText(content);
                     currentBirdFile = targetFile;
-                    scheduleReload(content);
+
+                    // Soft reload: parse + populateEdit (diffs against live state)
+                    auto result = BirdLoader::parse(currentBirdFile.getFullPathName().toStdString());
+                    if (result.error.empty()) {
+                        BirdLoader::populateEdit(*edit, result, engine, nullptr);
+                        lastParseResult = result;
+                    }
+                    if (webView)
+                        webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
                 });
             }
             complete("ok");
@@ -715,7 +861,54 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
 
         .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
+                if (!audioRecorder || !edit) { complete("{\"success\":false}"); return; }
                 int id = audioRecorder->addAudioTrack();
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
+                complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
+            });
+        })
+
+        .withNativeFunction("addMidiTrack", [this](auto&, auto complete) {
+            juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
+                if (!edit) { complete("{\"success\":false}"); return; }
+
+                // Create a new audio track using the same pattern as AudioRecorder
+                auto allTracks = te::getAudioTracks(*edit);
+                int numTracks = static_cast<int>(allTracks.size());
+                edit->ensureNumberOfAudioTracks(numTracks + 1);
+                auto* track = te::getAudioTracks(*edit)[numTracks];
+                if (!track) { complete("{\"success\":false}"); return; }
+
+                int id = numTracks;
+                track->setName("Track " + juce::String(id + 1));
+
+                // Set default volume (0 dB) and pan (center)
+                if (auto vp = track->getVolumePlugin()) {
+                    vp->setVolumeDb(0.0f);
+                    vp->setPan(0.0f);
+                }
+
+                // Add 4 AuxSend plugins (for return bus sends) — matching populateEdit
+                for (int bus = 0; bus < 4; bus++) {
+                    if (auto plugin = edit->getPluginCache().createNewPlugin(te::AuxSendPlugin::xmlTypeName, {})) {
+                        track->pluginList.insertPlugin(*plugin, -1, nullptr);
+                        auto* sendPlugin = dynamic_cast<te::AuxSendPlugin*>(plugin.get());
+                        if (sendPlugin) {
+                            sendPlugin->busNumber = bus;
+                            sendPlugin->setGainDb(-100.0f); // Default to muted
+                        }
+                    }
+                }
+
+                // Create an empty MIDI clip spanning the project
+                double totalBeats = lastParseResult.bars * 4.0;
+                if (totalBeats < 4.0) totalBeats = 16.0;
+                auto clipRange = te::TimeRange(
+                    edit->tempoSequence.toTime(te::BeatPosition::fromBeats(0.0)),
+                    edit->tempoSequence.toTime(te::BeatPosition::fromBeats(totalBeats)));
+                track->insertMIDIClip(clipRange, nullptr);
+
                 if (webView)
                     webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
                 complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
@@ -798,18 +991,19 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 complete("{\"success\":false}"); return;
             }
             int trackId          = static_cast<int>(args[0]);
-            juce::String secName = args[1].toString();
+            int secIndex         = static_cast<int>(args[1]);
             int pitch            = static_cast<int>(args[2]);
             double beat          = static_cast<double>(args[3]);
             double duration      = static_cast<double>(args[4]);
             int velocity         = static_cast<int>(args[5]);
 
-            juce::MessageManager::callAsync([this, trackId, secName, pitch, beat, duration, velocity]() {
+            juce::MessageManager::callAsync([this, trackId, secIndex, pitch, beat, duration, velocity]() {
                 double secOffset = 0.0;
                 int secBars = 4;
-                for (auto& e : lastParseResult.arrangement) {
-                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
-                    secOffset += e.bars * 4.0;
+                juce::String secName = "intro";
+                for (int i = 0; i < (int)lastParseResult.arrangement.size(); i++) {
+                    if (i == secIndex) { secBars = lastParseResult.arrangement[i].bars; secName = juce::String(lastParseResult.arrangement[i].sectionName); break; }
+                    secOffset += lastParseResult.arrangement[i].bars * 4.0;
                 }
 
                 // Add note to Tracktion clip (instant)
@@ -821,7 +1015,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     if (mc) {
                         mc->getSequence().addNote(pitch,
                             te::BeatPosition::fromBeats(secOffset + beat),
-                            te::BeatDuration::fromBeats(duration * 0.9),
+                            te::BeatDuration::fromBeats(duration),
                             velocity, 0, nullptr);
                     }
                 }
@@ -840,16 +1034,17 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 complete("{\"success\":false}"); return;
             }
             int trackId          = static_cast<int>(args[0]);
-            juce::String secName = args[1].toString();
+            int secIndex         = static_cast<int>(args[1]);
             int pitch            = static_cast<int>(args[2]);
             double beat          = static_cast<double>(args[3]);
 
-            juce::MessageManager::callAsync([this, trackId, secName, pitch, beat]() {
+            juce::MessageManager::callAsync([this, trackId, secIndex, pitch, beat]() {
                 double secOffset = 0.0;
                 int secBars = 4;
-                for (auto& e : lastParseResult.arrangement) {
-                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
-                    secOffset += e.bars * 4.0;
+                juce::String secName = "intro";
+                for (int i = 0; i < (int)lastParseResult.arrangement.size(); i++) {
+                    if (i == secIndex) { secBars = lastParseResult.arrangement[i].bars; secName = juce::String(lastParseResult.arrangement[i].sectionName); break; }
+                    secOffset += lastParseResult.arrangement[i].bars * 4.0;
                 }
 
                 double absBeat = secOffset + beat;
@@ -884,19 +1079,20 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 complete("{\"success\":false}"); return;
             }
             int trackId          = static_cast<int>(args[0]);
-            juce::String secName = args[1].toString();
+            int secIndex         = static_cast<int>(args[1]);
             int oldPitch         = static_cast<int>(args[2]);
             double oldBeat       = static_cast<double>(args[3]);
             int newPitch         = static_cast<int>(args[4]);
             double newBeat       = static_cast<double>(args[5]);
             double newDuration   = static_cast<double>(args[6]);
 
-            juce::MessageManager::callAsync([this, trackId, secName, oldPitch, oldBeat, newPitch, newBeat, newDuration]() {
+            juce::MessageManager::callAsync([this, trackId, secIndex, oldPitch, oldBeat, newPitch, newBeat, newDuration]() {
                 double secOffset = 0.0;
                 int secBars = 4;
-                for (auto& e : lastParseResult.arrangement) {
-                    if (juce::String(e.sectionName) == secName) { secBars = e.bars; break; }
-                    secOffset += e.bars * 4.0;
+                juce::String secName = "intro";
+                for (int i = 0; i < (int)lastParseResult.arrangement.size(); i++) {
+                    if (i == secIndex) { secBars = lastParseResult.arrangement[i].bars; secName = juce::String(lastParseResult.arrangement[i].sectionName); break; }
+                    secOffset += lastParseResult.arrangement[i].bars * 4.0;
                 }
 
                 double absOld = secOffset + oldBeat;
@@ -919,13 +1115,54 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                         }
                         seq.addNote(newPitch,
                             te::BeatPosition::fromBeats(secOffset + newBeat),
-                            te::BeatDuration::fromBeats(newDuration * 0.9),
+                            te::BeatDuration::fromBeats(newDuration),
                             vel, 0, nullptr);
                     }
                 }
 
                 pendingMidiEdit = { trackId, secName, secOffset, secBars };
                 scheduleMidiCommit();
+            });
+            complete("{\"success\":true}");
+        })
+        // --- Set loop length on a MIDI clip ---
+        // Args: (trackId, loopBeats)  — 0 = disable looping
+        .withNativeFunction("midiSetLoopLength", [this](auto& args, auto complete) {
+            if (!edit || args.size() < 2) {
+                complete("{\"success\":false}"); return;
+            }
+            int trackId       = static_cast<int>(args[0]);
+            double loopBeats  = static_cast<double>(args[1]);
+
+            juce::MessageManager::callAsync([this, trackId, loopBeats]() {
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId < 0 || trackId >= (int)audioTracks.size()) return;
+
+                te::MidiClip* mc = nullptr;
+                for (auto* clip : audioTracks[trackId]->getClips())
+                    if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                if (!mc) return;
+
+                if (loopBeats > 0) {
+                    // Remove notes beyond the loop boundary
+                    auto& seq = mc->getSequence();
+                    for (int i = seq.getNumNotes() - 1; i >= 0; --i) {
+                        auto* note = seq.getNote(i);
+                        if (note->getStartBeat().inBeats() >= loopBeats)
+                            seq.removeNote(*note, nullptr);
+                    }
+                    mc->setLoopRangeBeats(te::BeatRange(
+                        te::BeatPosition(),
+                        te::BeatDuration::fromBeats(loopBeats)));
+                    mc->loopedSequenceType = te::MidiClip::LoopedSequenceType::loopRangeDefinesAllRepetitions;
+                    DBG("midiSetLoopLength: track " + juce::String(trackId) + " loop = " + juce::String(loopBeats) + " beats");
+                } else {
+                    mc->disableLooping();
+                    DBG("midiSetLoopLength: track " + juce::String(trackId) + " looping disabled");
+                }
+
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
             });
             complete("{\"success\":true}");
         })

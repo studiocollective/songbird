@@ -160,28 +160,30 @@ void SongbirdEditor::startBackgroundLoading()
     isLoadingStarted = true;
 
     juce::MessageManager::getInstance()->callAsync([this]() {
+        auto t0 = juce::Time::getMillisecondCounterHiRes();
+        DBG("=== LOAD START ===");
         scanForPlugins();
+        DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] scanForPlugins");
         
         // currentBirdFile was already set in constructor
         projectState.setProjectDir(currentBirdFile);
         loadBirdFile(currentBirdFile);
+        DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] loadBirdFile complete");
         
         if (edit)
             playbackInfo.setEdit(edit.get());
-            
-        // Push initial state to React UI (it often beats the 500ms JS timer)
-        if (webView) {
-            auto json = getTrackStateJSON();
-            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
-        }
+        DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] playbackInfo.setEdit");
+        // NOTE: trackState is already emitted at the end of loadBirdFile() — 
+        // do NOT emit it again here (212KB JSON blocks the message thread for ~40s).
 
         // Defer the "Project loaded" commit — plugins are still settling.
         // The timer fires 500ms after the last audioProcessorParameterChanged,
         // at which point we create the commit with all plugins stable.
         saveStateCache();
+        DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveStateCache");
         pendingProjectLoadCommit = true;
         startTimer(1000);  // wait for plugins to settle
-        DBG("SongbirdEditor initialized - engine and edit ready");
+        DBG("=== LOAD END [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms total] ===");
     });
 }
 
@@ -235,7 +237,9 @@ void SongbirdEditor::checkLoadFinished()
 
 void SongbirdEditor::commitAndNotify(const juce::String& message, ProjectState::Source source, bool includeEditXml)
 {
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
     projectState.commit(message, source, includeEditXml);
+    DBG("  commitAndNotify: git commit took " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms (" + message + ")");
     if (webView)
         webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
 }
@@ -243,6 +247,8 @@ void SongbirdEditor::commitAndNotify(const juce::String& message, ProjectState::
 void SongbirdEditor::timerCallback()
 {
     stopTimer();
+    auto t0 = juce::Time::getMillisecondCounterHiRes();
+    DBG("=== TIMER CALLBACK (isLoadFinished=" + juce::String(isLoadFinished ? "Y" : "N") + " pendingProjectLoad=" + juce::String(pendingProjectLoadCommit ? "Y" : "N") + ") ===");
     if (!isLoadFinished && !pendingProjectLoadCommit) return;
 
     // --- MIDI edit flush (most work goes to background thread) ---
@@ -302,21 +308,30 @@ void SongbirdEditor::timerCallback()
     }
 
     // --- Non-MIDI timer work (plugin params, project load) stays on message thread ---
+    DBG("  timer: saveSessionState...");
     saveSessionState();
+    DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveSessionState done");
+    DBG("  timer: saveEditState...");
     saveEditState();
+    DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveEditState done");
 
     if (pendingProjectLoadCommit)
     {
         if (!reactHydrated)
         {
+            DBG("  timer: React not hydrated yet, retrying in 200ms");
             startTimer(200);  // React not ready yet, check again soon
             return;
         }
         pendingProjectLoadCommit = false;
+        DBG("  timer: saveStateCache...");
         saveStateCache();
+        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveStateCache done");
+        DBG("  timer: commitAndNotify...");
         commitAndNotify("Project loaded", ProjectState::Autosave);
+        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] commitAndNotify done");
         isLoadFinished = true;
-        DBG("StateSync: 'Project loaded' commit - fully loaded, commits enabled");
+        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] === PROJECT LOAD COMMIT COMPLETE ===");
     }
     else if (pluginParamsDirty && !undoRedoInProgress.load())
     {
@@ -952,10 +967,14 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
         }
     });
 
-    playbackInfo.reattachAnalyzer(); // Re-insert analyzer AFTER populateEdit adds plugins
+    auto postPopT0 = juce::Time::getMillisecondCounterHiRes();
+    DBG("  loadBird post-populate: START");
+
+    // (AudioIODeviceCallback handles spectrum + stereo analysis — no plugin needed)
     lastParseResult = result;  // store for JSON serialization
     registerPluginListeners();  // start tracking per-plugin state changes
     createTrackWatchers();      // start per-track reactive mixer sync
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] reattach+listeners+watchers");
 
     // Tell UI loading is finished
     if (webView) {
@@ -973,7 +992,9 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
 
     // Load companion state files if any
     loadStateCache();
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] loadStateCache");
     loadEditState();
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] loadEditState");
 
     // Full initial save — captures all current tracks/plugins to disk
     // (populateEdit may have created new tracks not in the old .edit.json)
@@ -982,6 +1003,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
             if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
                 dirtyPlugins.insert(ext);
     saveEditState();      // writes .edit.json with all tracks
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] saveEditState");
 
     // Build mixer state JSON directly from Tracktion edit state.
     // This ensures ALL tracks are captured, merging with any saved volumes
@@ -1093,15 +1115,28 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
         applyMixerState(juce::var(mixerObj.get()));
     }
 
-    DBG("EditState: Mixer state built and applied");
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] mixer state built+applied");
 
-
-
-    // Push track notes to UI if webview is up
+    // Push track state to UI — deferred via callAsync so loadBirdFile returns immediately.
+    // The JS listener uses setTimeout(0) to defer processing, so evaluateJavascript returns fast.
     if (webView) {
-        auto json = getTrackStateJSON();
-        webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
+        juce::MessageManager::getInstance()->callAsync([this, postPopT0]() {
+            if (!webView) return;
+            // Show loading progress for final data load
+            {
+                juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+                obj->setProperty("message", "Loading project data...");
+                obj->setProperty("progress", 0.95);
+                juce::var jsonVar(obj.get());
+                webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(juce::JSON::toString(jsonVar, true)));
+            }
+            auto json = getTrackStateJSON();
+            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] getTrackStateJSON (" + juce::String(json.length()) + " bytes)");
+            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
+            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] trackState emitted");
+        });
     }
+    DBG("  loadBird post-populate: DONE [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms total]");
 }
 
 void SongbirdEditor::exportSheetMusic()

@@ -3,6 +3,7 @@ import { Transport } from '@/components/Transport';
 import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
 import { MidiEditor } from '@/components/MidiEditor';
+import { SampleEditor } from '@/components/SampleEditor';
 import { ChatPanel } from '@/components/ChatPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { BirdFilePanel } from '@/components/BirdFilePanel';
@@ -11,7 +12,7 @@ import { ExportProgressModal } from '@/components/organisms/ExportProgressModal'
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';
-import { useChatStore, useMixerStore } from '@/data/store';
+import { useChatStore, useMixerStore, useTransportStore } from '@/data/store';
 
 const setZoom = isPlugin ? Juce.getNativeFunction('setZoom') : null;
 const uiReady = isPlugin ? Juce.getNativeFunction('uiReady') : null;
@@ -28,12 +29,23 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const rightPanel = useChatStore((s) => s.rightPanel);
   const midiEditorOpen = useMixerStore((s) => s.midiEditorOpen);
+  const sampleEditorOpen = useMixerStore((s) => s.sampleEditorOpen);
 
   useEffect(() => {
     const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
     const redo = isPlugin ? Juce.getNativeFunction('redo') : null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // --- Spacebar: play / pause ---
+      if (e.key === ' ' || e.code === 'Space') {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !(e.target as HTMLElement)?.isContentEditable) {
+          e.preventDefault();
+          useTransportStore.getState().togglePlaying();
+          return;
+        }
+      }
+
       if (e.metaKey || e.ctrlKey) {
         // --- Undo / Redo ---
         if (e.key === 'z' && !e.shiftKey) {
@@ -102,7 +114,9 @@ function App() {
         {rightPanel === 'history' && <HistoryPanel />}
         {rightPanel === 'bird' && <BirdFilePanel />}
       </div>
-      {midiEditorOpen ? <MidiEditor /> : <MixerPanel />}
+      {midiEditorOpen && <MidiEditor />}
+      {sampleEditorOpen && <SampleEditor />}
+      <MixerPanel />
       <DebugPanel />
       <ExportProgressModal />
     </div>

@@ -16,6 +16,7 @@ export interface TransportState {
   position: number;
   lastPositionUpdate: number; // timestamp of last position update (for smooth animation)
   keySignature: string | null;
+  scale: { root: string; mode: string } | null;
 
   play: () => void;
   stop: () => void;
@@ -27,6 +28,7 @@ export interface TransportState {
   toggleLooping: () => void;
   setLoopRange: (startBar: number, endBar: number) => void;
   setKeySignature: (key: string | null) => void;
+  setScale: (scale: { root: string; mode: string } | null) => void;
 }
 
 export const useTransportSlice: StateCreator<TransportState> = (set) => ({
@@ -44,6 +46,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
   position: 0,
   lastPositionUpdate: 0,
   keySignature: null,
+  scale: null,
 
   play: () => {
     if (typeof window !== 'undefined' && window.__JUCE__) {
@@ -63,13 +66,18 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
       if (typeof window !== 'undefined' && window.__JUCE__) {
         import('@/lib').then(({ Juce }) => {
           if (next) Juce.getNativeFunction('transportPlay')?.();
-          else Juce.getNativeFunction('transportStop')?.();
+          else Juce.getNativeFunction('transportPause')?.();
         });
       }
-      return { playing: next, ...(next ? {} : { position: 0, currentBar: 1 }), lastPositionUpdate: performance.now() };
+      return { playing: next, lastPositionUpdate: performance.now() };
     });
   },
-  setBpm: (bpm) => set({ bpm }),
+  setBpm: (bpm) => {
+    set({ bpm });
+    if (typeof window !== 'undefined' && window.__JUCE__) {
+      import('@/lib').then(({ Juce }) => Juce.getNativeFunction('setBpm')?.(bpm));
+    }
+  },
   setPosition: (position) => {
     if (typeof window !== 'undefined' && window.__JUCE__) {
       import('@/lib').then(({ Juce }) => Juce.getNativeFunction('transportSeek')?.(position));
@@ -86,6 +94,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
     set({ loopStartBar: startBar, loopBars: endBar });
   },
   setKeySignature: (key) => set({ keySignature: key }),
+  setScale: (scale) => set({ scale }),
 });
 
 export const TransportStateID = 'songbird-transport';

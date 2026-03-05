@@ -371,6 +371,20 @@ static std::pair<BirdChannel, BirdLoader::PatternState> resolveChannel(const Unr
 
     int seqLen = bars * TICKS_PER_BAR;
     
+    // Compute original pattern length (one pass through the pattern array)
+    int maxPatternTicks = 0;
+    for (auto& layer : uch.layers) {
+        int patTicks = 0;
+        for (int dur : layer.pattern)
+            patTicks += std::abs(dur);
+        if (patTicks > maxPatternTicks)
+            maxPatternTicks = patTicks;
+    }
+    double sectionBeats = ticksToBeats(seqLen);
+    double patBeats = ticksToBeats(maxPatternTicks);
+    // If pattern fills the whole section (or is longer), no looping needed
+    ch.patternBeats = (patBeats > 0 && patBeats < sectionBeats) ? patBeats : sectionBeats;
+
     // For simplicity, we assume single-layer for continuous patterns right now
     for (auto& layer : uch.layers) {
         auto resolved = BirdLoader::resolveNotes(layer.pattern, layer.noteGroups, layer.velocities, layer.stepAutomations, layer.timingOffsets, layer.swingPercent, layer.humanizeTicks, seqLen, state);
@@ -553,6 +567,25 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             } else {
                 DBG("BirdLoader: Failed to parse key signature '" + keyString + "'");
             }
+            continue;
+        }
+
+        // --- BPM ---
+        if (tokens[0] == "bpm" && tokens.size() > 1) {
+            try { result.bpm = std::stoi(tokens[1]); } catch (...) {}
+            continue;
+        }
+
+        // --- Scale ---
+        // Syntax: scale <root> <mode>   e.g. "scale C ionian", "scale F# dorian"
+        // Also accepts: "scale C major" (→ ionian), "scale A minor" (→ aeolian)
+        if (tokens[0] == "scale" && tokens.size() > 2) {
+            result.scaleRoot = tokens[1];
+            std::string mode = tokens[2];
+            // Normalize aliases
+            if (mode == "major") mode = "ionian";
+            else if (mode == "minor") mode = "aeolian";
+            result.scaleMode = mode;
             continue;
         }
 
@@ -867,7 +900,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         edit.deleteTrack(currentTracks[i]);
     }
 
-    double bpm = 120.0;
+    double bpm = (result.bpm > 0) ? static_cast<double>(result.bpm) : 120.0;
     edit.tempoSequence.getTempos()[0]->setBpm(bpm);
 
     auto fourBarsTime = te::TimePosition::fromSeconds((60.0 / bpm) * 4.0 * result.bars);
@@ -1045,7 +1078,13 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
 
         if (notesChanged) {
             seq.clear(nullptr);
+            double sectionBeats = result.bars * 4.0;
+            bool useLoop = (ch.patternBeats > 0 && ch.patternBeats < sectionBeats);
+            
             for (auto& note : ch.notes) {
+                // When looping, only add notes within the first pattern pass
+                if (useLoop && note.beatPos >= ch.patternBeats)
+                    continue;
                 seq.addNote(
                     note.pitch,
                     te::BeatPosition::fromBeats(note.beatPos),
@@ -1053,7 +1092,19 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
                     note.velocity,
                     0, nullptr);
             }
-            DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI updated (" + juce::String((int)ch.notes.size()) + " notes)");
+            
+            // Set clip looping
+            if (useLoop) {
+                midiClip->setLoopRangeBeats(te::BeatRange(
+                    te::BeatPosition(),
+                    te::BeatDuration::fromBeats(ch.patternBeats)));
+                midiClip->loopedSequenceType = te::MidiClip::LoopedSequenceType::loopRangeDefinesAllRepetitions;
+                DBG("BirdLoader: Track '" + juce::String(ch.name) + "' looping at " + juce::String(ch.patternBeats) + " beats");
+            } else {
+                midiClip->disableLooping();
+            }
+            
+            DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI updated (" + juce::String((int)seq.getNotes().size()) + " notes)");
         } else {
             DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI unchanged, skipping refill");
         }
@@ -1413,7 +1464,23 @@ juce::String BirdLoader::getTrackStateJSON(te::Edit& edit, const BirdParseResult
                 }
             }
         }
-        json += "],\"automation\":[";
+        
+        // Read loop length from first MidiClip (if looping)
+        double loopLenBeats = 0;
+        if (!isMaster) {
+            if (auto* audioTrack = dynamic_cast<te::AudioTrack*>(track)) {
+                for (auto* clip : audioTrack->getClips()) {
+                    if (auto* mc = dynamic_cast<te::MidiClip*>(clip)) {
+                        if (mc->isLooping())
+                            loopLenBeats = mc->getLoopLengthBeats().inBeats();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        json += "],\"loopLengthBeats\":" + juce::String(loopLenBeats, 3) +
+                ",\"automation\":[";
 
         if (!isMaster && parseResult && t < static_cast<int>(parseResult->channels.size())) {
             auto& parsedCh = parseResult->channels[t];
@@ -1486,6 +1553,15 @@ juce::String BirdLoader::getTrackStateJSON(te::Edit& edit, const BirdParseResult
 
     if (parseResult && parseResult->hasKeySignature) {
         json += ",\"keySignature\":" + juce::JSON::toString(juce::String(parseResult->keyName));
+    }
+
+    if (parseResult && parseResult->bpm > 0) {
+        json += ",\"bpm\":" + juce::String(parseResult->bpm);
+    }
+
+    if (parseResult && !parseResult->scaleRoot.empty() && !parseResult->scaleMode.empty()) {
+        json += ",\"scale\":{\"root\":" + juce::JSON::toString(juce::String(parseResult->scaleRoot))
+              + ",\"mode\":" + juce::JSON::toString(juce::String(parseResult->scaleMode)) + "}";
     }
 
     json += "}";

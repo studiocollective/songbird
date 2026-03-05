@@ -58,6 +58,7 @@ export function SendControl({ trackId, busIndex, value, color }: SendControlProp
 
   const onDoubleClick = () => {
     useMixerStore.getState().setSendLevel(trackId, busIndex, DEFAULT_SEND);
+    setMixerParamRT(trackId, 'send' + busIndex, DEFAULT_SEND);
   };
 
   // calculate angle from -135 to 135 degrees
