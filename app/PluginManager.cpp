@@ -189,7 +189,7 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
                     for (auto* desc : results)
                     {
                         list.addType(*desc);
-                        logToJS("[C++]   On-demand scan found: '" + desc->name + "' (" + desc->pluginFormatName + ")");
+                        logToJS("[C++]   On-demand scan found: '" + juce::String(desc->name) + "' (" + juce::String(desc->pluginFormatName) + ")");
                         if (!newDesc)
                             newDesc = std::make_unique<juce::PluginDescription>(*desc);
                     }
@@ -199,7 +199,7 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
             }
             
             if (!newDesc)
-                logToJS("[C++]   Plugin file not found for: " + pluginName);
+                logToJS("[C++]   Plugin file not found for: " + juce::String(pluginName));
         }
     }
 
@@ -235,16 +235,7 @@ void SongbirdEditor::changePlugin(int trackId, const juce::String& slotType, con
         }
         else
         {
-            logToJS("[C++]   ✗ Plugin '" + pluginName + "' not found in scanned list. Available plugins:");
-            int count = 0;
-            for (auto& type : list.getTypes())
-            {
-                logToJS("[C++]     - '" + type.name + "' (" + type.pluginFormatName + ")");
-                if (++count >= 20) {
-                    logToJS("[C++]     ... and " + juce::String(list.getNumTypes() - 20) + " more.");
-                    break;
-                }
-            }
+            logToJS("[C++]   ✗ Plugin '" + pluginName + "' not found in scanned list.");
         }
     }
     else if (slotType == "fx")

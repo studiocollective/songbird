@@ -143,7 +143,7 @@ private:
     void writeBirdFromClip(int trackId, const juce::String& sectionName,
                            double secOffset, int secBars,
                            const std::vector<ClipNote>& clipNotes);
-    void emitTrackState();
+    void emitTrackState(bool emitLoadingDone = false);
     void scheduleMidiCommit();
 
     // Playback info (levels, transport position, stereo analysis)

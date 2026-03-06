@@ -265,7 +265,10 @@ void SongbirdEditor::timerCallback()
         // Build lightweight notes JSON and emit immediately (message thread, fast)
         // This replaces the expensive getTrackStateJSON — only one track's notes
         if (webView) {
-            juce::String notesJson = "{\"trackId\":" + juce::String(midiEdit.trackId) + ",\"notes\":[";
+            juce::DynamicObject::Ptr notesObj = new juce::DynamicObject();
+            notesObj->setProperty("trackId", midiEdit.trackId);
+            juce::Array<juce::var> notesArray;
+            
             auto audioTracks = te::getAudioTracks(*edit);
             if (midiEdit.trackId >= 0 && midiEdit.trackId < (int)audioTracks.size()) {
                 te::MidiClip* mc = nullptr;
@@ -275,16 +278,17 @@ void SongbirdEditor::timerCallback()
                     auto& seq = mc->getSequence();
                     for (int n = 0; n < seq.getNumNotes(); n++) {
                         auto* note = seq.getNote(n);
-                        if (n > 0) notesJson += ",";
-                        notesJson += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
-                                     ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
-                                     ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
-                                     ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
+                        juce::DynamicObject::Ptr noteObj = new juce::DynamicObject();
+                        noteObj->setProperty("pitch", note->getNoteNumber());
+                        noteObj->setProperty("beat", note->getStartBeat().inBeats());
+                        noteObj->setProperty("duration", note->getLengthBeats().inBeats());
+                        noteObj->setProperty("velocity", note->getVelocity());
+                        notesArray.add(juce::var(noteObj.get()));
                     }
                 }
             }
-            notesJson += "]}";
-            webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesJson));
+            notesObj->setProperty("notes", notesArray);
+            webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesObj.get()));
         }
 
         // Launch background thread for heavy I/O (bird file write + git commit)
@@ -785,8 +789,7 @@ void SongbirdEditor::undoProject()
         {
             // Full refresh only when tracks/notes changed (.bird file)
             // Mixer-only changes are already handled by pushMixerStateToReact() above
-            auto json = getTrackStateJSON();
-            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
+            emitTrackState();
         }
         DBG("=== UNDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
@@ -851,8 +854,7 @@ void SongbirdEditor::redoProject()
         }
         
         if (webView && (needsHeavyReload || needsSoftReload)) {
-            auto json = getTrackStateJSON();
-            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
+            emitTrackState();
         }
         DBG("=== REDO COMPLETE in " + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms ===");
     }
@@ -903,7 +905,7 @@ void SongbirdEditor::revertLLM()
         
         if (webView) {
             if (needsHeavyReload || needsSoftReload)
-                webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
+                emitTrackState();
             if (stateJsonChanged) {
                 for (auto& pair : stateCache) {
                     auto parsed = juce::JSON::parse(pair.second);
@@ -970,44 +972,44 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
     auto postPopT0 = juce::Time::getMillisecondCounterHiRes();
     DBG("  loadBird post-populate: START");
 
+    // Helper: emit a progress message and pump the message loop so the WebView paints it
+    auto emitProgress = [this](const juce::String& msg, float progress) {
+        if (!webView) return;
+        juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+        obj->setProperty("message", msg);
+        obj->setProperty("progress", progress);
+        webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(obj.get()));
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
+    };
+
     // (AudioIODeviceCallback handles spectrum + stereo analysis — no plugin needed)
     lastParseResult = result;  // store for JSON serialization
+
+    emitProgress("Registering plugin listeners...", 0.80f);
     registerPluginListeners();  // start tracking per-plugin state changes
     createTrackWatchers();      // start per-track reactive mixer sync
     DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] reattach+listeners+watchers");
 
-    // Tell UI loading is finished
-    if (webView) {
-        juce::MessageManager::getInstance()->callAsync([this]() {
-            if (webView) {
-                juce::DynamicObject::Ptr obj = new juce::DynamicObject();
-                obj->setProperty("message", "done");
-                obj->setProperty("progress", 1.0);
-                juce::var jsonVar(obj.get());
-                juce::String jsonStr = juce::JSON::toString(jsonVar, true);
-                webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(jsonStr));
-            }
-        });
-    }
-
     // Load companion state files if any
+    emitProgress("Restoring session state...", 0.84f);
     loadStateCache();
     DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] loadStateCache");
+
+    emitProgress("Restoring plugin state...", 0.87f);
     loadEditState();
     DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] loadEditState");
 
-    // Full initial save — captures all current tracks/plugins to disk
-    // (populateEdit may have created new tracks not in the old .edit.json)
-    for (auto* track : te::getAllTracks(*edit))
-        for (auto* plugin : track->pluginList.getPlugins())
-            if (auto* ext = dynamic_cast<te::ExternalPlugin*>(plugin))
-                dirtyPlugins.insert(ext);
-    saveEditState();      // writes .edit.json with all tracks
-    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] saveEditState");
+    // After loadEditState restored plugin states, mark all plugins as CLEAN.
+    // No need to flush back to disk — the .edit.json is already up to date.
+    // Listeners will mark specific plugins dirty when they actually change later.
+    dirtyPlugins.clear();
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] plugins marked clean");
 
     // Build mixer state JSON directly from Tracktion edit state.
     // This ensures ALL tracks are captured, merging with any saved volumes
     // from the previous session's stateCache (loaded above by loadStateCache).
+    emitProgress("Building mixer state...", 0.93f);
+    auto mixerT0 = juce::Time::getMillisecondCounterHiRes();
     {
         // Extract saved track properties by name from the old state cache
         std::map<juce::String, juce::var> savedTracksByName;
@@ -1109,31 +1111,101 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
         wrapper->setProperty("version", 1);
 
         stateCache["songbird-mixer"] = juce::JSON::toString(juce::var(wrapper.get()));
+        DBG("    mixer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - mixerT0, 0) + "ms] JSON::toString done");
         DBG("EditState: Built mixer state from C++ with " + juce::String(tracksArray.size()) + " tracks");
         
         // Apply the merged mixer state to Tracktion's audio engine
         applyMixerState(juce::var(mixerObj.get()));
+        DBG("    mixer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - mixerT0, 0) + "ms] applyMixerState done");
     }
 
-    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] mixer state built+applied");
+    DBG("  loadBird post-populate: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] mixer state built+applied (mixer block took " + juce::String(juce::Time::getMillisecondCounterHiRes() - mixerT0, 0) + "ms)");
 
-    // Push track state to UI — deferred via callAsync so loadBirdFile returns immediately.
-    // The JS listener uses setTimeout(0) to defer processing, so evaluateJavascript returns fast.
+    // Push track state to UI — pass as juce::var (DynamicObject), NOT string.
+    // JUCE's emitEvent calls JSON::toString on the var. If we pass a string,
+    // it double-encodes (escapes every quote), causing 68s freeze on 303KB.
+    // Passing a DynamicObject means single clean serialization.
     if (webView) {
         juce::MessageManager::getInstance()->callAsync([this, postPopT0]() {
-            if (!webView) return;
-            // Show loading progress for final data load
+            if (!webView || !edit) return;
+            // Show progress
             {
                 juce::DynamicObject::Ptr obj = new juce::DynamicObject();
-                obj->setProperty("message", "Loading project data...");
-                obj->setProperty("progress", 0.95);
+                obj->setProperty("message", "Loading project state...");
+                obj->setProperty("progress", 0.96);
                 juce::var jsonVar(obj.get());
-                webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(juce::JSON::toString(jsonVar, true)));
+                webView->emitEventIfBrowserIsVisible("loadingProgress", jsonVar);
             }
-            auto json = getTrackStateJSON();
-            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] getTrackStateJSON (" + juce::String(json.length()) + " bytes)");
-            webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
-            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] trackState emitted");
+
+            // Step 1: Build complete trackState as a var, then strip notes for metadata-only emit
+            auto fullJsonStr = getTrackStateJSON();
+            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] getTrackStateJSON (" + juce::String(fullJsonStr.length()) + " bytes)");
+
+            auto parsed = juce::JSON::parse(fullJsonStr);
+            // Strip notes from each track (we'll send them per-track via notesChanged)
+            if (auto* tracks = parsed.getProperty("tracks", {}).getArray()) {
+                for (auto& t : *tracks) {
+                    if (auto* obj = t.getDynamicObject())
+                        obj->setProperty("notes", juce::Array<juce::var>());
+                }
+            }
+
+            webView->emitEventIfBrowserIsVisible("trackState", parsed);
+            DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] trackState (metadata) emitted");
+
+            // Step 2: Emit per-track notes via notesChanged after a delay.
+            // The delay ensures JS setTimeout(0) in the trackState listener fires first,
+            // populating the tracks store before notes arrive.
+            juce::Timer::callAfterDelay(100, [this, postPopT0]() {
+                if (!webView || !edit) return;
+
+                auto audioTracks = te::getAudioTracks(*edit);
+                for (int t = 0; t < audioTracks.size(); t++) {
+                    auto* audioTrack = audioTracks[t];
+                    if (!audioTrack) continue;
+
+                    // Build notesChanged as a DynamicObject (not a string)
+                    juce::DynamicObject::Ptr notesObj = new juce::DynamicObject();
+                    notesObj->setProperty("trackId", t);
+
+                    double loopLen = 0;
+                    te::MidiClip* mc = nullptr;
+                    for (auto* clip : audioTrack->getClips()) {
+                        if (auto* m = dynamic_cast<te::MidiClip*>(clip)) {
+                            mc = m;
+                            if (m->isLooping()) loopLen = m->getLoopLengthBeats().inBeats();
+                            break;
+                        }
+                    }
+                    notesObj->setProperty("loopLengthBeats", loopLen);
+
+                    juce::Array<juce::var> notesArray;
+                    if (mc) {
+                        auto& seq = mc->getSequence();
+                        for (int n = 0; n < seq.getNumNotes(); n++) {
+                            auto* note = seq.getNote(n);
+                            juce::DynamicObject::Ptr noteObj = new juce::DynamicObject();
+                            noteObj->setProperty("pitch", note->getNoteNumber());
+                            noteObj->setProperty("beat", note->getStartBeat().inBeats());
+                            noteObj->setProperty("duration", note->getLengthBeats().inBeats());
+                            noteObj->setProperty("velocity", note->getVelocity());
+                            notesArray.add(juce::var(noteObj.get()));
+                        }
+                    }
+                    notesObj->setProperty("notes", notesArray);
+
+                    webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesObj.get()));
+                }
+                DBG("  loadBird deferred: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms] all notesChanged emitted");
+
+                // Signal loading complete
+                {
+                    juce::DynamicObject::Ptr doneObj = new juce::DynamicObject();
+                    doneObj->setProperty("message", "done");
+                    doneObj->setProperty("progress", 1.0);
+                    webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(doneObj.get()));
+                }
+            });
         });
     }
     DBG("  loadBird post-populate: DONE [" + juce::String(juce::Time::getMillisecondCounterHiRes() - postPopT0, 0) + "ms total]");
@@ -1639,11 +1711,76 @@ void SongbirdEditor::setSidechainSource(int destTrackId, int sourceTrackId)
 // MIDI editing helpers (piano roll)
 // ====================================================================
 
-void SongbirdEditor::emitTrackState()
+void SongbirdEditor::emitTrackState(bool emitLoadingDone)
 {
-    if (webView && edit)
-        webView->emitEventIfBrowserIsVisible("trackState",
-            juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
+    if (!webView || !edit) return;
+
+    juce::MessageManager::getInstance()->callAsync([this, emitLoadingDone]() {
+        if (!webView || !edit) return;
+
+        // Step 1: Build complete trackState as a var, then strip notes for metadata-only emit
+        auto fullJsonStr = getTrackStateJSON();
+        auto parsed = juce::JSON::parse(fullJsonStr);
+        
+        // Strip notes from each track (we'll send them per-track via notesChanged)
+        if (auto* tracks = parsed.getProperty("tracks", {}).getArray()) {
+            for (auto& t : *tracks) {
+                if (auto* obj = t.getDynamicObject())
+                    obj->setProperty("notes", juce::Array<juce::var>());
+            }
+        }
+
+        webView->emitEventIfBrowserIsVisible("trackState", parsed);
+
+        // Step 2: Emit per-track notes via notesChanged after a delay.
+        juce::Timer::callAfterDelay(100, [this, emitLoadingDone]() {
+            if (!webView || !edit) return;
+
+            auto audioTracks = te::getAudioTracks(*edit);
+            for (int t = 0; t < audioTracks.size(); t++) {
+                auto* audioTrack = audioTracks[t];
+                if (!audioTrack) continue;
+
+                juce::DynamicObject::Ptr notesObj = new juce::DynamicObject();
+                notesObj->setProperty("trackId", t);
+
+                double loopLen = 0;
+                te::MidiClip* mc = nullptr;
+                for (auto* clip : audioTrack->getClips()) {
+                    if (auto* m = dynamic_cast<te::MidiClip*>(clip)) {
+                        mc = m;
+                        if (m->isLooping()) loopLen = m->getLoopLengthBeats().inBeats();
+                        break;
+                    }
+                }
+                notesObj->setProperty("loopLengthBeats", loopLen);
+
+                juce::Array<juce::var> notesArray;
+                if (mc) {
+                    auto& seq = mc->getSequence();
+                    for (int n = 0; n < seq.getNumNotes(); n++) {
+                        auto* note = seq.getNote(n);
+                        juce::DynamicObject::Ptr noteObj = new juce::DynamicObject();
+                        noteObj->setProperty("pitch", note->getNoteNumber());
+                        noteObj->setProperty("beat", note->getStartBeat().inBeats());
+                        noteObj->setProperty("duration", note->getLengthBeats().inBeats());
+                        noteObj->setProperty("velocity", note->getVelocity());
+                        notesArray.add(juce::var(noteObj.get()));
+                    }
+                }
+                notesObj->setProperty("notes", notesArray);
+
+                webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesObj.get()));
+            }
+
+            if (emitLoadingDone) {
+                juce::DynamicObject::Ptr doneObj = new juce::DynamicObject();
+                doneObj->setProperty("message", "done");
+                doneObj->setProperty("progress", 1.0);
+                webView->emitEventIfBrowserIsVisible("loadingProgress", juce::var(doneObj.get()));
+            }
+        });
+    });
 }
 
 void SongbirdEditor::scheduleMidiCommit()
@@ -1795,5 +1932,15 @@ void SongbirdEditor::writeBirdFromClip(int trackId, const juce::String& sectionN
     }
 
     currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+    
+    // Notify frontend that the raw .bird file on disk has changed
+    // so the Bird File Viewer can refresh its contents
+    if (webView) {
+        juce::MessageManager::callAsync([this]() {
+            if (webView)
+                webView->emitEventIfBrowserIsVisible("birdContentChanged", juce::var());
+        });
+    }
+
     DBG("MidiEdit: writeBirdFromClip sec=" + sectionName + " ch=" + channelName);
 }

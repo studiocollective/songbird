@@ -182,7 +182,6 @@ private:
         obj->setProperty("muted", lastMuted);
         obj->setProperty("solo", lastSolo);
         
-        auto jsonStr = juce::JSON::toString(juce::var(obj), true);
-        web->emitEventIfBrowserIsVisible("trackMixerUpdate", juce::var(jsonStr));
+        web->emitEventIfBrowserIsVisible("trackMixerUpdate", juce::var(obj));
     }
 };

@@ -250,12 +250,21 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 for (auto* param : params) {
                     auto range = param->getValueRange();
                     float norm = param->getCurrentNormalisedValue();
+                    
+                    juce::String pName = param->getParameterName();
+                    if (pName.isEmpty()) pName = param->paramID;
+                    if (pName.isEmpty()) pName = "Unknown Param";
 
                     auto* obj = new juce::DynamicObject();
                     obj->setProperty("id",           param->paramID);
-                    obj->setProperty("name",         param->getParameterName());
+                    obj->setProperty("name",         pName);
                     obj->setProperty("value",        norm);
-                    obj->setProperty("displayValue", param->getCurrentValueAsString());
+                    
+                    juce::String displayVal = "0.0";
+                    // Catch potential assertion in getCurrentValueAsString too
+                    try { displayVal = param->getCurrentValueAsString(); } catch (...) {}
+                    obj->setProperty("displayValue", displayVal);
+                    
                     obj->setProperty("min",          range.getStart());
                     obj->setProperty("max",          range.getEnd());
                     paramList.add(juce::var(obj));
@@ -355,8 +364,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 }
 
                 commitAndNotify("LLM edit", ProjectState::LLM);
-                if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
+                emitTrackState();
             }
             complete("ok");
         })
@@ -398,10 +406,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 commitAndNotify("Edit bird file", ProjectState::User);
 
                 // Push updated track state to React
-                if (webView) {
-                    auto json = getTrackStateJSON();
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
-                }
+                emitTrackState();
             });
 
             complete("{\"success\":true}");
@@ -438,10 +443,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     + "dB pan=" + juce::String(pan) + " mute=" + (mute ? "Y" : "N") + " solo=" + (solo ? "Y" : "N"));
 
                 // Re-emit trackState so React mixer panel reflects the change
-                if (webView) {
-                    auto json = BirdLoader::getTrackStateJSON(*edit, &lastParseResult);
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(json));
-                }
+                emitTrackState();
 
                 complete("{\"success\":true}");
             });
@@ -643,8 +645,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                         BirdLoader::populateEdit(*edit, result, engine, nullptr);
                         lastParseResult = result;
                     }
-                    if (webView)
-                        webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
+                    emitTrackState();
                 });
             }
             complete("ok");
@@ -841,8 +842,26 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     for (auto* clip : tracks[trackId]->getClips())
                         clip->state.getParent().removeChild(clip->state, nullptr);
                     BirdLoader::populateEdit(*edit, lastParseResult, engine);
-                    if (webView)
-                        webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
+                    // Emit lightweight notesChanged for just this track (not full trackState)
+                    if (webView) {
+                        juce::String notesJson = "{\"trackId\":" + juce::String(trackId) + ",\"notes\":[";
+                        te::MidiClip* mc = nullptr;
+                        for (auto* clip : tracks[trackId]->getClips())
+                            if (auto* m = dynamic_cast<te::MidiClip*>(clip)) { mc = m; break; }
+                        if (mc) {
+                            auto& seq = mc->getSequence();
+                            for (int n = 0; n < seq.getNumNotes(); n++) {
+                                auto* note = seq.getNote(n);
+                                if (n > 0) notesJson += ",";
+                                notesJson += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
+                                             ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
+                                             ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
+                                             ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
+                            }
+                        }
+                        notesJson += "]}";
+                        webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesJson));
+                    }
                 }
             });
             complete("{\"success\":true}");
@@ -863,9 +882,39 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
                 if (!audioRecorder || !edit) { complete("{\"success\":false}"); return; }
                 int id = audioRecorder->addAudioTrack();
-                if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
-                complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
+                auto audioTracks = te::getAudioTracks(*edit);
+                auto* track = (id >= 0 && id < (int)audioTracks.size()) ? audioTracks[id] : nullptr;
+                juce::String name = track ? track->getName() : ("Audio " + juce::String(id + 1));
+                int vol = track && track->getVolumePlugin()
+                    ? static_cast<int>(std::round(juce::Decibels::decibelsToGain(track->getVolumePlugin()->getVolumeDb()) * 127.0))
+                    : 80;
+                int pan = track && track->getVolumePlugin()
+                    ? static_cast<int>(std::round(track->getVolumePlugin()->getPan() * 64.0f))
+                    : 0;
+                juce::String trackJson = "{\"success\":true,\"trackId\":" + juce::String(id)
+                    + ",\"name\":\"" + name.replace("\"", "\\\"") + "\""
+                    + ",\"trackType\":\"audio\""
+                    + ",\"volume\":" + juce::String(vol)
+                    + ",\"pan\":" + juce::String(pan)
+                    + "}";
+                
+                // Register in lastParseResult so it persists
+                BirdChannel newCh;
+                newCh.channel = id;
+                newCh.name = name.toStdString();
+                lastParseResult.channels.push_back(newCh);
+
+                if (lastParseResult.arrangement.size() > 0) {
+                    juce::String secName = lastParseResult.arrangement[0].sectionName;
+                    int secBars = lastParseResult.arrangement[0].bars;
+                    juce::Thread::launch([this, id, secName = juce::String(secName), secBars]() {
+                        writeBirdFromClip(id, secName, 0.0, secBars, {});
+                    });
+                }
+                
+                commitAndNotify("Add audio track", ProjectState::User);
+                
+                complete(trackJson);
             });
         })
 
@@ -909,9 +958,30 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     edit->tempoSequence.toTime(te::BeatPosition::fromBeats(totalBeats)));
                 track->insertMIDIClip(clipRange, nullptr);
 
-                if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
-                complete("{\"success\":true,\"trackId\":" + juce::String(id) + "}");
+                juce::String trackJson = "{\"success\":true,\"trackId\":" + juce::String(id)
+                    + ",\"name\":\"" + track->getName().replace("\"", "\\\"") + "\""
+                    + ",\"trackType\":\"midi\""
+                    + ",\"volume\":" + juce::String(static_cast<int>(std::round((track->getVolumePlugin() ? juce::Decibels::decibelsToGain(track->getVolumePlugin()->getVolumeDb()) : 0.5) * 127.0)))
+                    + ",\"pan\":" + juce::String(static_cast<int>(std::round((track->getVolumePlugin() ? track->getVolumePlugin()->getPan() : 0.0f) * 64.0f)))
+                    + "}";
+
+                // Register in lastParseResult so note drawing works
+                BirdChannel newCh;
+                newCh.channel = id;
+                newCh.name = track->getName().toStdString();
+                lastParseResult.channels.push_back(newCh);
+
+                if (lastParseResult.arrangement.size() > 0) {
+                    juce::String secName = lastParseResult.arrangement[0].sectionName;
+                    int secBars = lastParseResult.arrangement[0].bars;
+                    juce::Thread::launch([this, id, secName = juce::String(secName), secBars]() {
+                        writeBirdFromClip(id, secName, 0.0, secBars, {});
+                    });
+                }
+
+                commitAndNotify("Add MIDI track", ProjectState::User);
+
+                complete(trackJson);
             });
         })
 
@@ -919,8 +989,7 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             int trackId = static_cast<int>(args[0]);
             juce::MessageManager::callAsync([this, trackId]() {
                 audioRecorder->removeAudioTrack(trackId);
-                if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(BirdLoader::getTrackStateJSON(*edit, &lastParseResult)));
+                // No trackState emit — JS already filters the track from the store locally
             });
             complete("{\"success\":true}");
         })
@@ -1161,8 +1230,23 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     DBG("midiSetLoopLength: track " + juce::String(trackId) + " looping disabled");
                 }
 
-                if (webView)
-                    webView->emitEventIfBrowserIsVisible("trackState", juce::var(getTrackStateJSON()));
+                // Emit lightweight notesChanged (notes may have been trimmed at loop boundary)
+                if (webView) {
+                    juce::String notesJson = "{\"trackId\":" + juce::String(trackId) + ",\"loopLengthBeats\":" + juce::String(loopBeats > 0 ? loopBeats : 0) + ",\"notes\":[";
+                    if (mc) {
+                        auto& seq2 = mc->getSequence();
+                        for (int n = 0; n < seq2.getNumNotes(); n++) {
+                            auto* note = seq2.getNote(n);
+                            if (n > 0) notesJson += ",";
+                            notesJson += "{\"pitch\":" + juce::String(note->getNoteNumber()) +
+                                         ",\"beat\":" + juce::String(note->getStartBeat().inBeats(), 3) +
+                                         ",\"duration\":" + juce::String(note->getLengthBeats().inBeats(), 3) +
+                                         ",\"velocity\":" + juce::String(note->getVelocity()) + "}";
+                        }
+                    }
+                    notesJson += "]}";
+                    webView->emitEventIfBrowserIsVisible("notesChanged", juce::var(notesJson));
+                }
             });
             complete("{\"success\":true}");
         })

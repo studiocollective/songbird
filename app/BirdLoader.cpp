@@ -1206,6 +1206,7 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
     }
 
     // --- Create/Configure 4 Return Tracks ---
+    const juce::String returnNames[] = { "Hall", "Plate", "Delay", "Saturation" };
     int numRegularTracks = static_cast<int>(result.channels.size());
     for (int r = 0; r < 4; r++) {
         int trackIdx = numRegularTracks + r;
@@ -1213,11 +1214,11 @@ void BirdLoader::populateEdit(te::Edit& edit, const BirdParseResult& result, te:
         auto* track = te::getAudioTracks(edit)[trackIdx];
         if (!track) continue;
 
-        track->setName("Return " + juce::String(r + 1));
+        track->setName(returnNames[r]);
         
         float trackProgress = static_cast<float>(numRegularTracks) / static_cast<float>(numRegularTracks + 2) + 
                               (static_cast<float>(r) / 4.0f) * (1.0f / static_cast<float>(numRegularTracks + 2));
-        if (progressCallback) progressCallback("Loading Return " + juce::String(r + 1), trackProgress);
+        if (progressCallback) progressCallback("Loading " + returnNames[r], trackProgress);
 
         // Restore track settings if we had them
         if (previousStates.find(track->getName()) != previousStates.end()) {
@@ -1335,7 +1336,7 @@ juce::String BirdLoader::getTrackStateJSON(te::Edit& edit, const BirdParseResult
         trackCount++;
 
         // For return/master tracks: read the actual ExternalPlugins from the plugin list directly
-        bool isReturn = !isMaster && track->getName().startsWith("Return ");
+        bool isReturn = !isMaster && (track->getName() == "Hall" || track->getName() == "Plate" || track->getName() == "Delay" || track->getName() == "Saturation");
 
         // Look up plugin info from parse result (regular tracks only)
         juce::String pluginField;

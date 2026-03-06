@@ -19,6 +19,8 @@ export function ArrangementView() {
   const lanesScrollRef = useRef<HTMLDivElement>(null);
   const pendingZoom = useRef<{ zoom: number; scrollLeft: number } | null>(null);
   const rafId = useRef<number | null>(null);
+  // Track which area the user is hovering/interacting with to prevent scroll feedback loops
+  const activeScrollRegion = useRef<'ruler' | 'lanes' | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -93,17 +95,30 @@ export function ArrangementView() {
 
   // Sync ruler scroll with lanes scroll
   const handleLanesScroll = useCallback(() => {
+    if (activeScrollRegion.current !== 'lanes') return;
     if (lanesScrollRef.current && rulerScrollRef.current) {
-      rulerScrollRef.current.scrollLeft = lanesScrollRef.current.scrollLeft;
+      if (rulerScrollRef.current.scrollLeft !== lanesScrollRef.current.scrollLeft) {
+        rulerScrollRef.current.scrollLeft = lanesScrollRef.current.scrollLeft;
+      }
+    }
+  }, []);
+
+  // Sync lanes scroll with ruler scroll
+  const handleRulerScroll = useCallback(() => {
+    if (activeScrollRegion.current !== 'ruler') return;
+    if (lanesScrollRef.current && rulerScrollRef.current) {
+      if (lanesScrollRef.current.scrollLeft !== rulerScrollRef.current.scrollLeft) {
+        lanesScrollRef.current.scrollLeft = rulerScrollRef.current.scrollLeft;
+      }
     }
   }, []);
 
   return (
     <div className={container} ref={containerRef}>
       {/* Timeline ruler */}
-      <div className={rulerRow}>
+      <div className={rulerRow} onMouseEnter={() => activeScrollRegion.current = 'ruler'}>
         <div className={rulerSpacer} />
-        <div className={rulerTrack} ref={rulerScrollRef}>
+        <div className={rulerTrack} ref={rulerScrollRef} onScroll={handleRulerScroll}>
           <div style={{ width: `calc(${totalBars} * var(--bar-w, ${BASE_BAR_WIDTH}px))`, minWidth: '100%' }} className="relative h-full">
             {/* Loop region overlay on ruler */}
             {looping && loopBars > 0 && (loopBars - loopStartBar) > 0 && (
@@ -144,7 +159,12 @@ export function ArrangementView() {
       </div>
 
       {/* Track lanes — scrolls both X (zoom) and Y (many tracks) */}
-      <div className={lanesScroll} ref={lanesScrollRef} onScroll={handleLanesScroll}>
+      <div 
+        className={lanesScroll} 
+        ref={lanesScrollRef} 
+        onScroll={handleLanesScroll}
+        onMouseEnter={() => activeScrollRegion.current = 'lanes'}
+      >
         <div style={{ width: `calc(${totalBars} * var(--bar-w, ${BASE_BAR_WIDTH}px))`, minWidth: '100%' }}>
           {arrangementTracks.map((track) => (
             <div key={track.id} className={laneRow}>
@@ -292,7 +312,6 @@ export function ArrangementView() {
                           <NoteClip
                             notes={track.notes}
                             color={track.color}
-                            totalBars={totalBars}
                           />
                         )}
                       </div>
@@ -318,8 +337,7 @@ export function ArrangementView() {
 
           {/* Track creation buttons */}
           <div className={addTrackRow}>
-            <div className={addTrackSpacer} />
-            <div className={addTrackContent}>
+            <div className={addTrackSpacerWithButtons}>
               <button
                 className={addTrackBtn}
                 onClick={() => useMixerStore.getState().addAudioTrack()}
@@ -339,6 +357,7 @@ export function ArrangementView() {
                 MIDI
               </button>
             </div>
+            <div className={addTrackContent} />
           </div>
         </div>
       </div>
@@ -536,11 +555,9 @@ function Playhead({
 function NoteClip({
   notes,
   color,
-  totalBars,
 }: {
   notes: NoteData[];
   color: string;
-  totalBars: number;
 }) {
   if (notes.length === 0) return null;
 
@@ -550,10 +567,6 @@ function NoteClip({
 
   const minBeat = notes.reduce((m, n) => Math.min(m, n.beat), Infinity);
   const maxBeatEnd = notes.reduce((m, n) => Math.max(m, n.beat + n.duration), 0);
-  const totalBeats = totalBars * 4;
-
-  const clipLeft = (minBeat / totalBeats) * 100;
-  const clipWidth = ((maxBeatEnd - minBeat) / totalBeats) * 100;
 
   // --- Auto-detect chords ---
   // Group notes that start at approximately the same time
@@ -618,8 +631,8 @@ function NoteClip({
     <div
       className={clip}
       style={{
-        '--clip-left': `${clipLeft}%`,
-        '--clip-width': `${clipWidth}%`,
+        left: `calc(${minBeat / 4} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+        width: `calc(${(maxBeatEnd - minBeat) / 4} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
         '--clip-color': color,
       } as React.CSSProperties}
     >
@@ -679,7 +692,8 @@ const rulerRow = `flex shrink-0`;
 const rulerSpacer = `w-44 shrink-0 bg-[hsl(var(--background))] border-b border-r border-[hsl(var(--border))]`;
 const rulerTrack = `
   flex-1 h-10 bg-[hsl(var(--background))] border-b border-[hsl(var(--border))]
-  relative overflow-x-auto overflow-y-hidden`;
+  relative overflow-x-auto overflow-y-hidden
+  scrollbar-hide`; // Hide visual scrollbar so styles look identical to before
 
 const barNumber = `
   absolute bottom-0 h-5 flex items-center justify-center
@@ -736,7 +750,6 @@ const gridLine = `
 
 const clip = `
   absolute top-1.5 bottom-1.5 rounded-sm overflow-hidden
-  left-[var(--clip-left)] w-[var(--clip-width)]
   bg-[var(--clip-color)] border border-[var(--clip-color)]
   z-20`;
 
@@ -786,9 +799,9 @@ const audioSourceBtn = `
 // --- Add track buttons ---
 const addTrackRow = `flex h-10 border-b border-[hsl(var(--border))]/30`;
 
-const addTrackSpacer = `
+const addTrackSpacerWithButtons = `
   w-44 shrink-0 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]
-  sticky left-0 z-30`;
+  sticky left-0 z-40 flex items-center gap-1.5 px-3`;
 
 const addTrackContent = `
   flex-1 flex items-center gap-2 px-3`;

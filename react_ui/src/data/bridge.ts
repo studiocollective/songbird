@@ -64,9 +64,12 @@ export const juceBridge: StateStorage = {
 // --- Event listener bridge (C++ → JS) ---
 export function addStateListener(event: string, callback: (data: unknown) => void) {
   if (!isPlugin) return () => {};
-  const jsonCallback = (data: string) => {
-    pushLog({ direction: '←C++', method: 'event', storeName: event, payload: data });
-    callback(JSON.parse(data));
+  const jsonCallback = (data: unknown) => {
+    pushLog({ direction: '←C++', method: 'event', storeName: event, payload: typeof data === 'string' ? data : undefined });
+    // JUCE emitByBackend already JSON.parse's the payload.
+    // When C++ passes a DynamicObject var, data is already an object.
+    // When C++ passes a string var, data is a string that needs parsing.
+    callback(typeof data === 'string' ? JSON.parse(data) : data);
   };
   window.__JUCE__!.backend.addEventListener(event, jsonCallback);
   return () => window.__JUCE__!.backend.removeEventListener(event, jsonCallback);

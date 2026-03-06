@@ -312,18 +312,17 @@ void PlaybackInfo::timerCallback()
         }
     }
 
-    // Build and emit stereoAnalysis payload
-    juce::String spectrumJson = "[";
+    // Build and emit stereoAnalysis payload as a DynamicObject
+    juce::Array<juce::var> spectrumArray;
     for (int i = 0; i < numUIBands; ++i) {
-        if (i > 0) spectrumJson += ",";
-        spectrumJson += juce::String(spectrumMagnitudes[i], 3);
+        spectrumArray.add(juce::var(spectrumMagnitudes[i]));
     }
-    spectrumJson += "]";
 
-    juce::String stereoJson = "{\"width\":"      + juce::String(stereoWidth, 3)
-                            + ",\"correlation\":" + juce::String(phaseCorrelation, 3)
-                            + ",\"balance\":"     + juce::String(stereoBalance, 3)
-                            + ",\"spectrum\":"    + spectrumJson
-                            + "}";
-    webView->emitEventIfBrowserIsVisible("stereoAnalysis", juce::var(stereoJson));
+    juce::DynamicObject::Ptr stereoObj = new juce::DynamicObject();
+    stereoObj->setProperty("width", stereoWidth);
+    stereoObj->setProperty("correlation", phaseCorrelation);
+    stereoObj->setProperty("balance", stereoBalance);
+    stereoObj->setProperty("spectrum", spectrumArray);
+
+    webView->emitEventIfBrowserIsVisible("stereoAnalysis", juce::var(stereoObj.get()));
 }

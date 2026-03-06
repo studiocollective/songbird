@@ -61,7 +61,7 @@ export function MixerChannel({
       : 'No Input';
 
   return (
-    <div className={channel}>
+    <div className={cn(channel, isReturn && channelReturn)}>
 
       <div className={header}>
         <TrackColorDot color={color} size="md" />
@@ -165,6 +165,8 @@ const channel = `
   relative w-28 shrink-0 border-r border-[hsl(var(--border))]/50
   flex flex-col items-center py-2
   hover:bg-[hsl(var(--mixer-channel-hover))] transition-colors`;
+
+const channelReturn = `w-20`;
 
 const header = `flex items-center gap-1 mb-1`;
 const trackName = `text-[10px] text-[hsl(var(--muted-foreground))] font-medium truncate max-w-[50px]`;

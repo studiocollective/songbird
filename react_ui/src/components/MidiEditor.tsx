@@ -1028,7 +1028,7 @@ function VelocityLane({
 
     const onMove = (me: MouseEvent) => {
       const dy = startY - me.clientY;
-      const newVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 0.5)));
+      const newVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 1.5)));
       setVelOverrides((prev) => new Map(prev).set(noteIdx, newVel));
     };
 
@@ -1036,7 +1036,7 @@ function VelocityLane({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       const dy = startY - me.clientY;
-      const finalVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 0.5)));
+      const finalVel = Math.max(1, Math.min(127, startVel + Math.round(dy * 1.5)));
       if (finalVel !== startVel) {
         const beatRel = note.beat - sectionStartBeat;
         midiRemoveNote(trackId, sectionIndex, note.pitch, beatRel);

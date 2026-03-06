@@ -86,9 +86,9 @@ void LevelMeterBridge::timerCallback()
 
     auto tracks = te::getAudioTracks(*currentEdit);
 
-    // Build a compact JSON array: [[leftDb, rightDb], ...]
+    // Build a compact array: [[leftDb, rightDb], ...]
     // Plus a master entry at the end
-    juce::String json = "[";
+    juce::Array<juce::var> levelsArray;
     float masterL = -100.0f, masterR = -100.0f;
 
     for (int i = 0; i < (int)trackClients.size() && i < tracks.size(); i++)
@@ -103,14 +103,19 @@ void LevelMeterBridge::timerCallback()
         if (dbL > masterL) masterL = dbL;
         if (dbR > masterR) masterR = dbR;
 
-        if (i > 0) json += ",";
-        json += "[" + juce::String(dbL, 1) + "," + juce::String(dbR, 1) + "]";
+        juce::Array<juce::var> pair;
+        pair.add(juce::var(dbL));
+        pair.add(juce::var(dbR));
+        levelsArray.add(juce::var(pair));
     }
 
     // Append master as the last entry
-    json += ",[" + juce::String(masterL, 1) + "," + juce::String(masterR, 1) + "]]";
+    juce::Array<juce::var> masterPair;
+    masterPair.add(juce::var(masterL));
+    masterPair.add(juce::var(masterR));
+    levelsArray.add(juce::var(masterPair));
 
-    webView->emitEventIfBrowserIsVisible("audioLevels", juce::var(json));
+    webView->emitEventIfBrowserIsVisible("audioLevels", juce::var(levelsArray));
 
     // Also push transport position at the same 30Hz rate
     auto& transport = currentEdit->getTransport();
@@ -134,11 +139,13 @@ void LevelMeterBridge::timerCallback()
         loopBars = loopEndBB.bars;
     }
 
-    juce::String posJson = "{\"position\":" + juce::String(posSeconds, 3)
-        + ",\"bar\":" + juce::String(bar)
-        + ",\"looping\":" + (looping ? "true" : "false")
-        + ",\"loopLength\":" + juce::String(loopLenSeconds, 2)
-        + ",\"loopBars\":" + juce::String(loopBars)
-        + ",\"loopStartBar\":" + juce::String(loopStartBar) + "}";
-    webView->emitEventIfBrowserIsVisible("transportPosition", juce::var(posJson));
+    juce::DynamicObject::Ptr posObj = new juce::DynamicObject();
+    posObj->setProperty("position", posSeconds);
+    posObj->setProperty("bar", bar);
+    posObj->setProperty("looping", looping);
+    posObj->setProperty("loopLength", loopLenSeconds);
+    posObj->setProperty("loopBars", loopBars);
+    posObj->setProperty("loopStartBar", loopStartBar);
+
+    webView->emitEventIfBrowserIsVisible("transportPosition", juce::var(posObj.get()));
 }

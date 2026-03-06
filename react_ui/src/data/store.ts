@@ -235,8 +235,8 @@ function processTrackNotes(data: string | object) {
 }
 
 addStateListener('trackState', (data: unknown) => {
-  // Defer processing so JUCE's evaluateJavascript returns immediately,
-  // unblocking the C++ message thread (avoids 40s beach ball with 212KB JSON).
+  // Defer so JUCE's evaluateJavascript returns immediately — avoids deadlock
+  // when Zustand persist calls updateState back into C++.
   const captured = data;
   setTimeout(() => {
     try {
@@ -249,13 +249,24 @@ addStateListener('trackState', (data: unknown) => {
 
 // Lightweight note update from MIDI editing (replaces expensive full trackState for note edits)
 addStateListener('notesChanged', (data: unknown) => {
-  try {
-    const raw = typeof data === 'string' ? JSON.parse(data) : data;
-    const { trackId, notes } = raw as { trackId: number; notes: NoteData[] };
-    useMixerStore.getState().setTrackNotes(trackId, notes);
-  } catch (e) {
-    console.error('[notesChanged] Failed to parse:', e);
-  }
+  // Defer so evaluateJavascript returns immediately — avoids deadlock
+  // when setState triggers persist → updateState native call.
+  const captured = data;
+  setTimeout(() => {
+    try {
+      const raw = typeof captured === 'string' ? JSON.parse(captured) : captured;
+      const { trackId, notes, loopLengthBeats } = raw as { trackId: number; notes: NoteData[]; loopLengthBeats?: number };
+      if (loopLengthBeats !== undefined) {
+        useMixerStore.setState((s) => ({
+          tracks: s.tracks.map((t) => (t.id === trackId ? { ...t, notes, loopLengthBeats } : t)),
+        }));
+      } else {
+        useMixerStore.getState().setTrackNotes(trackId, notes);
+      }
+    } catch (e) {
+      console.error('[notesChanged] Failed to parse:', e);
+    }
+  }, 0);
 });
 
 // Per-track mixer updates from C++ (reactive ValueTree listeners)
@@ -298,24 +309,11 @@ addStateListener('cppLog', (data: unknown) => {
   if (d?.message) console.log(d.message);
 });
 
-// --- Fetch initial track notes on startup ---
+// --- Fetch available plugins on startup (track state is pushed by C++ via chunked events) ---
 if (typeof window !== 'undefined' && window.__JUCE__) {
-  import('@/lib').then(({ Juce }) => {
-    // Small delay to let the Edit finish loading
-    setTimeout(async () => {
-      const getTrackState = Juce.getNativeFunction('getTrackState');
-      // Fetch available plugins from C++
+  import('@/lib').then(() => {
+    setTimeout(() => {
       useMixerStore.getState().fetchAvailablePlugins();
-
-      try {
-        const jsonStr = await getTrackState();
-        if (jsonStr && jsonStr !== '[]' && jsonStr !== '{}') {
-          const tracks = processTrackNotes(jsonStr);
-          console.log('[trackState] Loaded', tracks.length, 'tracks from C++');
-        }
-      } catch (e) {
-        console.error('[trackState] Initial fetch failed:', e);
-      }
     }, 500);
   });
 }

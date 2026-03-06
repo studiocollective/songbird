@@ -352,12 +352,76 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   addAudioTrack: async () => {
     const result = await nativeFunction('addAudioTrack')();
     const data = typeof result === 'string' ? JSON.parse(result) : result;
-    return data?.trackId ?? -1;
+    if (!data?.success) return -1;
+
+    const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
+    const existing = get().tracks;
+    const id = data.trackId as number;
+
+    const newTrack: Track = {
+      id,
+      name: data.name ?? `Audio ${id + 1}`,
+      type: 'audio',
+      color: TRACK_COLORS[existing.filter(t => !t.isReturn && !t.isMaster).length % TRACK_COLORS.length],
+      muted: false,
+      solo: false,
+      volume: data.volume ?? 80,
+      pan: data.pan ?? 0,
+      instrument: emptySlot,
+      fx: emptySlot,
+      channelStrip: emptySlot,
+      notes: [],
+      sends: [0, 0, 0, 0],
+    };
+
+    set({ tracks: [...existing, newTrack] });
+    
+    // Auto-assign default channel strip (Console 1)
+    const availableEffects = get().availableChannelStrips;
+    if (availableEffects.length > 0) {
+      const console1 = availableEffects.find(fx => fx.name.includes('Console 1')) || availableEffects[0];
+      setTimeout(() => get().setChannelStrip(id, console1.id, console1.name), 50);
+    }
+    
+    return id;
   },
   addMidiTrack: async () => {
     const result = await nativeFunction('addMidiTrack')();
     const data = typeof result === 'string' ? JSON.parse(result) : result;
-    return data?.trackId ?? -1;
+    if (!data?.success) return -1;
+
+    const TRACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const emptySlot = { pluginId: null, pluginName: null, bypassed: false };
+    const existing = get().tracks;
+    const id = data.trackId as number;
+
+    const newTrack: Track = {
+      id,
+      name: data.name ?? `Track ${id + 1}`,
+      type: 'midi',
+      color: TRACK_COLORS[existing.filter(t => !t.isReturn && !t.isMaster).length % TRACK_COLORS.length],
+      muted: false,
+      solo: false,
+      volume: data.volume ?? 80,
+      pan: data.pan ?? 0,
+      instrument: emptySlot,
+      fx: emptySlot,
+      channelStrip: emptySlot,
+      notes: [],
+      sends: [0, 0, 0, 0],
+    };
+
+    set({ tracks: [...existing, newTrack] });
+
+    // Auto-assign default channel strip (Console 1)
+    const availableEffects = get().availableChannelStrips;
+    if (availableEffects.length > 0) {
+      const console1 = availableEffects.find(fx => fx.name.includes('Console 1')) || availableEffects[0];
+      setTimeout(() => get().setChannelStrip(id, console1.id, console1.name), 50);
+    }
+
+    return id;
   },
   removeAudioTrack: (id) => {
     nativeFunction('removeAudioTrack')(id);
