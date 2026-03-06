@@ -4,4 +4,4 @@
 *.DS_Store
 *.dSYM
 songbird
-
+build/*
