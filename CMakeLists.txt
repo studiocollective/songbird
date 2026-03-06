@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.15)
 
 project(SongbirdPlayer VERSION 1.0.0)
 
+# macOS deployment target
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
+endif()
+
 # Fetch libgit2 — in-process Git for zero-fork undo/redo
 include(FetchContent)
 FetchContent_Declare(libgit2
@@ -16,11 +22,7 @@ set(USE_HTTPS OFF CACHE BOOL "" FORCE)
 set(USE_BUNDLED_ZLIB OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libgit2)
 
-# macOS deployment target
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
-    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
-endif()
+
 
 # Add JUCE from tracktion's bundled copy
 add_subdirectory(libraries/tracktion/modules/juce)
