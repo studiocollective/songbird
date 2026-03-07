@@ -41,7 +41,7 @@ public:
 
     // Track management
     /** Creates and returns a new audio track (ID = index). */
-    int  addAudioTrack();
+    int  addAudioTrack(int targetIndex = -1);
     /** Removes an audio track by ID. */
     void removeAudioTrack(int trackId);
 

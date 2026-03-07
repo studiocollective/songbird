@@ -9325,54 +9325,6 @@
               "velocity": 100
             },
             {
-              "pitch": 60,
-              "beat": 64,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 64,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 66,
-              "beat": 124,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 124,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 124,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 66,
-              "beat": 125,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 125,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 125,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
               "pitch": 66,
               "beat": 192,
               "duration": 0.21875,
@@ -9444,7 +9396,7 @@
           "name": "chords",
           "type": "midi",
           "color": "#DDA0DD",
-          "muted": true,
+          "muted": false,
           "solo": false,
           "volume": 127,
           "pan": -2,
@@ -11845,7 +11797,7 @@
         },
         {
           "id": 7,
-          "name": "Hall",
+          "name": "track8",
           "type": "midi",
           "color": "#F7DC6F",
           "muted": false,
@@ -11858,8 +11810,8 @@
             "bypassed": false
           },
           "fx": {
-            "pluginId": "",
-            "pluginName": "ValhallaRoom",
+            "pluginId": null,
+            "pluginName": null,
             "bypassed": false
           },
           "channelStrip": {
@@ -11869,7 +11821,7 @@
           },
           "notes": [],
           "loopLengthBeats": 0,
-          "isReturn": true,
+          "isReturn": false,
           "isMaster": false,
           "sends": [
             0,
@@ -11882,9 +11834,101 @@
         },
         {
           "id": 8,
-          "name": "Plate",
+          "name": "track9",
           "type": "midi",
           "color": "#FF6B6B",
+          "muted": false,
+          "solo": false,
+          "volume": 73,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": "softube.console-1",
+            "pluginName": "Console 1",
+            "bypassed": false
+          },
+          "notes": [
+            {
+              "pitch": 62,
+              "beat": 4,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 59,
+              "beat": 4,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 63,
+              "beat": 4,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 62,
+              "beat": 8,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 59,
+              "beat": 8,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 63,
+              "beat": 8,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 62,
+              "beat": 9,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 59,
+              "beat": 9,
+              "duration": 0.21875,
+              "velocity": 100
+            },
+            {
+              "pitch": 63,
+              "beat": 9,
+              "duration": 0.21875,
+              "velocity": 100
+            }
+          ],
+          "loopLengthBeats": 0,
+          "isReturn": false,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6
+        },
+        {
+          "id": 9,
+          "name": "Hall",
+          "type": "midi",
+          "color": "#4ECDC4",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -11918,10 +11962,47 @@
           "sidechainSensitivity": 0.6
         },
         {
-          "id": 9,
+          "id": 10,
+          "name": "Plate",
+          "type": "midi",
+          "color": "#45B7D1",
+          "muted": false,
+          "solo": false,
+          "volume": 127,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": "",
+            "pluginName": "ValhallaRoom",
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "notes": [],
+          "loopLengthBeats": 0,
+          "isReturn": true,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6
+        },
+        {
+          "id": 11,
           "name": "Delay",
           "type": "midi",
-          "color": "#4ECDC4",
+          "color": "#96CEB4",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -11955,10 +12036,10 @@
           "sidechainSensitivity": 0.6
         },
         {
-          "id": 10,
+          "id": 12,
           "name": "Saturation",
           "type": "midi",
-          "color": "#45B7D1",
+          "color": "#FFEAA7",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -11992,10 +12073,10 @@
           "sidechainSensitivity": 0.6
         },
         {
-          "id": 11,
+          "id": 13,
           "name": "Master",
           "type": "midi",
-          "color": "#96CEB4",
+          "color": "#DDA0DD",
           "muted": false,
           "solo": false,
           "volume": 80,
@@ -12011,7 +12092,7 @@
             "bypassed": false
           },
           "channelStrip": {
-            "pluginId": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
+            "pluginId": "",
             "pluginName": "Console 1",
             "bypassed": false
           },
@@ -12027,38 +12108,6 @@
           ],
           "sidechainTrackId": null,
           "sidechainSensitivity": 0.6
-        },
-        {
-          "id": 11,
-          "name": "Track 12",
-          "type": "midi",
-          "color": "#F7DC6F",
-          "muted": false,
-          "solo": false,
-          "volume": 127,
-          "pan": 0,
-          "instrument": {
-            "pluginId": null,
-            "pluginName": null,
-            "bypassed": false
-          },
-          "fx": {
-            "pluginId": null,
-            "pluginName": null,
-            "bypassed": false
-          },
-          "channelStrip": {
-            "pluginId": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-            "pluginName": "Console 1",
-            "bypassed": false
-          },
-          "notes": [],
-          "sends": [
-            0,
-            0,
-            0,
-            0
-          ]
         }
       ],
       "sections": [
@@ -12096,8 +12145,11 @@
       "totalBars": 80,
       "mixerOpen": true,
       "returnsOpen": false,
-      "midiEditorOpen": false,
-      "selectedClip": null,
+      "midiEditorOpen": true,
+      "selectedClip": {
+        "trackId": 4,
+        "sectionIndex": 1
+      },
       "midiEditorGridDiv": 8,
       "sampleEditorOpen": false,
       "selectedAudioClip": null,

@@ -881,10 +881,11 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
         .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
                 if (!audioRecorder || !edit) { complete("{\"success\":false}"); return; }
-                int id = audioRecorder->addAudioTrack();
+                int targetIndex = static_cast<int>(lastParseResult.channels.size());
+                int id = audioRecorder->addAudioTrack(targetIndex);
                 auto audioTracks = te::getAudioTracks(*edit);
                 auto* track = (id >= 0 && id < (int)audioTracks.size()) ? audioTracks[id] : nullptr;
-                juce::String name = track ? track->getName() : ("Audio " + juce::String(id + 1));
+                juce::String name = track ? track->getName() : ("audio" + juce::String(id + 1));
                 int vol = track && track->getVolumePlugin()
                     ? static_cast<int>(std::round(juce::Decibels::decibelsToGain(track->getVolumePlugin()->getVolumeDb()) * 127.0))
                     : 80;
@@ -905,9 +906,43 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 lastParseResult.channels.push_back(newCh);
 
                 if (lastParseResult.arrangement.size() > 0) {
-                    juce::String secName = lastParseResult.arrangement[0].sectionName;
+                    // Inject global channel definition into the raw .bird file
+                    if (currentBirdFile.existsAsFile()) {
+                        auto birdText = currentBirdFile.loadFileAsString();
+                        auto lines = juce::StringArray::fromLines(birdText);
+                        
+                        // Check if it already exists globally
+                        juce::String chMarker = "ch " + juce::String(id + 1) + " " + name;
+                        bool foundGlobal = false;
+                        int insertIdx = lines.size();
+                        
+                        for (int i = 0; i < lines.size(); ++i) {
+                            auto trimmed = lines[i].trim();
+                            if (trimmed == chMarker || trimmed.startsWith(chMarker + " ")) {
+                                foundGlobal = true;
+                                break;
+                            }
+                            // Stop searching for a global def once we hit arr or sec
+                            if (trimmed == "arr" || trimmed.startsWith("sec ")) {
+                                insertIdx = i;
+                                break;
+                            }
+                        }
+
+                        if (!foundGlobal) {
+                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty()) {
+                                insertIdx--;
+                            }
+                            lines.insert(insertIdx, chMarker);
+                            lines.insert(insertIdx + 1, "  type audio");
+                            lines.insert(insertIdx + 2, "  strip console1");
+                            currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+                        }
+                    }
+
+                    juce::String secNameArg = lastParseResult.arrangement[0].sectionName;
                     int secBars = lastParseResult.arrangement[0].bars;
-                    juce::Thread::launch([this, id, secName = juce::String(secName), secBars]() {
+                    juce::Thread::launch([this, id, secName = juce::String(secNameArg), secBars]() {
                         writeBirdFromClip(id, secName, 0.0, secBars, {});
                     });
                 }
@@ -918,19 +953,18 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             });
         })
 
-        .withNativeFunction("addMidiTrack", [this](auto&, auto complete) {
+        .withNativeFunction("addMidiTrack", [this](auto& args, auto complete) {
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
                 if (!edit) { complete("{\"success\":false}"); return; }
 
-                // Create a new audio track using the same pattern as AudioRecorder
+                int targetIndex = static_cast<int>(lastParseResult.channels.size());
                 auto allTracks = te::getAudioTracks(*edit);
-                int numTracks = static_cast<int>(allTracks.size());
-                edit->ensureNumberOfAudioTracks(numTracks + 1);
-                auto* track = te::getAudioTracks(*edit)[numTracks];
+                te::Track* preceding = targetIndex > 0 && targetIndex <= (int)allTracks.size() ? allTracks[targetIndex - 1] : nullptr;
+                auto track = edit->insertNewAudioTrack(te::TrackInsertPoint(nullptr, preceding), nullptr);
                 if (!track) { complete("{\"success\":false}"); return; }
 
-                int id = numTracks;
-                track->setName("Track " + juce::String(id + 1));
+                int id = targetIndex;
+                track->setName("track" + juce::String(id + 1));
 
                 // Set default volume (0 dB) and pan (center)
                 if (auto vp = track->getVolumePlugin()) {
@@ -972,9 +1006,43 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 lastParseResult.channels.push_back(newCh);
 
                 if (lastParseResult.arrangement.size() > 0) {
-                    juce::String secName = lastParseResult.arrangement[0].sectionName;
+                    // Inject global channel definition into the raw .bird file
+                    if (currentBirdFile.existsAsFile()) {
+                        auto birdText = currentBirdFile.loadFileAsString();
+                        auto lines = juce::StringArray::fromLines(birdText);
+                        
+                        // Check if it already exists globally
+                        juce::String chMarker = "ch " + juce::String(id + 1) + " " + track->getName();
+                        bool foundGlobal = false;
+                        int insertIdx = lines.size();
+                        
+                        for (int i = 0; i < lines.size(); ++i) {
+                            auto trimmed = lines[i].trim();
+                            if (trimmed == chMarker || trimmed.startsWith(chMarker + " ")) {
+                                foundGlobal = true;
+                                break;
+                            }
+                            // Stop searching for a global def once we hit arr or sec
+                            if (trimmed == "arr" || trimmed.startsWith("sec ")) {
+                                insertIdx = i;
+                                break;
+                            }
+                        }
+
+                        if (!foundGlobal) {
+                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty()) {
+                                insertIdx--;
+                            }
+                            lines.insert(insertIdx, chMarker);
+                            lines.insert(insertIdx + 1, "  type midi");
+                            lines.insert(insertIdx + 2, "  strip console1");
+                            currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+                        }
+                    }
+
+                    juce::String secNameArg = lastParseResult.arrangement[0].sectionName;
                     int secBars = lastParseResult.arrangement[0].bars;
-                    juce::Thread::launch([this, id, secName = juce::String(secName), secBars]() {
+                    juce::Thread::launch([this, id, secName = juce::String(secNameArg), secBars]() {
                         writeBirdFromClip(id, secName, 0.0, secBars, {});
                     });
                 }

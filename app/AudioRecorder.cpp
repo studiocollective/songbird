@@ -52,26 +52,28 @@ juce::StringArray AudioRecorder::listAudioInputs()
 // Track management
 //==============================================================================
 
-int AudioRecorder::addAudioTrack()
+int AudioRecorder::addAudioTrack(int targetIndex)
 {
     auto allTracks = te::getAudioTracks(edit);
-    int numTracks  = static_cast<int>(allTracks.size());
-    edit.ensureNumberOfAudioTracks(numTracks + 1);
-    auto* newTrack = te::getAudioTracks(edit)[numTracks];
+    if (targetIndex < 0 || targetIndex > (int)allTracks.size())
+        targetIndex = static_cast<int>(allTracks.size());
+
+    te::Track* preceding = targetIndex > 0 ? allTracks[targetIndex - 1] : nullptr;
+    auto newTrack = edit.insertNewAudioTrack(te::TrackInsertPoint(nullptr, preceding), nullptr);
     if (!newTrack) return -1;
 
-    newTrack->setName("Audio " + juce::String(numTracks + 1));
+    newTrack->setName("audio" + juce::String(targetIndex + 1));
 
     AudioTrackInfo info;
-    info.trackId   = numTracks;
+    info.trackId   = targetIndex;
     info.sourceType = SourceType::HardwareInput;
     info.sourceName = "No Input";
 
     juce::ScopedLock sl(lock);
     trackInfos.add(info);
 
-    DBG("AudioRecorder: Added audio track " + juce::String(numTracks));
-    return numTracks;
+    DBG("AudioRecorder: Added audio track " + juce::String(targetIndex));
+    return targetIndex;
 }
 
 void AudioRecorder::removeAudioTrack(int trackId)
