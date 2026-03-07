@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Transport } from '@/components/Transport';
 import { ArrangementView } from '@/components/ArrangementView';
 import { MixerPanel } from '@/components/MixerPanel';
@@ -9,6 +9,7 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 import { BirdFilePanel } from '@/components/BirdFilePanel';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
+import { SettingsPanel } from '@/components/SettingsPanel';
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';
@@ -30,12 +31,35 @@ function App() {
   const rightPanel = useChatStore((s) => s.rightPanel);
   const midiEditorOpen = useMixerStore((s) => s.midiEditorOpen);
   const sampleEditorOpen = useMixerStore((s) => s.sampleEditorOpen);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
 
   useEffect(() => {
     const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
     const redo = isPlugin ? Juce.getNativeFunction('redo') : null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // --- Keyboard MIDI mode: route keys as MIDI notes instead of shortcuts ---
+      if (useMixerStore.getState().keyboardMidiMode) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+        const KEYBOARD_NOTE_MAP: Record<string, number> = {
+          // Lower row: C4-B4
+          'a': 60, 'w': 61, 's': 62, 'e': 63, 'd': 64,
+          'f': 65, 't': 66, 'g': 67, 'y': 68, 'h': 69,
+          'u': 70, 'j': 71,
+          // Upper octave: C5-B5
+          'k': 72, 'o': 73, 'l': 74, 'p': 75, ';': 76,
+        };
+        const note = KEYBOARD_NOTE_MAP[e.key.toLowerCase()];
+        if (note !== undefined) {
+          e.preventDefault();
+          const sendKeyboardMidi = isPlugin ? Juce.getNativeFunction('sendKeyboardMidi') : null;
+          sendKeyboardMidi?.(note, e.type === 'keydown' ? 100 : 0);
+        }
+        return; // Don't process any shortcuts
+      }
+
       // --- Spacebar: play / pause ---
       if (e.key === ' ' || e.code === 'Space') {
         const tag = (e.target as HTMLElement)?.tagName;
@@ -107,7 +131,7 @@ function App() {
 
   return (
     <div className={shell}>
-      <Transport />
+      <Transport onSettingsOpen={openSettings} />
       <div className={middle}>
         <ArrangementView />
         {rightPanel === 'chat' && <ChatPanel />}
@@ -119,6 +143,7 @@ function App() {
       <MixerPanel />
       <DebugPanel />
       <ExportProgressModal />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

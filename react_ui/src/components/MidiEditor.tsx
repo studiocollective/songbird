@@ -91,15 +91,15 @@ export function MidiEditor() {
     return () => resizeObs.disconnect();
   }, [selectedClip, sections, totalBars]);
 
-  // Zoom with Option/Cmd + scroll wheel
+  // Zoom with Option/Cmd + scroll wheel — attach to editorRef (always mounted)
   useEffect(() => {
-    const el = gridRef.current;
+    const el = editorRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.altKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoomLevel((z) => Math.min(4, Math.max(0.5, z * delta)));
+        setZoomLevel((z) => Math.min(4, Math.max(1.0, z * delta)));
       }
     };
     el.addEventListener('wheel', onWheel, { passive: false });

@@ -11,6 +11,9 @@ export interface NoteData {
 
 export type TrackType = 'midi' | 'audio';
 
+// MIDI input: 'all' = all devices, 'computer-keyboard' = keyboard as MIDI, or device name string
+export type MidiInput = 'all' | 'computer-keyboard' | string;
+
 export interface AutomationPoint {
   time: number;
   value: number;
@@ -76,6 +79,8 @@ export interface Track {
   recordArmed?: boolean;
   hasRecordedData?: boolean;
   audioSource?: AudioSource | null;
+  midiInput?: MidiInput | null;
+  inputMonitoring?: boolean;
   // Audio clips (for audio tracks)
   audioClips?: AudioClip[];
 }
@@ -98,6 +103,8 @@ export interface MixerState {
   totalBars: number;
   mixerOpen: boolean;
   returnsOpen: boolean;
+  recordStripOpen: boolean;
+  keyboardMidiMode: boolean;
 
   // MIDI Editor
   midiEditorOpen: boolean;
@@ -115,6 +122,8 @@ export interface MixerState {
 
   toggleMixer: () => void;
   toggleReturns: () => void;
+  toggleRecordStrip: () => void;
+  toggleKeyboardMidiMode: () => void;
   toggleMute: (id: number) => void;
   toggleSolo: (id: number) => void;
   setVolume: (id: number, volume: number) => void;
@@ -127,6 +136,8 @@ export interface MixerState {
   setMidiRecordArm: (id: number, armed: boolean) => void;
   setAudioRecordArm: (id: number, armed: boolean) => void;
   setAudioSource: (id: number, source: AudioSource | null) => void;
+  setMidiInput: (id: number, input: MidiInput | null) => void;
+  toggleInputMonitoring: (id: number) => void;
   addAudioTrack: () => Promise<number>;
   addMidiTrack: () => Promise<number>;
   removeAudioTrack: (id: number) => void;
@@ -163,6 +174,8 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
   totalBars: 1,
   mixerOpen: true,
   returnsOpen: false,
+  recordStripOpen: false,
+  keyboardMidiMode: false,
 
   // MIDI Editor
   midiEditorOpen: false,
@@ -216,6 +229,8 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
 
   toggleMixer: () => set((s) => ({ mixerOpen: !s.mixerOpen })),
   toggleReturns: () => set((s) => ({ returnsOpen: !s.returnsOpen })),
+  toggleRecordStrip: () => set((s) => ({ recordStripOpen: !s.recordStripOpen })),
+  toggleKeyboardMidiMode: () => set((s) => ({ keyboardMidiMode: !s.keyboardMidiMode })),
   toggleMute: (id) =>
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, muted: !t.muted } : t)),
@@ -348,6 +363,20 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       nativeFunction('setAudioRecordSource')(id, 'hardware', source.deviceName ?? '');
     else if (source?.type === 'loopback')
       nativeFunction('setAudioRecordSource')(id, 'loopback', source.sourceTrackId ?? -1);
+  },
+  setMidiInput: (id, input) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, midiInput: input } : t)),
+    }));
+    nativeFunction('setMidiInput')(id, input ?? '');
+  },
+  toggleInputMonitoring: (id) => {
+    const track = get().tracks.find((t) => t.id === id);
+    const newVal = !(track?.inputMonitoring ?? false);
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, inputMonitoring: newVal } : t)),
+    }));
+    nativeFunction('setInputMonitoring')(id, newVal);
   },
   addAudioTrack: async () => {
     const result = await nativeFunction('addAudioTrack')();

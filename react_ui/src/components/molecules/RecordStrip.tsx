@@ -1,0 +1,279 @@
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { useMixerStore } from '@/data/store';
+import type { Track, AudioSource, MidiInput } from '@/data/slices/mixer';
+import { isPlugin, Juce } from '@/lib';
+
+const listMidiInputs = isPlugin ? Juce.getNativeFunction('listMidiInputs') : null;
+const listAudioInputs = isPlugin ? Juce.getNativeFunction('listAudioInputs') : null;
+
+interface RecordStripCellProps {
+  track: Track;
+  trackList: Track[];
+}
+
+function MidiInputCell({ track }: RecordStripCellProps) {
+  const [open, setOpen] = useState(false);
+  const [devices, setDevices] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      listMidiInputs?.()
+        .then((result: unknown) => {
+          const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+          if (Array.isArray(parsed)) setDevices(parsed);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
+  const currentInput = track.midiInput;
+  const inputLabel = currentInput === 'all'
+    ? 'All Inputs'
+    : currentInput === 'computer-keyboard'
+      ? 'Computer KB'
+      : currentInput || 'All Inputs';
+
+  const selectInput = (input: MidiInput | null) => {
+    useMixerStore.getState().setMidiInput(track.id, input);
+    setOpen(false);
+  };
+
+  return (
+    <div className={cellWrapper}>
+      {/* MIDI input selector */}
+      <div className={inputRow}>
+        <button
+          className={inputSelectBtn}
+          onClick={() => setOpen(!open)}
+          title="Select MIDI input"
+        >
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="9" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="15.5" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+          <span className="truncate flex-1 text-left">{inputLabel}</span>
+          <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className={dropdownMenu}>
+          <div
+            className={cn(dropdownOption, (!currentInput || currentInput === 'all') && dropdownOptionActive)}
+            onClick={() => selectInput('all')}
+          >
+            All Inputs
+          </div>
+          <div
+            className={cn(dropdownOption, currentInput === 'computer-keyboard' && dropdownOptionActive)}
+            onClick={() => selectInput('computer-keyboard')}
+          >
+            ⌨️ Computer Keyboard
+          </div>
+          {devices.map((name) => (
+            <div
+              key={name}
+              className={cn(dropdownOption, currentInput === name && dropdownOptionActive)}
+              onClick={() => selectInput(name)}
+            >
+              🎹 {name}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Record & Monitor buttons */}
+      <div className={btnRow}>
+        <button
+          className={cn(recBtn, track.recordArmed && recBtnActive)}
+          onClick={() => useMixerStore.getState().setMidiRecordArm(track.id, !track.recordArmed)}
+          title={track.recordArmed ? 'Disarm recording' : 'Arm recording'}
+        >
+          ●
+        </button>
+        <button
+          className={cn(monBtn, track.inputMonitoring && monBtnActive)}
+          onClick={() => useMixerStore.getState().toggleInputMonitoring(track.id)}
+          title={track.inputMonitoring ? 'Disable monitoring' : 'Enable monitoring'}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AudioInputCell({ track, trackList }: RecordStripCellProps) {
+  const [open, setOpen] = useState(false);
+  const [availableInputs, setAvailableInputs] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      listAudioInputs?.()
+        .then((result: unknown) => {
+          const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+          if (Array.isArray(parsed)) setAvailableInputs(parsed);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
+  const audioSource = track.audioSource;
+  const inputLabel = audioSource?.type === 'hardware'
+    ? (audioSource.deviceName || 'Hardware')
+    : audioSource?.type === 'loopback'
+      ? `Track ${(audioSource.sourceTrackId ?? 0) + 1}`
+      : 'No Input';
+
+  const selectSource = (source: AudioSource | null) => {
+    useMixerStore.getState().setAudioSource(track.id, source);
+    setOpen(false);
+  };
+
+  return (
+    <div className={cellWrapper}>
+      {/* Audio input selector */}
+      <div className={inputRow}>
+        <button
+          className={inputSelectBtn}
+          onClick={() => setOpen(!open)}
+          title="Select audio input"
+        >
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+          </svg>
+          <span className="truncate flex-1 text-left">{inputLabel}</span>
+          <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className={dropdownMenu}>
+          <div
+            className={cn(dropdownOption, !audioSource && dropdownOptionActive)}
+            onClick={() => selectSource(null)}
+          >
+            No Input
+          </div>
+          {availableInputs.map((name) => (
+            <div
+              key={name}
+              className={cn(dropdownOption, audioSource?.type === 'hardware' && audioSource.deviceName === name && dropdownOptionActive)}
+              onClick={() => selectSource({ type: 'hardware', deviceName: name })}
+            >
+              🎤 {name}
+            </div>
+          ))}
+          {trackList.filter(t => t.id !== track.id && !t.isReturn && !t.isMaster).map(t => (
+            <div
+              key={`lb-${t.id}`}
+              className={cn(dropdownOption, audioSource?.type === 'loopback' && audioSource.sourceTrackId === t.id && dropdownOptionActive)}
+              onClick={() => selectSource({ type: 'loopback', sourceTrackId: t.id })}
+            >
+              🔁 {t.name}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Record & Monitor buttons */}
+      <div className={btnRow}>
+        <button
+          className={cn(recBtn, track.recordArmed && recBtnActive)}
+          onClick={() => useMixerStore.getState().setAudioRecordArm(track.id, !track.recordArmed)}
+          title={track.recordArmed ? 'Disarm recording' : 'Arm recording'}
+        >
+          ●
+        </button>
+        <button
+          className={cn(monBtn, track.inputMonitoring && monBtnActive)}
+          onClick={() => useMixerStore.getState().toggleInputMonitoring(track.id)}
+          title={track.inputMonitoring ? 'Disable monitoring' : 'Enable monitoring'}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface RecordStripProps {
+  tracks: Track[];
+}
+
+export function RecordStrip({ tracks }: RecordStripProps) {
+  return (
+    <div className={stripContainer}>
+      {tracks.map((track) => (
+        <div key={track.id} className={cellOuter}>
+          {track.type === 'midi'
+            ? <MidiInputCell track={track} trackList={tracks} />
+            : <AudioInputCell track={track} trackList={tracks} />
+          }
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Styles ---
+const stripContainer = `flex w-full`;
+
+const cellOuter = `w-28 shrink-0 flex items-end justify-center`;
+
+const cellWrapper = `
+  relative bg-[hsl(var(--mixer))] border border-[hsl(var(--border))] rounded-md shadow-xl
+  p-1.5 w-[85%] flex flex-col gap-1`;
+
+const inputRow = `flex items-center gap-0.5`;
+
+const inputSelectBtn = `
+  flex-1 flex items-center gap-1 px-1.5 py-1 rounded text-[8px] font-medium
+  bg-[hsl(var(--muted))]/40 hover:bg-[hsl(var(--muted))]/70
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors cursor-pointer border border-[hsl(var(--border))]/30
+  min-w-0`;
+
+const btnRow = `flex items-center justify-center gap-1`;
+
+const recBtn = `
+  w-5 h-5 rounded flex items-center justify-center text-[10px]
+  text-[hsl(var(--muted-foreground))] hover:text-red-400
+  transition-colors cursor-pointer`;
+
+const recBtnActive = `text-red-500 animate-pulse`;
+
+const monBtn = `
+  w-5 h-5 rounded flex items-center justify-center
+  text-[hsl(var(--muted-foreground))] hover:text-amber-400
+  transition-colors cursor-pointer`;
+
+const monBtnActive = `text-amber-400`;
+
+const dropdownMenu = `
+  absolute left-0 right-0 top-full z-50 mt-0.5
+  bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+  rounded-md shadow-xl max-h-40 overflow-y-auto`;
+
+const dropdownOption = `
+  px-2 py-1.5 text-[9px] cursor-pointer
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  hover:bg-[hsl(var(--muted))]/50 transition-colors`;
+
+const dropdownOptionActive = `
+  bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))]`;

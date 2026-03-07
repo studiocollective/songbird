@@ -6,9 +6,9 @@ import { nativeFunction } from '@/data/bridge';
 
 const setProjectScale = nativeFunction('setProjectScale');
 
-export function Transport() {
+export function Transport({ onSettingsOpen }: { onSettingsOpen: () => void }) {
   const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature, scale, setScale } = useTransportStore();
-  const { toggleMixer, mixerOpen } = useMixerStore();
+  const { toggleMixer, mixerOpen, keyboardMidiMode, toggleKeyboardMidiMode } = useMixerStore();
   const { rightPanel, setRightPanel } = useChatStore();
 
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -214,6 +214,31 @@ export function Transport() {
           className={cn(panelBtn, rightPanel === 'bird' ? panelBtnActive : panelBtnInactive)}
         >
           Bird
+        </button>
+        <div className={`ml-1 ${divider}`} />
+        <button
+          onClick={toggleKeyboardMidiMode}
+          className={cn(controlBtn, 'ml-1', keyboardMidiMode && 'bg-[hsl(var(--selection))] text-[hsl(var(--primary-foreground))]')}
+          title={keyboardMidiMode ? 'Keyboard: MIDI input (click to switch to shortcuts)' : 'Keyboard: Shortcuts (click to switch to MIDI input)'}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <line x1="6" y1="10" x2="6" y2="10.01" />
+            <line x1="10" y1="10" x2="10" y2="10.01" />
+            <line x1="14" y1="10" x2="14" y2="10.01" />
+            <line x1="18" y1="10" x2="18" y2="10.01" />
+            <line x1="7" y1="14" x2="17" y2="14" />
+          </svg>
+        </button>
+        <button
+          onClick={onSettingsOpen}
+          className={cn(controlBtn, 'ml-1')}
+          title="Settings"
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="7.5" cy="7.5" r="2.2" />
+            <path d="M6.3 1.5h2.4l.3 1.5.9.4 1.3-.8 1.7 1.7-.8 1.3.4.9 1.5.3v2.4l-1.5.3-.4.9.8 1.3-1.7 1.7-1.3-.8-.9.4-.3 1.5H6.3l-.3-1.5-.9-.4-1.3.8-1.7-1.7.8-1.3-.4-.9-1.5-.3V6.3l1.5-.3.4-.9-.8-1.3 1.7-1.7 1.3.8.9-.4z" />
+          </svg>
         </button>
       </div>
     </div>

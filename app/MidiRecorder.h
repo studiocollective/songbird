@@ -46,10 +46,11 @@ public:
     // Optional callback invoked on the message thread whenever a note is received
     std::function<void()> onNoteRecorded;
 
-private:
-    // juce::MidiInputCallback
+    // Exposed so WebViewBridge can inject keyboard MIDI
     void handleIncomingMidiMessage(juce::MidiInput* source,
                                    const juce::MidiMessage& msg) override;
+
+private:
 
     te::Edit& edit;
     std::unique_ptr<juce::MidiInput> midiInput;

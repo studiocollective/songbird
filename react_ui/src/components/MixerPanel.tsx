@@ -3,15 +3,20 @@ import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
 import { MasterChannel, MixerChannel } from '@/components/organisms';
 import { SendControl } from '@/components/molecules';
+import { RecordStrip } from '@/components/molecules/RecordStrip';
 import { StereoWidthMeter, PhaseCorrelationMeter, SpectrumAnalyzer } from '@/components/molecules/StereoMeters';
 
 export function MixerPanel() {
-  const { tracks, mixerOpen, returnsOpen, toggleReturns } = useMixerStore();
+  const { tracks, mixerOpen, returnsOpen, toggleReturns, recordStripOpen, toggleRecordStrip } = useMixerStore();
   const sendScrollRef = useRef<HTMLDivElement>(null);
+  const recordScrollRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (sendScrollRef.current) {
       sendScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+    if (recordScrollRef.current) {
+      recordScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
   };
 
@@ -22,8 +27,24 @@ export function MixerPanel() {
   return (
     <div className={cn(panel, mixerOpen ? 'h-72 overflow-visible' : 'h-0 overflow-hidden')}>
       <div className={panelInner}>
-        <MasterChannel returnsOpen={returnsOpen} onToggleReturns={toggleReturns} />
+        <MasterChannel
+          returnsOpen={returnsOpen}
+          onToggleReturns={toggleReturns}
+          recordStripOpen={recordStripOpen}
+          onToggleRecordStrip={toggleRecordStrip}
+        />
         <div className="flex-1 relative min-w-0 flex flex-col">
+          {/* Record strip — floats above channels */}
+          {recordStripOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 z-40 pointer-events-auto block"
+              style={returnsOpen ? { marginBottom: '6.5rem' } : undefined}
+            >
+              <div ref={recordScrollRef} className="flex w-full overflow-hidden hide-scrollbar">
+                <RecordStrip tracks={regularTracks} />
+              </div>
+            </div>
+          )}
+
           {returnsOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-2 z-50 pointer-events-auto block">
               <div ref={sendScrollRef} className="flex w-full overflow-hidden hide-scrollbar">

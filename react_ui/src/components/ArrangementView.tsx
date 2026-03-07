@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useMixerStore, useTransportStore } from '@/data/store';
-import type { NoteData } from '@/data/slices/mixer';
+import type { Section, NoteData } from '@/data/slices/mixer';
 import { Chord } from '@tonaljs/tonal';
 import { AutomationOverlay } from './AutomationOverlay';
 
@@ -12,7 +12,11 @@ const BASE_BAR_WIDTH = 80; // pixels per bar at zoom=1
 export function ArrangementView() {
   const { tracks, sections, totalBars: storeTotalBars } = useMixerStore();
   const { looping, loopBars, loopStartBar } = useTransportStore();
+  const setLoopRange = useTransportStore((s) => s.setLoopRange);
   const [showAutomation, setShowAutomation] = useState(false);
+  const [focusedSectionIndex, setFocusedSectionIndex] = useState<number | null>(null);
+  const preFocusZoom = useRef<number>(1.0);
+  const preFocusScrollLeft = useRef<number>(0);
   const zoomRef = useRef(1.0);
   const containerRef = useRef<HTMLDivElement>(null);
   const rulerScrollRef = useRef<HTMLDivElement>(null);
@@ -93,25 +97,86 @@ export function ArrangementView() {
     };
   }, []);
 
+  // Focus a section: zoom so it fills the viewport and set the loop range
+  const focusSection = useCallback((index: number, sec: Section) => {
+    const lanes = lanesScrollRef.current;
+    const root = containerRef.current;
+    if (!lanes || !root) return;
+
+    // Store current state for restoration
+    preFocusZoom.current = zoomRef.current;
+    preFocusScrollLeft.current = lanes.scrollLeft;
+
+    // The lane header (w-44 = 176px) is sticky and not part of the scrollable content area
+    const LANE_HEADER_W = 176;
+    const viewportWidth = lanes.clientWidth - LANE_HEADER_W;
+    const newBarW = viewportWidth / sec.length;
+    const newZoom = newBarW / BASE_BAR_WIDTH;
+    const clampedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
+    const clampedBarW = BASE_BAR_WIDTH * clampedZoom;
+    zoomRef.current = clampedZoom;
+    root.style.setProperty('--bar-w', `${clampedBarW}px`);
+
+    // Scroll to section start
+    const scrollTarget = sec.start * clampedBarW;
+    lanes.scrollLeft = scrollTarget;
+    if (rulerScrollRef.current) rulerScrollRef.current.scrollLeft = scrollTarget;
+
+    // Set loop range and enable looping
+    setLoopRange(sec.start, sec.start + sec.length);
+    useTransportStore.setState({ looping: true });
+
+    setFocusedSectionIndex(index);
+  }, [setLoopRange]);
+
+  const unfocusSection = useCallback(() => {
+    const lanes = lanesScrollRef.current;
+    const root = containerRef.current;
+    if (!lanes || !root) return;
+
+    const zoom = preFocusZoom.current;
+    zoomRef.current = zoom;
+    root.style.setProperty('--bar-w', `${BASE_BAR_WIDTH * zoom}px`);
+    lanes.scrollLeft = preFocusScrollLeft.current;
+    if (rulerScrollRef.current) rulerScrollRef.current.scrollLeft = preFocusScrollLeft.current;
+
+    setFocusedSectionIndex(null);
+  }, []);
+
+  // Clamp scrollLeft to focused section bounds (allows scrolling within section, blocks going outside)
+  const clampToFocusedSection = useCallback((scrollLeft: number): number => {
+    if (focusedSectionIndex === null) return scrollLeft;
+    const sec = sections[focusedSectionIndex];
+    if (!sec) return scrollLeft;
+    const barW = BASE_BAR_WIDTH * zoomRef.current;
+    const LANE_HEADER_W = 176;
+    const viewportW = (lanesScrollRef.current?.clientWidth ?? 0) - LANE_HEADER_W;
+    const minScroll = sec.start * barW;
+    const maxScroll = Math.max(minScroll, (sec.start + sec.length) * barW - viewportW);
+    return Math.max(minScroll, Math.min(maxScroll, scrollLeft));
+  }, [focusedSectionIndex, sections]);
+
   // Sync ruler scroll with lanes scroll
   const handleLanesScroll = useCallback(() => {
     if (activeScrollRegion.current !== 'lanes') return;
-    if (lanesScrollRef.current && rulerScrollRef.current) {
-      if (rulerScrollRef.current.scrollLeft !== lanesScrollRef.current.scrollLeft) {
-        rulerScrollRef.current.scrollLeft = lanesScrollRef.current.scrollLeft;
-      }
-    }
-  }, []);
+    const lanes = lanesScrollRef.current;
+    const ruler = rulerScrollRef.current;
+    if (!lanes || !ruler) return;
+    const clamped = clampToFocusedSection(lanes.scrollLeft);
+    if (lanes.scrollLeft !== clamped) { lanes.scrollLeft = clamped; return; }
+    if (ruler.scrollLeft !== clamped) ruler.scrollLeft = clamped;
+  }, [clampToFocusedSection]);
 
   // Sync lanes scroll with ruler scroll
   const handleRulerScroll = useCallback(() => {
     if (activeScrollRegion.current !== 'ruler') return;
-    if (lanesScrollRef.current && rulerScrollRef.current) {
-      if (lanesScrollRef.current.scrollLeft !== rulerScrollRef.current.scrollLeft) {
-        lanesScrollRef.current.scrollLeft = rulerScrollRef.current.scrollLeft;
-      }
-    }
-  }, []);
+    const lanes = lanesScrollRef.current;
+    const ruler = rulerScrollRef.current;
+    if (!lanes || !ruler) return;
+    const clamped = clampToFocusedSection(ruler.scrollLeft);
+    if (ruler.scrollLeft !== clamped) { ruler.scrollLeft = clamped; return; }
+    if (lanes.scrollLeft !== clamped) lanes.scrollLeft = clamped;
+  }, [clampToFocusedSection]);
 
   return (
     <div className={container} ref={containerRef}>
@@ -129,18 +194,32 @@ export function ArrangementView() {
               />
             )}
             {/* Section labels in top half */}
-            {sections.map((sec, i) => (
-              <div
-                key={i}
-                className={sectionLabel}
-                style={{
-                  left: `calc(${sec.start} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
-                  width: `calc(${sec.length} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
-                }}
-              >
-                {sec.name}
-              </div>
-            ))}
+            {sections.map((sec, i) => {
+              const isFocused = focusedSectionIndex === i;
+              return (
+                <div
+                  key={i}
+                  className={`${sectionLabel} ${isFocused ? sectionLabelFocused : ''}`}
+                  style={{
+                    left: `calc(${sec.start} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                    width: `calc(${sec.length} * var(--bar-w, ${BASE_BAR_WIDTH}px))`,
+                  }}
+                >
+                  <span className="truncate">{sec.name}</span>
+                  <button
+                    className={`${sectionFocusBtn} ${isFocused ? sectionFocusBtnActive : 'opacity-30 hover:opacity-100'}`}
+                    title={isFocused ? `Unfocus ${sec.name}` : `Focus ${sec.name}`}
+                    onClick={(e) => { e.stopPropagation(); if (isFocused) unfocusSection(); else focusSection(i, sec); }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M3 12h2M19 12h2M12 3v2M12 19v2"/>
+                      <path d="M5.6 5.6l1.4 1.4M16.9 16.9l1.4 1.4M5.6 18.4l1.4-1.4M16.9 7.1l1.4-1.4"/>
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
             {/* Bar numbers in bottom half */}
             {Array.from({ length: totalBars }, (_, i) => (
               <div
@@ -701,13 +780,24 @@ const barNumber = `
   border-r border-[hsl(var(--border))]/50`;
 
 const sectionLabel = `
-  absolute top-0 h-5 flex items-center justify-center
+  absolute top-0 h-5 flex items-center justify-center gap-1 px-1
   text-[10px] font-medium text-[hsl(var(--muted-foreground))]
   border-x border-[hsl(var(--border))]/50`;
 
-// Loop region overlays
+const sectionLabelFocused = `
+  bg-[hsl(var(--selection))]/10 text-[hsl(var(--foreground))]
+  border-x-2 border-[hsl(var(--selection))]/50`;
+
+const sectionFocusBtn = `
+  shrink-0 flex items-center justify-center w-4 h-4 rounded
+  hover:bg-[hsl(var(--muted))]/60 text-[hsl(var(--muted-foreground))]
+  hover:text-[hsl(var(--foreground))] transition-all cursor-pointer text-[9px]`;
+
+const sectionFocusBtnActive = `
+  opacity-100 bg-[hsl(var(--selection))]/20
+  text-[hsl(var(--foreground))]`;
 const loopRegionRuler = `
-  absolute inset-y-0
+  absolute bottom-0 h-1/2
   bg-[hsl(var(--selection))]/10 border-x-2 border-[hsl(var(--selection))]/30
   cursor-grab z-40 touch-none`;
 
@@ -720,7 +810,7 @@ const loopEdgeHandle = `
 // Playhead
 const playheadLane = `
   absolute inset-y-0 w-px
-  bg-[hsl(var(--foreground))]/60 z-30
+  bg-[hsl(var(--foreground))]/60 z-20
   pointer-events-none`;
 
 const lanesScroll = `flex-1 overflow-auto`;

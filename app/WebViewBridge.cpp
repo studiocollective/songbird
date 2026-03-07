@@ -813,6 +813,111 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             } else complete("{\"success\":false}");
         })
 
+        // Per-track MIDI input selection (from React RecordStrip)
+        // Args: (trackId, inputType)
+        //   inputType: "" or "all" = open all devices, "computer-keyboard" = close hardware,
+        //              or a specific device name
+        .withNativeFunction("setMidiInput", [this](auto& args, auto complete) {
+            if (args.size() < 2 || !midiRecorder) { complete("{\"success\":false}"); return; }
+            juce::String inputType = args[1].toString();
+            juce::MessageManager::callAsync([this, inputType]() {
+                if (inputType.isEmpty() || inputType == "all") {
+                    // Open first available MIDI device (or keep current)
+                    auto devices = MidiRecorder::listMidiDevices();
+                    if (devices.size() > 0 && midiRecorder->getOpenDeviceName().isEmpty())
+                        midiRecorder->openDevice(devices[0]);
+                    DBG("setMidiInput: All Inputs");
+                } else if (inputType == "computer-keyboard") {
+                    // Close hardware device — keyboard MIDI is injected via sendKeyboardMidi
+                    midiRecorder->closeDevice();
+                    DBG("setMidiInput: Computer Keyboard");
+                } else {
+                    // Open specific device
+                    midiRecorder->openDevice(inputType);
+                    DBG("setMidiInput: " + inputType);
+                }
+            });
+            complete("{\"success\":true}");
+        })
+
+        // Toggle input monitoring on a track
+        // Args: (trackId, enabled)
+        // Note: actual audio monitoring pass-through requires AudioRecorder support;
+        // this stores the intent and logs it for now.
+        .withNativeFunction("setInputMonitoring", [this](auto& args, auto complete) {
+            if (args.size() < 2 || !edit) { complete("{\"success\":false}"); return; }
+            int trackId = static_cast<int>(args[0]);
+            bool enabled = static_cast<bool>(args[1]);
+            DBG("setInputMonitoring: track " + juce::String(trackId) + " = " + (enabled ? "ON" : "OFF"));
+            // TODO: Wire up audio pass-through via AudioRecorder for live monitoring
+            complete("{\"success\":true}");
+        })
+
+        // Send keyboard MIDI note (from computer keyboard used as MIDI input)
+        // Args: (noteNumber, velocity)
+        //   velocity > 0 = note-on, velocity == 0 = note-off
+        .withNativeFunction("sendKeyboardMidi", [this](auto& args, auto complete) {
+            if (args.size() < 2 || !edit) { complete("{\"success\":false}"); return; }
+            int note     = static_cast<int>(args[0]);
+            int velocity = static_cast<int>(args[1]);
+
+            juce::MessageManager::callAsync([this, note, velocity]() {
+                // Find the armed MIDI track and inject the note into it
+                auto audioTracks = te::getAudioTracks(*edit);
+                te::AudioTrack* targetTrack = nullptr;
+
+                // If we have an armed MIDI recording track, use that
+                if (midiRecordTrackId >= 0 && midiRecordTrackId < (int)audioTracks.size())
+                    targetTrack = audioTracks[midiRecordTrackId];
+
+                if (!targetTrack) {
+                    // Fall back: find the first track with a loaded instrument plugin
+                    for (auto* track : audioTracks) {
+                        for (auto* plugin : track->pluginList) {
+                            if (dynamic_cast<te::ExternalPlugin*>(plugin)) {
+                                targetTrack = track;
+                                break;
+                            }
+                        }
+                        if (targetTrack) break;
+                    }
+                }
+
+                if (targetTrack) {
+                    // Inject MIDI directly into the track's input device
+                    juce::MidiMessage msg = velocity > 0
+                        ? juce::MidiMessage::noteOn(1, note, (juce::uint8)velocity)
+                        : juce::MidiMessage::noteOff(1, note);
+
+                    // Feed MIDI to all plugins on the target track
+                    for (auto* plugin : targetTrack->pluginList) {
+                        if (auto* ep = dynamic_cast<te::ExternalPlugin*>(plugin)) {
+                            if (auto* instance = ep->getAudioPluginInstance()) {
+                                juce::MidiBuffer midiBuffer;
+                                midiBuffer.addEvent(msg, 0);
+                                // Note: this injects for live preview; actual recording
+                                // goes through MidiRecorder if armed
+                                instance->getCallbackLock().enter();
+                                juce::AudioBuffer<float> emptyBuf(2, 64);
+                                emptyBuf.clear();
+                                instance->processBlock(emptyBuf, midiBuffer);
+                                instance->getCallbackLock().exit();
+                            }
+                        }
+                    }
+
+                    // If recording is armed, also feed to MidiRecorder
+                    if (midiRecorder && midiRecorder->isRecording()) {
+                        // Simulate MIDI input callback
+                        midiRecorder->handleIncomingMidiMessage(nullptr, msg);
+                    }
+
+                    DBG("sendKeyboardMidi: note=" + juce::String(note) + " vel=" + juce::String(velocity));
+                }
+            });
+            complete("{\"success\":true}");
+        })
+
         .withNativeFunction("setMidiRecordArm", [this](auto& args, auto complete) {
             { complete("{\"success\":false}"); return; }
             int  trackId = static_cast<int>(args[0]);
@@ -876,6 +981,71 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
             juce::Array<juce::var> arr;
             for (auto& n : names) arr.add(juce::var(n));
             complete(juce::JSON::toString(juce::var(arr)));
+        })
+
+        // ====================================================================
+        // Audio Device Settings (for Settings panel)
+        // ====================================================================
+
+        .withNativeFunction("getAudioDeviceInfo", [this](auto&, auto complete) {
+            auto& dm = engine.getDeviceManager().deviceManager;
+            auto* device = dm.getCurrentAudioDevice();
+            juce::DynamicObject* result = new juce::DynamicObject();
+            if (device) {
+                result->setProperty("deviceName", device->getName());
+                result->setProperty("deviceType", device->getTypeName());
+                result->setProperty("sampleRate", device->getCurrentSampleRate());
+                result->setProperty("bufferSize", device->getCurrentBufferSizeSamples());
+                result->setProperty("inputLatency", device->getInputLatencyInSamples());
+                result->setProperty("outputLatency", device->getOutputLatencyInSamples());
+
+                // Available buffer sizes
+                juce::Array<juce::var> bufSizes;
+                for (auto sz : device->getAvailableBufferSizes())
+                    bufSizes.add(juce::var(sz));
+                result->setProperty("availableBufferSizes", bufSizes);
+
+                // Input channel names
+                juce::Array<juce::var> inputs;
+                for (auto& n : device->getInputChannelNames())
+                    inputs.add(juce::var(n));
+                result->setProperty("inputChannels", inputs);
+
+                // Output channel names
+                juce::Array<juce::var> outputs;
+                for (auto& n : device->getOutputChannelNames())
+                    outputs.add(juce::var(n));
+                result->setProperty("outputChannels", outputs);
+            }
+            complete(juce::JSON::toString(juce::var(result)));
+        })
+
+        .withNativeFunction("listAudioOutputs", [this](auto&, auto complete) {
+            auto& dm = engine.getDeviceManager().deviceManager;
+            juce::Array<juce::var> arr;
+            for (auto type : dm.getAvailableDeviceTypes()) {
+                for (auto& name : type->getDeviceNames(false))  // false = output devices
+                    arr.add(juce::var(name));
+            }
+            complete(juce::JSON::toString(juce::var(arr)));
+        })
+
+        .withNativeFunction("setAudioBufferSize", [this](auto& args, auto complete) {
+            if (args.size() < 1) { complete("{\"success\":false}"); return; }
+            int bufferSize = static_cast<int>(args[0]);
+            auto& dm = engine.getDeviceManager().deviceManager;
+            auto* device = dm.getCurrentAudioDevice();
+            if (device) {
+                auto setup = dm.getAudioDeviceSetup();
+                setup.bufferSize = bufferSize;
+                auto err = dm.setAudioDeviceSetup(setup, true);
+                if (err.isEmpty())
+                    complete("{\"success\":true}");
+                else
+                    complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
+            } else {
+                complete("{\"success\":false,\"error\":\"No audio device\"}");
+            }
         })
 
         .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {

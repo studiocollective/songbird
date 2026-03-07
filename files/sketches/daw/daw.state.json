@@ -9317,68 +9317,7 @@
             "pluginName": "Console 1",
             "bypassed": false
           },
-          "notes": [
-            {
-              "pitch": 66,
-              "beat": 64,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 66,
-              "beat": 192,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 192,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 192,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 66,
-              "beat": 252,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 252,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 252,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 66,
-              "beat": 253,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 253,
-              "duration": 0.21875,
-              "velocity": 100
-            },
-            {
-              "pitch": 60,
-              "beat": 253,
-              "duration": 0.21875,
-              "velocity": 100
-            }
-          ],
+          "notes": [],
           "loopLengthBeats": 0,
           "isReturn": false,
           "isMaster": false,
@@ -9396,7 +9335,7 @@
           "name": "chords",
           "type": "midi",
           "color": "#DDA0DD",
-          "muted": false,
+          "muted": true,
           "solo": false,
           "volume": 127,
           "pan": -2,
@@ -12145,11 +12084,8 @@
       "totalBars": 80,
       "mixerOpen": true,
       "returnsOpen": false,
-      "midiEditorOpen": true,
-      "selectedClip": {
-        "trackId": 4,
-        "sectionIndex": 1
-      },
+      "midiEditorOpen": false,
+      "selectedClip": null,
       "midiEditorGridDiv": 8,
       "sampleEditorOpen": false,
       "selectedAudioClip": null,

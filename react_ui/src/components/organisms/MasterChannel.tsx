@@ -4,6 +4,8 @@ import { useMeterStore } from '@/data/meters';
 interface MasterChannelProps {
   returnsOpen?: boolean;
   onToggleReturns?: () => void;
+  recordStripOpen?: boolean;
+  onToggleRecordStrip?: () => void;
 }
 
 /**
@@ -12,7 +14,7 @@ interface MasterChannelProps {
  * Renders once, then imperatively updates meter fills and readout
  * via a store subscription + DOM refs. No React re-renders for level changes.
  */
-export function MasterChannel({ returnsOpen, onToggleReturns }: MasterChannelProps) {
+export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, onToggleRecordStrip }: MasterChannelProps) {
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -60,20 +62,36 @@ export function MasterChannel({ returnsOpen, onToggleReturns }: MasterChannelPro
         </div>
       </div>
       <div ref={readoutRef} className={readout}>-∞</div>
-      {onToggleReturns && (
-        <button
-          onClick={onToggleReturns}
-          className={[
-            "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors mt-1",
-            returnsOpen
-              ? "bg-white text-black"
-              : "bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]/80"
-          ].join(' ')}
-          title="Toggle Return Tracks & Sends"
-        >
-          R
-        </button>
-      )}
+      <div className="flex gap-1 mt-1">
+        {onToggleRecordStrip && (
+          <button
+            onClick={onToggleRecordStrip}
+            className={[
+              "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors",
+              recordStripOpen
+                ? "bg-white text-black"
+                : "bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]/80"
+            ].join(' ')}
+            title="Toggle Input / Record Strip"
+          >
+            I
+          </button>
+        )}
+        {onToggleReturns && (
+          <button
+            onClick={onToggleReturns}
+            className={[
+              "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors",
+              returnsOpen
+                ? "bg-white text-black"
+                : "bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]/80"
+            ].join(' ')}
+            title="Toggle Return Tracks & Sends"
+          >
+            R
+          </button>
+        )}
+      </div>
     </div>
   );
 }
