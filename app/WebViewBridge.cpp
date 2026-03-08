@@ -884,35 +884,21 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                 }
 
                 if (targetTrack) {
-                    // Inject MIDI directly into the track's input device
                     juce::MidiMessage msg = velocity > 0
                         ? juce::MidiMessage::noteOn(1, note, (juce::uint8)velocity)
                         : juce::MidiMessage::noteOff(1, note);
 
-                    // Feed MIDI to all plugins on the target track
-                    for (auto* plugin : targetTrack->pluginList) {
-                        if (auto* ep = dynamic_cast<te::ExternalPlugin*>(plugin)) {
-                            if (auto* instance = ep->getAudioPluginInstance()) {
-                                juce::MidiBuffer midiBuffer;
-                                midiBuffer.addEvent(msg, 0);
-                                // Note: this injects for live preview; actual recording
-                                // goes through MidiRecorder if armed
-                                instance->getCallbackLock().enter();
-                                juce::AudioBuffer<float> emptyBuf(2, 64);
-                                emptyBuf.clear();
-                                instance->processBlock(emptyBuf, midiBuffer);
-                                instance->getCallbackLock().exit();
-                            }
-                        }
-                    }
+                    // Inject into Tracktion's audio graph — this flows through
+                    // the track's plugin chain and produces audible output
+                    targetTrack->injectLiveMidiMessage(msg, {});
 
                     // If recording is armed, also feed to MidiRecorder
                     if (midiRecorder && midiRecorder->isRecording()) {
-                        // Simulate MIDI input callback
                         midiRecorder->handleIncomingMidiMessage(nullptr, msg);
                     }
 
-                    DBG("sendKeyboardMidi: note=" + juce::String(note) + " vel=" + juce::String(velocity));
+                    DBG("sendKeyboardMidi: note=" + juce::String(note) + " vel=" + juce::String(velocity)
+                        + " -> track " + targetTrack->getName());
                 }
             });
             complete("{\"success\":true}");
@@ -1005,6 +991,12 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     bufSizes.add(juce::var(sz));
                 result->setProperty("availableBufferSizes", bufSizes);
 
+                // Available sample rates
+                juce::Array<juce::var> sampleRates;
+                for (auto sr : device->getAvailableSampleRates())
+                    sampleRates.add(juce::var(sr));
+                result->setProperty("availableSampleRates", sampleRates);
+
                 // Input channel names
                 juce::Array<juce::var> inputs;
                 for (auto& n : device->getInputChannelNames())
@@ -1017,6 +1009,15 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     outputs.add(juce::var(n));
                 result->setProperty("outputChannels", outputs);
             }
+
+            // Available audio device names (for device switching)
+            juce::Array<juce::var> deviceNames;
+            for (auto type : dm.getAvailableDeviceTypes()) {
+                for (auto& name : type->getDeviceNames(false))  // output devices
+                    deviceNames.add(juce::var(name));
+            }
+            result->setProperty("availableDevices", deviceNames);
+
             complete(juce::JSON::toString(juce::var(result)));
         })
 
@@ -1028,6 +1029,39 @@ juce::WebBrowserComponent::Options SongbirdEditor::createWebViewOptions()
                     arr.add(juce::var(name));
             }
             complete(juce::JSON::toString(juce::var(arr)));
+        })
+
+        .withNativeFunction("setAudioDevice", [this](auto& args, auto complete) {
+            if (args.size() < 1) { complete("{\"success\":false}"); return; }
+            juce::String deviceName = args[0].toString();
+            auto& dm = engine.getDeviceManager().deviceManager;
+            auto setup = dm.getAudioDeviceSetup();
+            setup.outputDeviceName = deviceName;
+            setup.inputDeviceName = deviceName;  // typically same device on macOS
+            auto err = dm.setAudioDeviceSetup(setup, true);
+            if (err.isEmpty()) {
+                DBG("setAudioDevice: switched to " + deviceName);
+                complete("{\"success\":true}");
+            } else {
+                DBG("setAudioDevice: error " + err);
+                complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
+            }
+        })
+
+        .withNativeFunction("setAudioSampleRate", [this](auto& args, auto complete) {
+            if (args.size() < 1) { complete("{\"success\":false}"); return; }
+            double sampleRate = static_cast<double>(args[0]);
+            auto& dm = engine.getDeviceManager().deviceManager;
+            auto setup = dm.getAudioDeviceSetup();
+            setup.sampleRate = sampleRate;
+            auto err = dm.setAudioDeviceSetup(setup, true);
+            if (err.isEmpty()) {
+                DBG("setAudioSampleRate: set to " + juce::String(sampleRate));
+                complete("{\"success\":true}");
+            } else {
+                DBG("setAudioSampleRate: error " + err);
+                complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
+            }
         })
 
         .withNativeFunction("setAudioBufferSize", [this](auto& args, auto complete) {

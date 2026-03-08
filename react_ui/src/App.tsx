@@ -38,24 +38,27 @@ function App() {
     const undo = isPlugin ? Juce.getNativeFunction('undo') : null;
     const redo = isPlugin ? Juce.getNativeFunction('redo') : null;
 
+    const sendKeyboardMidi = isPlugin ? Juce.getNativeFunction('sendKeyboardMidi') : null;
+
+    const KEYBOARD_NOTE_MAP: Record<string, number> = {
+      // Lower row: C4-B4
+      'a': 60, 'w': 61, 's': 62, 'e': 63, 'd': 64,
+      'f': 65, 't': 66, 'g': 67, 'y': 68, 'h': 69,
+      'u': 70, 'j': 71,
+      // Upper octave: C5-B5
+      'k': 72, 'o': 73, 'l': 74, 'p': 75, ';': 76,
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // --- Keyboard MIDI mode: route keys as MIDI notes instead of shortcuts ---
       if (useMixerStore.getState().keyboardMidiMode) {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
-        const KEYBOARD_NOTE_MAP: Record<string, number> = {
-          // Lower row: C4-B4
-          'a': 60, 'w': 61, 's': 62, 'e': 63, 'd': 64,
-          'f': 65, 't': 66, 'g': 67, 'y': 68, 'h': 69,
-          'u': 70, 'j': 71,
-          // Upper octave: C5-B5
-          'k': 72, 'o': 73, 'l': 74, 'p': 75, ';': 76,
-        };
+        if (e.repeat) return; // Don't retrigger on held keys
         const note = KEYBOARD_NOTE_MAP[e.key.toLowerCase()];
         if (note !== undefined) {
           e.preventDefault();
-          const sendKeyboardMidi = isPlugin ? Juce.getNativeFunction('sendKeyboardMidi') : null;
-          sendKeyboardMidi?.(note, e.type === 'keydown' ? 100 : 0);
+          sendKeyboardMidi?.(note, 100); // note-on
         }
         return; // Don't process any shortcuts
       }
@@ -102,7 +105,20 @@ function App() {
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (useMixerStore.getState().keyboardMidiMode) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+        const note = KEYBOARD_NOTE_MAP[e.key.toLowerCase()];
+        if (note !== undefined) {
+          e.preventDefault();
+          sendKeyboardMidi?.(note, 0); // note-off
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     // Listen for C++ loading progress
     const unsubProgress = addStateListener('loadingProgress', (data: unknown) => {
@@ -120,6 +136,7 @@ function App() {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
       unsubProgress();
     };
   }, []);

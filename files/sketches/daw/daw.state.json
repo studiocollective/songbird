@@ -9328,7 +9328,8 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "recordArmed": true
         },
         {
           "id": 5,
@@ -11317,7 +11318,7 @@
           "name": "noise",
           "type": "midi",
           "color": "#98D8C8",
-          "muted": true,
+          "muted": false,
           "solo": false,
           "volume": 127,
           "pan": 0,
@@ -11865,7 +11866,7 @@
         },
         {
           "id": 9,
-          "name": "Hall",
+          "name": "track10",
           "type": "midi",
           "color": "#4ECDC4",
           "muted": false,
@@ -11878,8 +11879,8 @@
             "bypassed": false
           },
           "fx": {
-            "pluginId": "",
-            "pluginName": "ValhallaRoom",
+            "pluginId": null,
+            "pluginName": null,
             "bypassed": false
           },
           "channelStrip": {
@@ -11889,7 +11890,7 @@
           },
           "notes": [],
           "loopLengthBeats": 0,
-          "isReturn": true,
+          "isReturn": false,
           "isMaster": false,
           "sends": [
             0,
@@ -11902,7 +11903,7 @@
         },
         {
           "id": 10,
-          "name": "Plate",
+          "name": "Hall",
           "type": "midi",
           "color": "#45B7D1",
           "muted": false,
@@ -11939,9 +11940,46 @@
         },
         {
           "id": 11,
-          "name": "Delay",
+          "name": "Plate",
           "type": "midi",
           "color": "#96CEB4",
+          "muted": false,
+          "solo": false,
+          "volume": 127,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": "",
+            "pluginName": "ValhallaRoom",
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "notes": [],
+          "loopLengthBeats": 0,
+          "isReturn": true,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6
+        },
+        {
+          "id": 12,
+          "name": "Delay",
+          "type": "midi",
+          "color": "#FFEAA7",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -11975,10 +12013,10 @@
           "sidechainSensitivity": 0.6
         },
         {
-          "id": 12,
+          "id": 13,
           "name": "Saturation",
           "type": "midi",
-          "color": "#FFEAA7",
+          "color": "#DDA0DD",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -12012,10 +12050,10 @@
           "sidechainSensitivity": 0.6
         },
         {
-          "id": 13,
+          "id": 14,
           "name": "Master",
           "type": "midi",
-          "color": "#DDA0DD",
+          "color": "#98D8C8",
           "muted": false,
           "solo": false,
           "volume": 80,
@@ -12084,6 +12122,8 @@
       "totalBars": 80,
       "mixerOpen": true,
       "returnsOpen": false,
+      "recordStripOpen": true,
+      "keyboardMidiMode": true,
       "midiEditorOpen": false,
       "selectedClip": null,
       "midiEditorGridDiv": 8,

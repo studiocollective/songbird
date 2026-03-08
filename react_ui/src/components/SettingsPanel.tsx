@@ -9,6 +9,8 @@ import { loadTheme, applyTheme, type Theme } from '@/lib/theme';
 const listMidiInputs = isPlugin ? Juce.getNativeFunction('listMidiInputs') : null;
 const getAudioDeviceInfo = isPlugin ? Juce.getNativeFunction('getAudioDeviceInfo') : null;
 const setAudioBufferSize = isPlugin ? Juce.getNativeFunction('setAudioBufferSize') : null;
+const setAudioDevice = isPlugin ? Juce.getNativeFunction('setAudioDevice') : null;
+const setAudioSampleRate = isPlugin ? Juce.getNativeFunction('setAudioSampleRate') : null;
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -21,6 +23,8 @@ interface AudioDeviceInfo {
   inputLatency: number;
   outputLatency: number;
   availableBufferSizes: number[];
+  availableSampleRates: number[];
+  availableDevices: string[];
   inputChannels: string[];
   outputChannels: string[];
 }
@@ -79,7 +83,20 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   const handleBufferSize = async (size: number) => {
     if (!setAudioBufferSize) return;
     await setAudioBufferSize(size);
-    // Re-fetch to update latency display
+    fetchData();
+  };
+
+  /* Audio device change */
+  const handleDeviceChange = async (name: string) => {
+    if (!setAudioDevice) return;
+    await setAudioDevice(name);
+    fetchData();
+  };
+
+  /* Sample rate change */
+  const handleSampleRate = async (rate: number) => {
+    if (!setAudioSampleRate) return;
+    await setAudioSampleRate(rate);
     fetchData();
   };
 
@@ -135,13 +152,37 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                 {/* Device */}
                 <div className={fieldRow}>
                   <span className={fieldLabel}>Device</span>
-                  <span className={fieldValue}>{audioInfo.deviceName || '—'}</span>
+                  {audioInfo.availableDevices?.length > 1 ? (
+                    <select
+                      value={audioInfo.deviceName}
+                      onChange={(e) => handleDeviceChange(e.target.value)}
+                      className={selectInput}
+                    >
+                      {audioInfo.availableDevices.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={fieldValue}>{audioInfo.deviceName || '—'}</span>
+                  )}
                 </div>
 
                 {/* Sample Rate */}
                 <div className={fieldRow}>
                   <span className={fieldLabel}>Sample Rate</span>
-                  <span className={fieldValue}>{audioInfo.sampleRate ? `${(audioInfo.sampleRate / 1000).toFixed(1)} kHz` : '—'}</span>
+                  {audioInfo.availableSampleRates?.length > 1 ? (
+                    <select
+                      value={audioInfo.sampleRate}
+                      onChange={(e) => handleSampleRate(Number(e.target.value))}
+                      className={selectInput}
+                    >
+                      {audioInfo.availableSampleRates.map((sr) => (
+                        <option key={sr} value={sr}>{(sr / 1000).toFixed(1)} kHz</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={fieldValue}>{audioInfo.sampleRate ? `${(audioInfo.sampleRate / 1000).toFixed(1)} kHz` : '—'}</span>
+                  )}
                 </div>
 
                 {/* Buffer Size */}
