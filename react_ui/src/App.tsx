@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Transport } from '@/components/Transport';
-import { ArrangementView } from '@/components/ArrangementView';
-import { MixerPanel } from '@/components/MixerPanel';
-import { MidiEditor } from '@/components/MidiEditor';
-import { SampleEditor } from '@/components/SampleEditor';
-import { ChatPanel } from '@/components/ChatPanel';
-import { HistoryPanel } from '@/components/HistoryPanel';
-import { BirdFilePanel } from '@/components/BirdFilePanel';
-import { DebugPanel } from '@/components/DebugPanel';
+import {
+  Transport,
+  ArrangementView,
+  MixerPanel,
+  MidiEditor,
+  SampleEditor,
+  ChatPanel,
+  HistoryPanel,
+  BirdFilePanel,
+  DebugPanel,
+  SettingsPanel,
+} from '@/components/panels';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
-import { SettingsPanel } from '@/components/SettingsPanel';
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';

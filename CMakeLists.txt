@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.15)
 
 project(SongbirdPlayer VERSION 1.0.0)
 
+# Debug builds: use -O1 so the compiler can inline small functions and
+# eliminate dead code.  Pure -O0 causes audio dropouts because the
+# many compilation units each generate unoptimised call-frame overhead
+# that the audio thread cannot tolerate at low buffer sizes.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O1" CACHE STRING "" FORCE)
+    set(CMAKE_C_FLAGS_DEBUG   "-g -O1" CACHE STRING "" FORCE)
+endif()
+
 # macOS deployment target
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
@@ -57,17 +66,35 @@ target_compile_features(SongbirdPlayer PRIVATE cxx_std_20)
 target_sources(SongbirdPlayer PRIVATE
     app/Main.cpp
     app/SongbirdEditor.cpp
-    app/WebViewHelpers.cpp
-    app/StateSync.cpp
-    app/WebViewBridge.cpp
-    app/LyriaManager.cpp
-    app/MidiRecorder.cpp
-    app/AudioRecorder.cpp
-    app/PluginManager.cpp
-    app/PlaybackInfo.cpp
-    app/BirdLoader.cpp
-    app/MacroMapper.cpp
-    app/ProjectState.cpp
+    app/bridge/WebViewHelpers.cpp
+    app/state/StateSync.cpp
+    app/bridge/WebViewBridge.cpp
+    app/bridge/StateBridge.cpp
+    app/bridge/PluginMixerBridge.cpp
+    app/bridge/BirdFileBridge.cpp
+    app/bridge/TransportBridge.cpp
+    app/bridge/SettingsBridge.cpp
+    app/bridge/RecordingBridge.cpp
+    app/bridge/TrackBridge.cpp
+    app/bridge/LyriaBridge.cpp
+    app/bridge/MidiEditBridge.cpp
+    app/bridge/UndoRedoBridge.cpp
+    app/ai/LyriaManager.cpp
+    app/midi/MidiRecorder.cpp
+    app/audio/AudioRecorder.cpp
+    app/plugins/PluginManager.cpp
+    app/audio/PlaybackInfo.cpp
+    app/loader/BirdLoader.cpp
+    app/plugins/MacroMapper.cpp
+    app/state/ProjectState.cpp
+    app/midi/MidiToBird.cpp
+    app/audio/AudioQuantizer.cpp
+    app/audio/LevelMeterBridge.cpp
+    app/state/SessionState.cpp
+    app/audio/PluginStateTracker.cpp
+    app/loader/BirdFileOps.cpp
+    app/export/ExportManager.cpp
+    app/midi/MidiEditHelpers.cpp
     libraries/theory/note_parser.cpp
     libraries/sequencing/note.cpp
     libraries/magenta/WebSocket.cc
@@ -81,6 +108,15 @@ target_include_directories(SongbirdPlayer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/websocketpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/asio/asio/include
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/state
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/audio
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/midi
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/bridge
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/plugins
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/loader
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/ai
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/export
     ${libgit2_SOURCE_DIR}/include
     ${libgit2_BINARY_DIR}/include)
 

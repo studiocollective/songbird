@@ -4,7 +4,7 @@ import { useChatStore } from '@/data/store';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { GeminiService } from '@/lib/ai/gemini';
 import { Juce } from '@/lib';
-import { MarkdownRenderer } from './molecules/MarkdownRenderer';
+import { MarkdownRenderer } from '../molecules/MarkdownRenderer';
 import { validateBirdSyntax } from '@/lib/ai/validator';
 
 export function ChatPanel() {

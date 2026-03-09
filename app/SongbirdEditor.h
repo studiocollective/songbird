@@ -37,6 +37,18 @@ private:
     std::unique_ptr<juce::WebBrowserComponent> webView;
     juce::WebBrowserComponent::Options createWebViewOptions();
 
+    // Domain-specific bridge registration (called by createWebViewOptions)
+    void registerStateBridge(juce::WebBrowserComponent::Options& options);
+    void registerPluginMixerBridge(juce::WebBrowserComponent::Options& options);
+    void registerBirdFileBridge(juce::WebBrowserComponent::Options& options);
+    void registerTransportBridge(juce::WebBrowserComponent::Options& options);
+    void registerSettingsBridge(juce::WebBrowserComponent::Options& options);
+    void registerRecordingBridge(juce::WebBrowserComponent::Options& options);
+    void registerTrackBridge(juce::WebBrowserComponent::Options& options);
+    void registerLyriaBridge(juce::WebBrowserComponent::Options& options);
+    void registerMidiEditBridge(juce::WebBrowserComponent::Options& options);
+    void registerUndoRedoBridge(juce::WebBrowserComponent::Options& options);
+
     // State cache (storeName → JSON)
     std::map<juce::String, juce::String> stateCache;
     void handleStateUpdate(const juce::String& storeName, const juce::String& jsonValue);

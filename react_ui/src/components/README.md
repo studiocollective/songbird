@@ -1,0 +1,21 @@
+# Components (`components/`)
+
+This directory follows **atomic design** principles to organize UI components by complexity:
+
+## Structure
+
+```
+components/
+├── atoms/       — Primitive UI elements (Button, Input, Knob, Select, Slider, etc.)
+├── molecules/   — Composed units combining atoms (LevelMeter, PluginSlots, MuteSoloButtons)
+├── organisms/   — Self-contained blocks (MixerChannel, TrackLane, TimelineRuler)
+├── panels/      — Full panel/page-level components (ArrangementView, MidiEditor, MixerPanel)
+└── debug.css    — Global overlay styles for debug mode (body-level, can't be Tailwind)
+```
+
+## Conventions
+
+- **Styling:** All components use Tailwind CSS utility classes via string constants at the bottom of each file. No component-scoped CSS files — use Tailwind's `cn()` helper from `@/lib/utils` for conditional classes.
+- **State:** Components access state via Zustand stores from `@/data/store` — never prop-drill store data.
+- **Bridge calls:** Use `nativeFunction()` from `@/data/bridge` for C++ communication.
+- **Barrel exports:** Each folder has an `index.ts` for clean imports (e.g., `import { Button } from '@/components/atoms'`).

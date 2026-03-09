@@ -9328,8 +9328,7 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6,
-          "recordArmed": true
+          "sidechainSensitivity": 0.6
         },
         {
           "id": 5,
@@ -11318,7 +11317,7 @@
           "name": "noise",
           "type": "midi",
           "color": "#98D8C8",
-          "muted": false,
+          "muted": true,
           "solo": false,
           "volume": 127,
           "pan": 0,
@@ -12122,8 +12121,8 @@
       "totalBars": 80,
       "mixerOpen": true,
       "returnsOpen": false,
-      "recordStripOpen": true,
-      "keyboardMidiMode": true,
+      "recordStripOpen": false,
+      "keyboardMidiMode": false,
       "midiEditorOpen": false,
       "selectedClip": null,
       "midiEditorGridDiv": 8,

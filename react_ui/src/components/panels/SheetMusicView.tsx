@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import type { NoteData } from '@/data/slices/mixer';
-import { sheetMusicCls } from './MidiEditor';
 
 // ─── Music theory constants ───────────────────────────
 const MIDDLE_C = 60;
@@ -408,7 +407,7 @@ export function SheetMusicView({
   };
 
   return (
-    <div className="midi-editor__sheet-music">
+    <div className="flex-1 overflow-auto min-h-0 py-2 bg-[hsl(var(--background)/0.3)] [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
       <svg
         width={svgWidth}
         height={svgHeight}
