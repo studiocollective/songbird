@@ -1,5 +1,32 @@
 #include "SongbirdEditor.h"
 
+// PluginWindow.h uses unqualified JUCE types and defines non-inline functions.
+// Including it in only ONE .cpp avoids duplicate linker symbols.
+// We skip the ExtendedUIBehaviour class at the end of PluginWindow.h since
+// we've declared our own version in SongbirdEditor.h.
+using namespace juce;
+#define ExtendedUIBehaviour ExtendedUIBehaviour_SKIP
+#include "libraries/tracktion/examples/common/PluginWindow.h"
+#undef ExtendedUIBehaviour
+
+//==============================================================================
+// ExtendedUIBehaviour implementation (declared in SongbirdEditor.h)
+//==============================================================================
+
+std::unique_ptr<Component> ExtendedUIBehaviour::createPluginWindow(te::PluginWindowState& pws)
+{
+    if (auto ws = dynamic_cast<te::Plugin::WindowState*>(&pws))
+        return PluginWindow::create(ws->plugin);
+    return {};
+}
+
+void ExtendedUIBehaviour::recreatePluginWindowContentAsync(te::Plugin& p)
+{
+    if (auto* w = dynamic_cast<PluginWindow*>(p.windowState->pluginWindow.get()))
+        return w->recreateEditorAsync();
+    UIBehaviour::recreatePluginWindowContentAsync(p);
+}
+
 //==============================================================================
 // Log helper — sends to both DBG and JS console
 //==============================================================================

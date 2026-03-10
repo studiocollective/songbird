@@ -1,16 +1,16 @@
 {
   "_type": "EDIT",
   "appVersion": "Unknown",
-  "creationTime": 1773036134677,
-  "lastSignificantChange": "19cd1310b09",
-  "projectID": "0/363be29",
+  "creationTime": 1773126884070,
+  "lastSignificantChange": "19cd6a17d84",
+  "projectID": "0/3880468",
   "_children": [
     {
       "_type": "TRANSPORT",
       "loopPoint1": 0.0,
       "loopPoint2": 150.0,
       "looping": true,
-      "position": 0.355166666666667,
+      "position": 21.241166666666668,
       "start": 0.0
     },
     {
@@ -72,14 +72,19 @@
       "_children": [
         {
           "_type": "PLUGIN",
+          "id": 1010,
+          "type": "masterAnalyzer"
+        },
+        {
+          "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Weiss DS1-MK3.vst3",
-          "id": 1126,
+          "id": 1127,
           "layout": "_b64:131.LETVOUEU..P.BjjSPUEUSA..AHfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..BU0T.Df.o4FYkgG.ATP.A....vVX48VczAP.CTvP..vSUQETUQ0T..P.AHTUSAP.BjlajUFd.DPAA......agk2a0QG.ATPALAhT...",
           "manufacturer": "Softube",
           "name": "Weiss DS1-MK3",
           "remapOnTempoChange": true,
-          "state": "676.VMjLgro....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9PiLy3hRPIUS1QUdLoGRS0DdHMDS5wTZMMiXS0TLToVSBMVdLgmK4wjdPkGT5o1PMECTS0DdDkFQBYFTtfEQlojTK4hRvjiTqX1btETQu4hKDUiYDozSlIzQOYFQ2rjYBUDUA4hKtX2SJIlKBEDRtHjPtYWPHwDTE4hKtX1JPAUQMkGS4gial4BRTYVPGYFTBojbtLTUl8Db0QyTCUETBMzPoY1PUoVbuImY1MDTTcmMz.kPBEEUmk0MVEjPRQUTnIiRCIzTPEUQwPmMjgDUQUjKt3BTHg0cEgkZmYTX1E0QjcSPHcFR3gjZTgVRsYlTEg2YHIDRpglRwgjKBImdRUTYvAGb4LCdKcjYtvzcHMDR44RdqDjamEkRh4hPJImKC0zL1MDTDcFQS4VPAEjKt3hKHglKHUjYJUiatDDMtwFY3kTTCcUUVoUdMcDRD0TULMmd5IUdtcVP3MCZMQGSCwDZpEDRtgjULACRSwTLLMDR4QzPYoGSwf0LDYkRtIlYL4ha4IDRHQjK2XlVDYlVMETLuolPvjEVMYVbrEEUx.ERFAGQ5MjMqrxJ0clYDU0XwYDaxYlSUokYAcmSKUCTDkEM4fkMyT2SYAUdlEELjozbLgGZ10TbMYVZ0b0JvPlTCslTvIVatQTMNAkVXY2LRwjRlAGUhYlZr4zcqMibsIkSEYjUqLDRCkjcDYjSwfEaLYmYSsDMHMESnAiPMIiYS4zbpMkS2AkUKECQogULDYDSnUTZYQiZC4DOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
+          "state": "676.VMjLgro....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9PiLy3hRPIUS1QUdLoGRS0DdHMDS5wTZMMiXS0TLToVSBMVdLgmK4wjdPkGT5o1PMECTS0DdDkFQBYFTtfEQlojTK4hRvjiTqX1btETQu4hKDUiYDozSlIzQOYFQ2rjYBUDUA4hKtX2SJIlKBEDRtHjPtYWPHwDTE4hKtX1JPAUQMkGS4gial4BRTYVPGYFTBojbtLTUl8Db0QyTCUETBMzPoY1PUoVbuImY1MDTTcmMz.kPBEEUmk0MVEjPRQUTnIiRCIzTPEUQwPmMjgDUQUjKt3BTHg0cEgkZmYTX1E0QjcSPHcFR3gjZTgVRsYlTEg2YHIDRpglRwgjKBImdRUTYvAGb4LCdKcjYtvzcHMDR44RdqDjamEkRh4hPJImKC0zL1MDTDcFQS4VPAEjKt3hKHglKHUjYJUiatDDMtwFY3kTTCcUUVoUdMcDRD0TULMmd5IUdtcVP3MCZMQGSCwDZpEDRtgjULACRSwTLLMDR4QzPYoGSwf0LDYkRtIlYL4ha4IDRHQjK2XlVDYlVMETLuolPvjEVMYVbrEEUx.ERFAGQ5MjMqrxJ0clYDU0XwYDaxYlSUokYAcmSKUCTDkEM4fkMyT2SYAUdlEELjozbLgGZ10TbMYVZ0b0JvPlTCslTvIVatQTMNAkVXY2LRwjRlAGUhYlZr4zcqMibsIkSEYjUqLDRCkDaAkGVzfjUNo1ZSszLLkGS5omPMgGT4wzbDwVSzvjUKgGTo0jZIMEVokkQLwVVokEOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
           "type": "vst",
           "uid": "a7d460aa",
           "uniqueId": "c77fdb62",
@@ -94,7 +99,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1127,
+          "id": 1128,
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
@@ -107,6 +112,11 @@
               "_type": "MODIFIERASSIGNMENTS"
             }
           ]
+        },
+        {
+          "_type": "PLUGIN",
+          "id": 1129,
+          "type": "masterAnalyzer"
         }
       ]
     },
@@ -176,7 +186,7 @@
           "_type": "MIDICLIP",
           "colour": "ff55ff00",
           "currentTake": 0,
-          "id": 1012,
+          "id": 1013,
           "length": 150.0,
           "name": "kick",
           "offset": 0.0,
@@ -2766,7 +2776,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Kick 3.vst3",
-          "id": 1010,
+          "id": 1011,
           "manufacturer": "Sonic Academy",
           "name": "Kick 3",
           "remapOnTempoChange": true,
@@ -2803,12 +2813,12 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1011,
+          "id": 1012,
           "layout": "_b64:131.LETVOUEU..P.BjjSPUEUSA..AHfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..BU0T.Df.o4FYkgG.ATP.A....vVX48VczAP.CTvP..vSUQETUQ0T..P.AHTUSAP.BjlajUFd.DPAA......agk2a0QG.ATPALAhT...",
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
-          "state": "2629.VMjLgviB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN3biKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlR1UiKJASNRshYuMkRvn1PtTCVGoWUxQjdVAiZNgDT1gVLQgjKvXGdAkUL1E1SkMzQmYGRmMyUmA0MBYDSlUCZEkGdtbELGgCQqgmZ5sRPvkFZgwTXMYkKEgzYLkzZ3oFSuIlbHAEYtkDUKg0LYE1RWsxJ0UlVTElUZICdnEDTU4BTDAkd2UiM4PGMqUWL2fGThc2QLMlY3w1TRYlag4xZo4VapcCVDIFVs4FMYkDT0UkbiEEL0P0XvM1ZWgTb1kzMucWQFkEaMUmYH4hQQAWNAkVS0YWQZY0b1EDUnIkQnUkYXEzSD4RSuoWPGYUbNUmcK4xPro2cFQUVDUibDk2aQglPA4VZDgCTDkEZA4DbNkFaLUiKTMjRYgGVDYTax0lRW8DUiYGRwQ2LxTCU3MGL1bUcyHlKPwVT5E1QOICRq0TbPUjahIkQU4xbo4lSP8DT5k1RxQjSO0TVPEDRznDd4TTbqIlMv7TNlUiXAkUUvjSUsEVMyYWU5YTbIgyLYojd5glQ1oVQGcmdS8lVrM2agsTZUYWXxEkKyH2RK0jUwTEUCgkZ2gjZVolYMAWSRc1LREERnsTNPYTTPUCRG8zTPYjSO8DLtrVSsoGMGIVTOYUR4kVRPUDTpEjKi4RTGkzQOoEdD8lUFIyLGYyPrc0aiQSMQsjPZwzUxXkXZcUL3sjUnk0PtczZ181XX4BTP8lQiQFV2zFRjwTQYcDTQ8jRAQkdRQDNlQTSZY1L2YjXBoES2Qjd23xZt7TLPIjVPgGRt81QNI0QSQzYP4BQLIUTlQyZN41ZJA0YpUDRGMyLFoDTBYlKwLiKyPkKDYFaTYFbA0jVmoDTzPTSYY1LmkDaXgmRv4hTqkFRRUjZtH0ZpgjRtTEL0H1b3fkUqkmSusBcnMWZzXlXZgCUSESY1.WT0EDLUwzc0.GNIMVYSISZMMUdwLmY48FbgMVbzYjdUYURxrFUqXULXESM2fDNpoVStA0PWQEMxsDNTkWc3gSdUISdYMWXM0lQWsRd0YScLQzUBk2ShQGSQ4lKygFRMMiQyLiXZo2MDQDT0QmMwHSRFMTMTUUMko0RyIWLV8zaQcjPSY2L0o0XlolS5YVRHUjR2IDU3AkdB0TPsUkTlY1SuIGN4HSSk4lQggWa0X0TVISaOASY3PmQ0fiQtDlUQUjKPk2UAkmcJEUdPYzMtfjV18jbRwjY2sjdxwTTToWRGYkTFoWTFAWPsgTQtgkK0bCQBklKq4jbtzjZm4zS2.kdo8jK33BQQkkYm0lY4QmPM0lZBAEdyTGdYMEarYmUx7lM0jWNx8ldzTCNzUyXgAWUYMjKD0zPYQzPXciPWomPHYkaIsVUpcWZnAEdt01XHklR1kTSCAEYZcUSII1bRk2aBU1RtgGSrASaMUlRDUCSEoWaRkldBwDTPwDZZ0DTr0DatfCZtgkKMklal41PhoUSJoEYJIDRyHSRuszbjgjLZk1TzgGYOEWXlQWTkAGStkWQicUMk81Uy8TQ1PGa38FQTEVboAidgkTUUQUR1PVavQkdvvFbDsTRiACM4zVNZsTbwEVPvjESqUSanE1bwQCVqDiXRUFczn0MkImQkA0a0HlRMckSwM0REcTXWoDalAmVEM1bi0jUgEiL0j2SOMUcUU2cHEFbZkzQCASayA0bq0zZx.2PS8VUzcCVwgyUwECQCUUM2T1SyEFTVUGb5QCUKISdRAiboEGU0Tma3IGLSMEbqACL4IVMGUVVJITazkmTSIiV3HWawsTLwAiZpcWMggiarQFa4M2aMkCVzIlPScSc24Vb37TZxsFd2kyaX0DLrQVcykTY4UkPvb0JhsFNqU0LsgVMJMFV0TkShQmT4QiTMkUcU0FTzUULGclcrYTZwUTdEMVa5UzUxAiLwQUbqbzXU0zUWcmVCYzJzTmZxI1c3PGSOYiZ4H1StkCcnAyJ3flVwcyasYlTW0lYQ8DLTE1RpgWS1cWcjAyT2YCaUo0bMokcYAib1gUTTszJHgGdAoTb1wlUtIjdlYTTEkDRD81ZXgVTBQzSlgTYtbzLCozLGIzcEgEZzrlUlkjQlYGZGk1PAIGRmUFTLM0UtHzPLQzUnIGUpYEY2slPIgDcyHETXEUNngDQ48jYDIDULIFYP8lQS0FSznESwAiV0Q2bFQENzjWMqbSbWsDLDkCUMU0SU8lS3QURpM1XgYTbKcDc0rzY2s1JSkzMqQFSrIFLkM0XxTiV5kTVUgCStg2MCEybtozZZgzPxfyc4wVN2QyTqTTdvEmVqwlY2XycigmTXo2Zq7zTPcUUycDbM01cZUCMMM2cX0lMowzZ2TzZ0ACZ3rDN2ImUYc2Zv.SXVEFaMEVQ4QCdrcyTSIyT2QidUckR2cmavIFaZMmTJICN2jFMlkCczAGZOcUZScTbqXTXM81LYI2ZQwVdWw1UQckbiASPqQGd4vVUrgVXvk1a2f0Jp8lLmEGNIUVXx8lSFcCMXgyXRcUX2U2UIICQ3EVZygkREMkSv.SaOM2YR4jYsklVlQUVHUTVpEEQYoFRIwTPIE1ct7jTrEkTSkWRvXjVJQDTnIkYmgESHMTRTg1JsojanolY23hMScCZiAScnUVb2EiKV4RcpslVAs1ZT8zSQQ1PEkiPqLjZ2H0XIE0TgQ0QkcFVW81YlQCaM4BN1YkLuk1aU4zbxIDQRUmblUybpEkcJ4FRwb1XKYjPVQCaQYWc5QFRKYidQ4TRZYUT2bFZkkDRjYScIEEd0flSGk1XzD0PF0lP1LjKnMDLqImUH8DaIYUPZESXGoTNOkTVEgiYBMEdoUUXQAWTEsTPkwTP2HGVmwDbz.CY2sDdYcCbRYmMzYicqLUVDcjbUYUcZEzUwMkTgkUUDo1bNU0QgAUM4TDNDAENnkjVZcSaTYVTlQkUqHjbVQCRxUDUTEWQjojZtn1X4biYyfCavIGS3TmZyTzT3gmPiQURUUTN5USRisRP08lcN4VSA41b2UUMOoFVngSXr8zUVElRnQFb0wlLwrDbYUUcyAkL0gVMPUGayj1QKgGb2UUTrMzTpUVZrsjdJ8TMrkEaVEGVNEjUDMDQCICY3z1Y0nELSojZvLzRDcVaUETX4rja4MFcMIjZQ0lLhEGTWQGcz3xaqYmamYVSOcDZXc1LtDlbPIid1nVRLEmTMQ0b4nlLH0DVRwzXiITbrYTUvLCcRIGbvzzPiETY4zlK3LyaLAmRxQSbgsjaGcTLOUiROMjdVwlYQI2Lzz1RMckRhkUZoQENzQDLR4xYAkGRzYEN13VXr8DOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
+          "state": "2625.VMjLgfiB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN3PiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRyUiKJASNRshYuMkRio1Pt.WVGoWUxQjdVAiZNgDT1gVLQgjKvXGdAkUL1E1SkMzQmYGRmMyUmA0MBYDSlUCZEkGdtbELGgCQqI0a5sRPvkFZgwTXMYkKEgTTJkzZ3oFSuIlbHAEYtkDUKg0LYE1RWsxJ0UlVTElUZIiTnEDUU4BTDYlSWkjUYQ2QUUUMYQFcXEWS0wDQWcSPScjaxQiZDgTMFAEMHUSRI8jQAcTLIoEYVIDQ1P2R3X1Rvn1a5sxXWcVRGEWcznELzDGLnkyJzYFRtXTTvEyY2w1UyfVUKIlKq4lZmgUQHYERtnkTuMjSxY0Xjc1UtXDSukVStgGR5kURrMUZDUjPPcTR0bFR3QzPhQ0XF0TV5EjaOUySFEyTyvjPv.yYzAGZKEmR0MmdxjFbYMEdjQCMtXFSogTYG8jLHsVSwAUQtIlTFUkKyklaNA0SPoWZKIGQNQGaL4lKpIGMyT0PkgmLS8VdXYyaXACNyPkLMgicNUzb2okTOQFaB0zbtEDSYcWPLQiRUkmbMMVXYIWMikVSB4Raik0a2gGcnokKowjQmoGZDIWTyEkRDckRBEkX2cDdHIjTGQyLYIDd1QCMuYjaxQiZNshYKUycJkEYLEDbtfFSt31PHUCRzLSTSwFRvf2LFYibOgEYqEyZwczbH41chMVX281XYsTcXkDaMYFYTITawbVPtDzZZoWRBk2QIg2QSEULAQkdoIkKEMGQQ8DRQklQHQlbA0lYIwlcCQkP2f0PIYlZQ41QNI0QSQzYP4BQLIUTlQyZN41ZJA0YpUDRGMyLFoDTBYlKwLiKyPkKDYFaTYFbA0jVmoDTzPTSYY1LmkDaXgmRv4hTqkFRRUjZtH0ZpgjRlE2TOMSaZA2b3PEL0P1bzvTb3kUa5MCclMWZzPlXZQCbIsRNzozMg8zXAMkbzo0cpQWN5QibYoULzASXNU0XwEFLvPVc3oTRwA2XIACVKEFSgUFYpQlT3YDUtEDS4n0bqIFLu01T1b0MuUWL4oEdiMUSuI1UxnVbWYDdKcFMG4zUrgDUlYUTpYjXCIlXN0jVjIjPtQWYssBN37zPvElLywFZ0Y0JZIVLxcCNy.GLAIUMPMDalQkaDsDTIMTTKoGQhYURAI0brQ2ZyQlZMkFb1LGYvbmVVkVcwDmMsMyZyEiKXkmRv4hK2oDVFYURZYDdlcjKQMTNmUEZAwDY2gGQQEUahgURYA0QY4lQhgFUlgVPtk1RDYTPJMFVAoERCMFYyblaGUlK0DDRngmKC8TPsMVQZ4TREYFVOMGayYTZsgGawU0Qqf0bo4jUk0zQTkTV4vlVUEiKtDUdPYzctXTc1UzbtfVQZIUVEkUNHgjZLUSVGgmaBIlT44BQG0VXxflbDcTXU0zYOASSiYUVUI0aKMUNXkTaSokZVYVPBgVTTEWP3I2cD41UDUzPtkEQEQzXlMUbQEUdSEkK2IFLhU1axLGUO0DbX8ja3LEd0HzJugGYNczMi8lasgFbvT0M1nkRsI0SyMmSVMUNRAmRtIUL33TUI4VbMUURVIUNvkWQiASXKEWbggidIwzZZc0ckE2XMczRz0Ta5gjLjUjQiY0Y4LEbO0lT4ASd0nmT2YWLqY1asAmU1cUXWkFLrUTXMgWTjw1MUUGTHEFbZkzQqnGRgUlVKEFb0AyJqIUbhgicVsBYwECQqPUMLUCcwL2QwcUU0HFbqsDdRAibmEGU43DUYECdvnlVYMVQY4TSBkFdDcSSqz1ZrQGLJg2MWcES0AiZpcGb08DUSEEa4M2aEUibW4TYI4DcPMSbiIVViITVKs1YyEGVMACahUVXRUFc30VMyshRqrTb0gkPvE2Mk8la0TVdUokSWAWR4c0X4LiUYEERwQmLw8FTyn0chYmLIMlcEEVQ1TEbvfEQ4.mVzUGZvDyPF01cqo1ZKQmLqQSVsQkLz7TS4njUoQ2PvXEN48DNpEzahMjXDcUTqE2LikmRyEiQMMibZYEVxgDbqUlKYQiKqUEVSsDUAoETo4FZDQDZ5IES2gTPncDTp8jYCcSPEcyPmMiPLc2MRsjcDMDTXQSZzblKVoVcOgDausjKmEjQnsDTVojTKU2MRcFQDckXIgjbHUVTDgFMGAkPAojQN8jaTk1aSwlXMwFLZMmazMWLSsRVLkCTqgCYyQUdsYCbrAWavQ0PYA2M2UGcMkFLvrhUMoTY1AyQsgWasIlQSQWMXMUYxjiR5kTVUUTVOsVVq.SStozZ0bzJw.CMYMUZ18Vb2UTd0DmVqwFYhcyY1PUNlUGSF01axDGbVcyay01cZg2JrECVxkWQmI0Z5clTkMGV2sVMLEWUFIVVisBavvVV4Y0chUmbIk1azrxawL0Y4QSbzQEZUkzPmAWMYAGLJ8lXQESVzISc1DmRtshRhUCVMQmcVMkRjITXIoFM4rFMEoWP1b0XOQSbxgUdJM0cMAycT8jbikkR4TGL0HUYm0DL2QFcoAiaSkiVCYjMUgWSkcSLXsDaRcmZSM1JucjYoklVpgUTHYTVDEEQQoFRIgkZ5kEStPmTrEkTSkWRxAkVJQjYDwlKCcGVPYDZPkTNkwTPVoFQp8jMw01MiQlMn8TPqMyPXMzMRYkZCQkUTshbMQSSVg2UXAmKUUGZogkKEEkXwrlZDwDbOIDQhMWNN8DZkIlU5c2JhUyXEASXmwTQXQEQvfkLxMkc5o1PtPiZUcVMtgFZ1TET2bFZkUUZxjSLWo1bjk0XxsjMHg0M2bjKlcjSlIGZN8TMQYUPsMUcuIzSmcGboYlPSgmQlESNvgiVXECUXIUaEcjVWIkSQkWbqgzR3gSUxDFbuMlS5YjV3oDUgs1SxcCa3omZ5QjbnEySPcFLAEDZxcTUwjUSzMiXRAkam41cVYEaUYVQw8lUzLmKoklTmMyPwolboM2PGUWN2k1ZuEzZnomTRMEQmkTLZIWUUYVRlMUYqbkPOUDVCAmTlAGM5oDNCkjVxU1RqfGdJo1ZlQ0a2cSLrYlSwg1LkIicw41YJEWV0slLIYlVEg1ZYMiViU2c1HTQL0TLXcjZUEmKp4BYSYGUvTFcwcSNHUDdRcGZF4Fdn8DTmMGa1IjX4HFQVw1Tsc0R2MiLpoFQocjXvclcx3TazY1QkYVUJQkP3nEdBkFcTYSTw8DMM4TPrQUUG41MZokZXQUTTI1PIYUQ0zzPucyMnMkYXcCUFslRxMTLBsDSWMmPpQ0JNkmKmUjZEAEZNQCRjs1bmAEUI4zPznlT5c0aAEyMHoTUUclPzkWTAwyKIMzasA2atUlaz4COuX0TTMCTrU2Yo41TzEFck4C.",
           "type": "vst",
           "uid": "ac021178",
           "uniqueId": "7b732394",
@@ -2824,7 +2834,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1013,
+          "id": 1014,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -2840,7 +2850,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1014,
+          "id": 1015,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -2856,7 +2866,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1015,
+          "id": 1016,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -2872,7 +2882,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1016,
+          "id": 1017,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -2896,7 +2906,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1017,
+      "id": 1018,
       "name": "sub",
       "_children": [
         {
@@ -2909,7 +2919,7 @@
           "_type": "MIDICLIP",
           "colour": "ff00ff00",
           "currentTake": 0,
-          "id": 1022,
+          "id": 1023,
           "length": 150.0,
           "name": "sub",
           "offset": 0.0,
@@ -4379,7 +4389,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/SubLabXL.vst3",
-          "id": 1020,
+          "id": 1021,
           "layout": "_b64:55.LETVOUEU..P.A7TUTAUUTME..DP.BU0T.Df.o4FYkgG.ATP......vVX48VczAP.ET.SfHE...",
           "manufacturer": "FutureAudioWorkshop",
           "name": "SubLabXL",
@@ -4398,7 +4408,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1018,
+          "id": 1019,
           "pan": 0.828125,
           "remapOnTempoChange": true,
           "type": "volume",
@@ -4412,19 +4422,19 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1019,
+          "id": 1020,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1021,
+          "id": 1022,
           "layout": "_b64:131.LETVOUEU..P.BjjSPUEUSA..AHfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..BU0T.Df.o4FYkgG.ATP.A....vVX48VczAP.CTvP..vSUQETUQ0T..P.AHTUSAP.BjlajUFd.DPAA......agk2a0QG.ATPALAhT...",
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
-          "state": "2599.VMjLg3gB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN1PiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRYUiKJASNRshYQMkR3b1PtTyUG0VU1MjdjIkVCAkK5AiVGMjYD4xaNcjTggmZDolKQEEZLEDLokjRQYTNtjyPlUlLiU1Xz31LREkTVIVYxLVcznzSII1P2nUQzY1Q0wjTQk0YywVS1cVPPUkKUQDTwUiXigCUjACV1UCL3LmTBcWZlA0YSQTNTIjKZ4FZCQEYtIEQSQzbFMkSt.kT5IlaZ0FMisTYKsxX2f1brIGSRMFcIMlUzMVbvrhUgcGTEgjaZUzZH4ldAwDTw4hZyvTaA0jSlglKQYldt3zcqYkM5QEaBUUMznlUZYVTNETa1zDRUMzYvgTUnIUdtAGVZUzQQokZW4FV4jWNjM1JhISamsTXpMmcwjkRxMFMVo0azs1REUycmwjUPslXDg1L14hRIYlKyLjKFkjRtPUZtUCQqkDbDkzZzfkTRoEUS4FavXSdosjRyUCTrEzXRwVVg4TYyMGRg01XxXlUKYDV3HlPQQyYTEjPQ8jbNAUXznUQic0ayjFM2.iZCsFZlkjQ1zlLOwTPHETYXcjVG4xbnIUbREyXDo2S0DETtAUPUQEZ1MDZXcGRSgFQIETYJEjYqwjTT8DUU4FdBQ0UtAGRjAEQuEUUKwVdkQmdQclMywFLl01LugVaCYTYMUWVLcTdgQWLmEjRQ01cTQjSCk0LoQjSUgycWYycOo2SFETUq4lLPUUPsoTTKcFQIAmTXMzZ5MkTLEjTJE0aoIGQoQDanIFbGgFSDcFQpU1LCcFdAAEcXMmZOMyYNY2YM41YLY1YKgEbBQkY54hap4BQJAkK2DjKpYTTUgFY071QGQjKvYjcrAmQ5YDbFMCav4RNBESLEUUNncyRyIUL0PVaqkiP3ICLKkCczfWcwYjb0HiUWUVLBkkTjcmYNIiaMsVX4fCL0QFMKw1JMg0bs4TZy0TX3QGL3QSLEkiX2HUbzMGLZEESuo1SP41XWUibQcVN3EmXggySkYia4gWRggWN5AiX4IiTHQ1MVUlKCgjXTs1STIjavYTX2QDQRglZtgGTywlSoQiaLQSdjoWRxHGTsMWTKoVXN8FUVE2XKoDZqIlPKkTPO0FME0VPMEUTNwlVLcFb0HGc0LkU3jSXzMWdHYSNvk2SyIDMVo0UqrBSwLjRzXlQ1YFbKQGZCAmUlIjRmwDb2gkXPIDT1EDV2QiSsUCdh41cIEmZEUCStXCSmMkT4ImQk4TPEgDVqMEZtL0ZHcGTIgFSUklaRMFS2QjKI4xLDA2Lg8FNvUyTYcUVYsTZ2rhaNE1aO0Va2QmVwImSwXlTL4lVAoDRAgzLtXjatPEQlomKDYma0glTYEGQ3rVTOcGUkUjRssVMZgmLkMlSscDMXIVMxIWNzcyZMsRQLQmbAEDRkoFZDQENBcmaRgCTiYFbDA0blAWXyTzT041SpQzaFAmU2XTcyQlQmUURq31bsk1ciAycyTmRggCNgIUVqEjMEMFMr0TLzI2T4.iUNIycEo1a5okLSMyZMkVUyLUZSQWN1gjMlsTawo2RoU1cWQjTyMUX2fCYWI2cZsRVrISTwDGSsM1cZoVVQYUdqz1Rq.iduMWY2EERMgmbznWVvoWUzTSdBUFLgsRcIYiTuIUVxEyLxb1TzY0aNMUYSkzSqPSbI81RsAybxMVcukGdVkkX3kGa4QSLjUmXkM2S0L2XLk0MgACb2bGYxAyXQEyXU01ZxoUdysjMvjSMkACV1fkTzfmTYcSQ3QVL3DWdwDSaxYSPisBMncWaSIzJwLmbzcWbXcCMVozXwblbIYyUyDGd2TGLwbTU3wVbWgCd4jGYjQyc4TCS4gCdrIic1LVSuU1RwHlUFsTa2gzQiYUamIyUoUWTyrBN3sVTGcSYNcDNwfEVogCShEiX4zVLGYibxPVNzUVdxYkVS01UzXCdUISQYISXiYkPy0zR1XUcvIUbvXjctLCTGA2b0HEchY0aVICVOgDVvUzJ2EkYJYlYAACMAgDU3jVX5MjYFoERwwjdQ8jKB4DTQsjY24jP3czPIQDT4fERYcSdOoWanUlbSYFS50DRY4hPjQDQ3zVYtnFT0M1QxfjalQ2cOY0YHgGT1YlVGQEN1oFRkolc1H2aLQmX5ASdY8lbNQCMxUyMKUVUFYkMKM1b0DyUyo1bvASa3bWTyHEdOUTMhcCcjcyPiIWM3TzJFk2bXY2ZxTERSk0bscFc5kUaCckbhoTVikWPm0DNQgSVockd0jGcHoGMvDWY2bDNwjWL041RqQ1ZNk1bos1SXoVYuACMZgSRzvVLZUGM1LGTxfiV4U2cX8TdXMUR1PmSsE1LGQSaiU1a4glcIMmVscGRxMmbLo1crI1Pk4jLx.SZ00jLZMlVkkFdYomSqIUNzPmZsMka4Iya1Hld4XWLWkWUoEyXUEiYWU1c3UENYYSchESazk2JZACcQoTbyYVYigSLvXSVxH0Z2HWNhYjQy8zUiQmUyUiSL4TX5QlRwAkUqM2JUgmbrAyPXIiaFgTUDgVVFEEQQQTRRIDQQQTcXYVZpkkZwnmX3AGQsEzYHcVRtjERFo1YDozcqjVR1gVRkcCcwPyPLcjMxPCbVo2Q3PiTt0TPTgzM3vjV4b2azrzMOAUbEEjZnciYjckMx0TMlYVPZ4jP4rlTlImRN8TLuQUPzHUXsQVV0b1RRQkZEoFcwbiLBITLvrzPP4xRqoFLqUWZXE0R5gUYO4TcEIEUTQDUiMWVnsjQXEFTBYlX3AGRjQkPVEELucESR0lQroVaUYiPv3xYIoFQrElSNQVa2P1YvPGMEEkUKIzRnYFQyPUdGokQ54RQEE1Z2D2UtfiXRUyZWUTQJMyLvDTcxgVZjU2YxcEVw4zM5k2TREETJ8jVAsTZAkzblUWZPEUT30jMxPSZqMyZ2PTLp8VP0XTbK8lMSMyJwIzU0YUVm4jZDQkR1UEazY1ZMQjKwUFRYAGNggiKWAmUWYiTXcCTzgWX5slMMkVdJA2R5QCcFwTNVIiato1Zt.iXDoVV4QibxD0JnUGajIGTpYTPVEjSmcERHYiLkYDavPVYEgWN1QEYBkWduYGUtAGTOYSUSQzTW8TLzbGY4ISaLMSRR4RNmYVPSw1XzzjS1gVRFs1UOQSPLcEbEASMQYkLq7jSF41aosxSlEDYrU2SMACUEIjbZIjdE8zZZc0YIwVZwoVSqEyMxo2U2kyQvUmYrIkTroFM0s1PHgEYCsjTv31TqYkTGgEdQQGSWQiRtXGdL4BOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
+          "state": "2591.VMjLgXgB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN0fiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRSUiKJASNRshYQMkRMc1PtTCTGYUU1MjdjIkVCAkK5AiVGMjYD4xaNcjTggmZDolKQEEZLEDLokjRQYTNtjyPlUlLiU1Xz31LREkTVIVYxLVc4QkbvPWPjMmPWYWZWYzatImcVkmQlYVP2PkKRQjK1f1SskkUroVVyMjRiAmLqQDZGEzYB0FR27FQtnGTEcja2.0ZHwFRZ0Dah4hYp4FMPM1ZOIyJQckdVEVLNsRakMWZFElXqzTaSgySFAmKAUkbtQTPq4jYAUiPPgVdhYjdy3hRBQTPRMzLDcUM4nGUrITU0PiZVokYQ4TPsYSSHU0PmAGRUglT44FbXgVQGEkVpckanMkVMQVY0cDMNY0XzoTXSQWa4kSLtc0YjIFRoUDUIczYH4DSlIkPH4RNtXVTnIjKvfDbNEUVnoTTRkkSrolZFACQv8DYm8jRqkidwkGc0LEd00TMLASVkIVYYMWY2gEVtASdIQzZGIUQHQDN5UiKikTVx4lMJUTYM0VdrIlaTsjPro0bkQ1J5QjYDcyYi41XtnmRJcmRYISTPshaGEzYBUDUQkjPOgDZEkFSIIkZDcyaD4hU3gTT3.UUmozRPM1Yvg1LAEkZFU0cZ4zJzH0QEQmLwY0POc2TE8zQLkiVkAiVzwlLzs1PCQEZNk1aHIlQ3Y2QIIFb0jVcwjVYtUFSBAmRQU2YvIjSUglUBkjTTslcFozasoFVBoFUnI0QYkjQIwTQzP0SDkERBkDRqX2QBs1PlIVPgkTY1MzXlMTXPMTVtLzU1QUQt4xaAAURAgDUl4xLC4BRMgFbDgidS8jSH4BUMYVSU0jaMQUS10TUAgzbVEWdlszRooTYQkyZVkTXiUWdR0VPzrjMEUlLpQyUVMTb4L2Uvz1b1Y0PRQSL0UGLgcmXVk2JFY0USU2cwTUX34jQ4QSNBUlSj8VUxDCNRQzTJQyPDcSMwMmSwbDNjc2c0slX0okLrcGSZYyXigEUHQ1MVUlKCgjXTs1STIjavYTX2QDQRglZtgGTzTWNFcETqrRbqMVX4MmS5QSV401bqckMtgjU3kjbpQzMhw1UhYjdDUDMXAWVBUjdUYiUUQlMUcUVxfCN2fWYsUlcWsVV5QyPWQVb3XlTN4VPL4VMnE2LlAWQtYlTHklVLYzQp4BQhYlUhQWduQGSGokX3oTVm4zP14zTynldLE2csMETAIjUznFR1QURRwDUngzTvfDbTczTMEDTB4hSmokSgsza5UzJqo2cjsRT4TCc4gmQ3PCLy0Tcw0VLVcmQTgVPUsDTAkjKAcjctTjYn4hZFYlKFgSUToTXq4VcLUSRrY0UmAmQyQ1TyckVx.Ec4LmZYMmdzvFczIVU4P2cwjVLl4hZOIUTBAGYmgEUuQlaNAUUB4lUPASS2f1aWo2QRgFUCUkX4vVS3njMFUCVxnjSCU0UosBbxckL0sFdZMDcXQEagEibqkUa2DWVNUGZLgzTuACLBQVX4gUQ4n2LpE2SLgmSHkGMJgSLyb0MEcFU1nmQkUmLEYSL3UFczDGR1.Ca4QGVMg2bXEGNqPCds0zXZsBSNIzaQQWSs4zTqQmRWUlUyDGYWsRXwPGUvQkQw0zJNIFdvnDLYUSXJQCMOU1bpg2MwnURWQmL5kUVwwjSzjkMhQVV0cEYiM2S0LFMZg2Lx.Cb2.CYxAyXQEyXU01ZyUCZ1DlMyIVLq.2cqEWRqwzRyc2UXYSVxTmSgcUNpM1StYySWcCMpYWYzDSLvkkULkyMRozXwb1bIYyUyDWL2T2UwbTUwvlbWgCd4HCYrQycv.CMrYyZyUmYxrTXRshSw3TXosVdXoVZNEWd1YSbzDFQ4rBZIMVV5EzJskWT00zP1DSd1kkM27zbOESV0EGM1jSbrAiTWoGMUkCchAyXQECNV01ZPYCZqEGY2AWPL4hS5clVWkkTrIiRvDGc3nERXAWZqLCRPUDT1YVM23BQvkycMUSPPMTSpUkQ031QtDzQt4VQ1g0QAQSZmQjPHUFSpwTNzbTMSc2SwjDTFUiQpwjKA8jPnkSdO4hTtICcoEFQTAkLybTbPQTVHgETyMDbjgkTp8jTyfSLTYTVNojMzHGUV01MhY0X4rVcJMTbwszZ2Y0RsMmZMY0b4H2SNITVRkyaP0VZWESZk4VbUUWcyHSSGEWPYkCbBkkVwUlQ0HUai4jZ2g2axMmVGQDct8DbOEFaQE2S1fFTskUcvj1JtIyS1TSQi8ldwoWVhQCVzLjQzbkViQmUkIEYQYSNMUlUtYCY3biMVYCMVElRYICLzbiP4DUNgIyU0LGRhIUbwjESBEFaqc1bwn1U10VdwsjM2ISLyYUazQWTzvjVsIURqH1U3kGMiUiSGM2ShQibIE2awUUUwXWb4gURwkib3fya1bSdXgSSREVSCkSUwDVV001XKUEd4USdYgkd4HFLzTiVvLFVhEidvPkUmMmRgsRbpEFNJYFaookXlUERFEEQQQTTrgTRHIUMLYjKzIkZQo0T4kDcRYFQDEEZR4BdPwDRoQjR2sxTEQ0cpcjc1XmU3LFc2TWZwUidGE2YKclPt3FTWQCMWgWZyoVc1AmKikEUrQkZz7lMRMibQ4BQLo2RBQjZykiSOg1QUcFQgMzPZ01UoMkYiMCaSEkZh4TX0HjYkASLEEScTo2RCgkMKojZvjDcoIUZVMyM3L1cisjZ4EUTto2ZH4DSVIjUnIlKmMkU2n1Q4k2UEgDU4DULJsFYigDYZgkT0X0XsQ0ch4BMPYlPSwlbWglVVkjQ4.GME0jYEETdXEURXcFZCMmLTITUNE1Zz8FZCUzLpomTxojRT4BRwMDZQI0UjQlQyTGUmESZEQWRJo1UpcTPCszRmg1btHSTu4FYMIid1fURQcSL0AGR3ombRkjUB8lMtIzcUUEV1DicBUySBolPLEDbHgkSZgjK0LjLkIWYSQSXDQGLWIDZKMCaxfzaqHmPNESS2D2c1UGLE8zM1kmb0H1P3wDNLEiMXQ2LWM0SLMkZN4hUmITPnYzYTgzY4jlcWcmbMclbNwlUqszUM0jLwfVP3j1UREkbZszXloEMQkjSQIDZoIkUUMSbUgVXHg0YYgCY3TyQXEDZmgFYqUkYJoDNGMWNQICNPcTYi81aoAUUNQEZzTVcuoUUvX1XRYlR2PEbQUDaTgzRlYTVWQUS0TTTW0jdjgzPHsVTpclRFkjaAIjTtgkKPQzPpEDLKAkVsEjUDYDRyLjK77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..",
           "type": "vst",
           "uid": "ac021178",
           "uniqueId": "7b732394",
@@ -4440,7 +4450,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1023,
+          "id": 1024,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -4456,7 +4466,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1024,
+          "id": 1025,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -4472,7 +4482,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1025,
+          "id": 1026,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -4488,7 +4498,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1026,
+          "id": 1027,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -4512,7 +4522,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1027,
+      "id": 1028,
       "name": "bass",
       "_children": [
         {
@@ -4525,7 +4535,7 @@
           "_type": "MIDICLIP",
           "colour": "ff00ff55",
           "currentTake": 0,
-          "id": 1032,
+          "id": 1033,
           "length": 150.0,
           "name": "bass",
           "offset": 0.0,
@@ -8259,7 +8269,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Mini V3.vst3",
-          "id": 1030,
+          "id": 1031,
           "layout": "_b64:99.LETVOUEU..P.BjjSPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..OUEUPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..",
           "manufacturer": "Arturia",
           "name": "Mini V3",
@@ -10595,7 +10605,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1028,
+          "id": 1029,
           "remapOnTempoChange": true,
           "type": "volume",
           "volume": 0.52709436416626,
@@ -10608,14 +10618,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1029,
+          "id": 1030,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1031,
+          "id": 1032,
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
@@ -10634,7 +10644,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1033,
+          "id": 1034,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -10650,7 +10660,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1034,
+          "id": 1035,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -10666,7 +10676,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1035,
+          "id": 1036,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -10682,7 +10692,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1036,
+          "id": 1037,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -10706,7 +10716,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1037,
+      "id": 1038,
       "name": "drums",
       "_children": [
         {
@@ -10719,7 +10729,7 @@
           "_type": "MIDICLIP",
           "colour": "ff00ffaa",
           "currentTake": 0,
-          "id": 1042,
+          "id": 1043,
           "length": 150.0,
           "name": "drums",
           "offset": 0.0,
@@ -15229,7 +15239,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Heartbeat.vst3",
-          "id": 1040,
+          "id": 1041,
           "manufacturer": "Softube",
           "name": "Heartbeat",
           "remapOnTempoChange": true,
@@ -15246,7 +15256,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1038,
+          "id": 1039,
           "pan": 0.03125,
           "remapOnTempoChange": true,
           "type": "volume",
@@ -15260,19 +15270,19 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1039,
+          "id": 1040,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1041,
+          "id": 1042,
           "layout": "_b64:131.LETVOUEU..P.BjjSPUEUSA..AHfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..BU0T.Df.o4FYkgG.ATP.A....vVX48VczAP.CTvP..vSUQETUQ0T..P.AHTUSAP.BjlajUFd.DPAA......agk2a0QG.ATPALAhT...",
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
-          "state": "2596.VMjLgrgB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN1HiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRWUiKJASNRshYQMkRyc1PtnUUGwVUxQzLVIlTGY1S1MSbNEiYmwlRAkGV5g2RCkVU3MSPy3DV5Y1aH4BUBUUPyMGdJQlK1XlZR8lbVQkQw4TR2PkX3AUU2nlZR8FSqolRGMDUW0VTH81PgMVZyM2S18DQ1zlbFEVSnomPnEDTU4BSDYGUqPGNZQlRyMFZmcjclMjUMgza4gjRPomRPIGQuEERZ4jPOIWTy3FMIUSLTAiV1XiVZYCZyQGcqUULwfFb0gVb5oWaYYGQ2fFRvDWYQczUt3hXwX0MtLTVHQTPJAkblkmK1cmZOQiczUlYAgERFQDM40jXRkzMmkDa4UFQMIDTtjjTSEkbQYzMtQVXyHWVGYlUsUFR1nUSOQidyIyUzTTdvszaRAmMyo1JoICVh8jcEkEQvDCT4oDa58lZUAEdHEldxIDRgQDNAIjPno2MB8zYswVdFUkK3EzXOQEM1vTNOgSXxc0YLkTbS01RvoTR4olcG8TZqgTTlwFblM0Rh4RTVomKro0Z0bmbNUWLncGbkslSCYVav.2ZVsTbRQUTFQCS1LSQJ4VZvklXGY2LoQlKC4DZQQDUMgUTSUjb2klQMAGTR0VTyPjZMoEQAgmKn4jKHQDRBgjbtcVdrgDLncWSzkkX1cCaVE2RBo0TPkFMjM2ZSEWQgc2RKcGaAoFamMCMznmKWgTTq8TTYcCVOcSV2bVSlgldxQDTQwTTpwlY1c1P50TMlQkYogjatbDRyPDcQczTlMETJEjS43BT4fjPIwjPnY2S2bFS2cSP0IVPJ4TPmEDVmYTbx4hRPIDSCQjcoEDUtHFSAI0ZTo0cJgTVD4TXlQ2YHgFRBoTbtTCQpgTMpolK0PzZHojaO0lViQmTVsRVso2XYcCdm4jQwslTPYEZskmawbiUwEERpACYFcEbn0TVMIyJ3c0cwczJuczXxTELsg0XuoUcJMVdz3TXjIUZPUCTRoDTzHVXXI2XtokSggSaLYUZw0VbPEibxLFNnc1QzQEahMiXggFRAAmZH4jKGcyLhI1LtEERlQ1Rw8FVNcDdRQWL4HSbKslZvDSRUAWZ3fCS4DCNUklY27lQPEDbXgDV1AERBckcIcibrYWVoAkYrgWULECU2IiQYUkSqXUVGkVUqHiUnEFTzDVRtLFTznlKlM0MB4VPTglZQwDcmsjXt.kYBwDYmszLxoEZuMSZNcCQgYWaYYmQlIzTpIjPyL0SDcTPIUlVmQEam8jV0bFRMshKpwlYHo0TLQTQjY0Z1kkZU4hVUkWLncWdpgWXqE1cW0FNnUkahkUSyIlMzkkVqQVa5kjKnoVTLY1cKIVPtnmPHYkc2olTwLSTPgTVpYDYXMzRyjTTCAUdHsDN2.CSvIVch0jPqIGbhE0a0bmdZ0VSSkSZWoVTBYVTTkWPwnWTDgzUDEzPHkEQuk1X1MkMQIzQMYTPTQUL3AiSWUGNLUTNhUmRoojUYcTLnk0XFcFTEUiVNI1ZukUMYcEdzshVvYyb0Uib4okRAUUMnQya2r1LxHmLYo2UQAyaTUWM1wVUIYiVU8FULYTcQ01Ujk0X3AiaKU1RwUGR48lTwnDLhMWU1XSL3E1J0rhTgg0J5QFMxsFUYASMiQlQoshQ1PSM2Q0cukCVVEGcUkGbCgGaZI0aZckXIMlQFs1SFshX2Y0UukyayoVd0XyYQsVRSQGSyYidIM1ckkiZkgGLqwDLvAGMRg2UY0lVYcWanMWXCgyUzgkStUyc4.CLUEldUQiR3E2LwEzJWkWc4gkM4UkL3bkLwjVUwfWRUIidAcEVRUTXOkzYSgjMzfUMZE1bwnkQ2jkVsQVRYkWNvnzUIIFNzEWZyUycIEmM5gCUjMWLEkiXu01LwDSNrsFUvrTMJQEaXgyX0oFaVQVXqnlLgkGbFgGY40lVLgCcwHETVk0JsQkLo0TUikVYKc0Zr8VciQVQrImPMgVXTAiRjASVSYCbqgVa3.iPoUTT0o1PHk1ZTg1Mm4TM2sTdLkldEAkaGclYGY1PKgzQ13hQYwVRrckZYYzUZcWa2slYVoVYHwTdDYzUZ4BYtLjbEU1MRwDchcTMtXDV5E0R3gERmkEdAomSlUyYG0jZtgmV1LSawDSNxM0YkYiVOElUm0TbvbkL2AiZWkSRSkyQgMFd3zzUgQGRqjzZkkjQ4gSYiQGLnUTaMYkZuI2bv.mTqg0ZznkTq8FY4LUdFgWTxrBb3DTZJU0bpMGcRAyQYojXWYmQggGaqvjS37DLlsTaNgCcvPVXVIiQFACauYVSX01L5MUMNEiMqHFb4cjMvj0SYM1X0c0YxEWQiQ2T3YVdU0TYxUEQvEGawAiLoIGa2LGLUMmTyoWdj8lMZozSvHFSq4TYvL0U0kFLpoFL54DanoDahAycUsxRhEzYxUybw.SL0gENWM2ZNUlXKE1J2TVbrgiYJkTcVsVXzDWcsk0bv7Vavg1RDECV3zlUXI0bn4zU171SXIGLO4BYNA2cQAyYXoVTDEEQQglZlEkTwfVPtjTTF8VSycFVgYWVPQTRJEjQCcmYLIkaDsxSUAUQSQlK0k1anETbjsRbiclc4rxbzoFN2XFdjUSaigTczHTYmsRPF4jVwbkZwkGNlA0czUDUlkEQ3gWPtgTVEkDY2DFVEgSVkc0P00TSTQUVrIiZr4xPhQGMnomKNwVdoYCaxY1QGMSTncVU2vFNjQ0P0DSQMckRZcVLMkyLPcVP07FR0EkYrgTb1XWZEMTbyzDM3H0S13TSLslPtDSLhkVdL4zcYIzTrwzUmIGM0QyZLgGZpACYEMFSFI0S5gmXXcETgMVTZIEVtnVSsAGVUIFTWcjPrMDNtIUStIFM0kzajITQhY2cPYELLIGUnYCLBkGcwYmUiUSV0M0R3g1QUUjRKMEVqAkbR8VdHY2L0ojZqozRAESbwolPRUCbQYFcAgEa27DUJkWNpM1QVgkY0QjXhMlS0kzayfma4oDRrUWSzgFVUYUb4PTcIYScUsBdD8FaqDFS0gjK4sDd2XSVtDGVmgDZ38FVngSav4BMW4lPvf1YEQibxQiU4bGLXYETskDZy3hMigCc5gFNzglZDIVNq7DQZgWNDMlb2EjULcFYXQyTFYmXqECUyUyYvrlTsQ1XvnGRtYTNAkjU3XSSoclPtU1Zt.CNuwDdJI2Z2gERDA2bHUka1UCRJokcCglUlwTTVIkKx4jYKMiKAcmXBMjczsTPnEEaXA2PoIDOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
+          "state": "2619.VMjLgHiB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCN2jiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRtUiKJASNRshYQMkRvj1PtnDVGMWUxQzLVIlTGY1S1MSbNEiYmwlRAkGV5g2RCkVU3MSPy3DV5Y1aH4BUBUUPyMGdJQlK1XlZR8lbVQkQw4TR2PkX3AUU2nlZR8FSIMkRGMDUW0VTH81PgMVZyM2S18DQ1zlbFEVSnoGZnEDUU4RSDY2RvcmU2LlTqoELIYDYtLjSXAiYp4TZt4RTw4xcRolQm4FMHcicFcVZr0lKvgyJzD0SBUVYT01Tq7FNNk0ZEYCaFcUcFkCUuwDVBQVTpUCL04VZK4hKNEmU23xPYgDQAoDTxYVdtX2cp8DM1oENAYjYmgETp8jL1kzZ1cDaX4zJQoGRtDjZH0TQ2YTV1kVMycVdrMlKBg2J5QCYsUUVTUCb1DTVvHiawI2aK0TYWcTZ1DDcHklawXjVVcmZNslbBIkQYkFaU4RVo41SPAETpw1UyjzM5IVLtIDTuUUQ1bjXgsTc0vDbhMFNVIWMpsTaF0FSYYycVkGVEkjP5QUQho0YCgDdRMDVvUEbGkWM2n0RoU0JJMVLAYWdzMmdZk0RQUTVpkmbockal4DbNg2Xtj1S0DDSyfjQQAELlUTSUYmQOokdtITRiYzYSAULtEEQHMDR03hYPYFRlYGZF4TXnQ0RoElX4MiYzTkVWQGRt0TPMwlMvXkXZcUL3sjUn0zPH0zP2kWduEDcPglRkgFdybGYyj2LCElKE8VVIYFZXgFRMEzYCcjagoWPu4xQQAUPNAkcIIVZNwlKsYFUBI1MAY1MQQjTXQDQmU1LCkEZzLDYzHDUhIjPCYmPMYUVAQkYDgkQHY1QC4lKyfkPpoza5gVUPgGRhEiKiMTTDEEQTYUP5kDRQoWRIEjdIoTTT4Rb4HFbvPiT3UyS1nFcVwDYi4VZ2o0aDo1ZyPCSv0TcvnEQwj2LvoTLpAiXqrTYEU2My7DNyLUYxLVU3jjUWUkMU8VXNcUdr0ldHolSpoFZ5gib5sFZ4XCYJYCYwojS3AmZ3nVMjE0UR0TZ2Y2PWozTNIFcMEkZtTkTDcjYCQlXN4jX5gDQPsRLIgjZvP0JpUEapAiVRMGViIyURICa1LVXOcUcZQjZOAiKJAUQCEzPFITTyHjSm01ZPYFVw4VcgoENXcWargESWkkTIEWdzcENWciMwLFcBA0QT4TRtLCQ04hVtrFRYQTZgMiPG4BQt4RZWMiPNE1TLUTY5cVaXMTNLMTLtPkYBczTpIjPyL0SDcTPIUlVmQEam8jV0bFRMshKpwlYHo0TLQTQjEiTyvDdJ4xZnEEY3PVbqM0T3rVSWEFVoACankDLroFMzwFSz8lLIMlPlgTVDMDV2HzUt3xbtfVQhwzap0DYDQjTF81YGEicBQlT54BURMmZ0EiQiASUz0lRqgGNqUSb3X1T4LGdkcCZLIkKLglVNYGaNglKzfFRX4RRogzXxMDYZ8jTy31cHYlXsQiVwwlZv.kaBMEcw8TdYUjSCEWdHQDbPcUdmsTVZwFYwrlb1TGa0PVbWMVLY0zZlozXYQlRkkTNMYCLLUSXTMlRvDmSxkUU3QmUUoTQocWbtk2RjcWMpEWTWkiUxkCZL0lRYEFbznUX1XSL0LWYzrBbMIWYZUmSgslRwEiLzjES4DGVOIyQSUTaZEGcykELAk0TM8FUysDcR01YQQSZ28zUxASSv7zbqIlUk8DSvwTV3s1avnUMpQ2LOUFdOQSMJM0bvoEcpcSUw7lUxMyT2YUbFUSchkkStUyc4.yZ4gUUygFcJICR0c2UCkScrUVa2Y0SWMlLkMFLjIGdV0FUiM0QhEzTvgkMIkjXBk0SGMkLUEGLVkGVvb1SSYidKkTXwTWLqIVRmYiMz4TLvcTaxQGaz0Fd1PmU101RqQFZgEWLxHmZvQVTWcFdDEWc1rld5Uybvz1MjAibvclbxbyaFMUcwMGQpUULqjDL3f0TUIyLxTCb5wDNykWV3ojdHQGZvY0cg0VUZM2bUoDYVUmUXIGR0rlXtjkbpIkZOoWTOQVVrkkZz4hP3fDQ23hXXEDMXcjcHkGS2cCZLk2LRsTNLQGQ5g1MCcVVrY2LRMjcCgkYyMSZWg1cqYCTGYmKo4jVQYzPIwzTNYVLAQ0S231YDUULUczJ5A2bjEya1U2Xy0VSwYGavTSb1LiSzTzJpkzJoMmSvHFL3zzUgQGRwciMSozJRwDa1rBdzDyZE0VSVo1axslTqg0ZznkTq8FY4LUdFgWTxrBbvLjQUAmVqMGcpA2S3Q0LZcVSwnVSqjkX0TFbAcUaNgCcvPFLxQmVXQUXrITLlMFZS8za1fUcqj2aNUlbW0FNpAyZ1fiRpM1btk2XRYjXzQUdGEVZPMVXzYUYOgmV3c0bzQUXvsFYwrzXWMEMuwVZuoGMwQVM43jUSIkUSYCVJAGV3MWZgsxRyHzYxUybw.SL0IWNgEFLzjVXYYSaqDVXwLDbpcCcTQ2Z0kCYrAiUsQFbJQmY1YTbSsDVRMWTsEGN5cDSwTSch4hay3lQGI0QRkESngDZHgFRnwjT3YESPEGQYYzbuQiTxEzQAETRmkjKYgjQpcFQJc2JokjcnkTY23jVKgSLAQyUMgDa3DkY0QDd2YlPygTYIwDYjQTNJcyP2Pma28laMoGcPgDUFYVPkI0ZCMCT3UCZyD0M1oDUOYSb4YWX2ombQshTqkEYk4TPFA2LFgzaAAUZSUTc0kmPjkzSGMmaMYCSwAUZ0L2M3kWXOIlR3klbwQFUlkUaWUiSNY2ZHsDd1klZSUkdtolT0MlQO0DSI0jYwPFLyHESDQDaZg0QykDakk2RBozRBYmPmUCbVsVdmEiPKEiY5YkLO0TcWY1XRUSaUEkMkIVL0X1UDAiMQwFRlsjKwMCdHoGZKkTaLsDVXkUP5ITXhcWSnwlXzTUYGYSSDUmdxYVPYUiQuMCbLMFLkEySUUjZyglStfkX5slPgEEVMYmbB41Q27jXC4FNgMyYVIlU0ECStTmYtXlLtwDMWUybjY0X0cUZzEma3QGLLU2RWkDTMUTTYEyczshSZc0MKMSTmkjTC4RbP0jdKoFa3fSam8VMGgEQ0zVZuEULxQidNACdGQlX0YFZyfTdtzVThIjKDQGSyDWXKUFSXoGTyrBcQMCUHkWPVckcRQFLxYzLqI0JlYUcNUSLJcjbPAidtEmRPkzcNUUcuA2UVgmZSQTR2PEbiUDalIyURQWXEo2Syc0LZYTSycjcPokZREFapUiKEITZM41U0.UQmcjKUsFQMUDY1MjZEEUPtvyKIMzasA2atUlaz4COuX0TTMCTrU2Yo41TzEFck4C.",
           "type": "vst",
           "uid": "ac021178",
           "uniqueId": "7b732394",
@@ -15288,7 +15298,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1043,
+          "id": 1044,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15304,7 +15314,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1044,
+          "id": 1045,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15320,7 +15330,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1045,
+          "id": 1046,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15336,7 +15346,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1046,
+          "id": 1047,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15360,7 +15370,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1047,
+      "id": 1048,
       "name": "lead",
       "_children": [
         {
@@ -15373,7 +15383,7 @@
           "_type": "MIDICLIP",
           "colour": "ff00ffff",
           "currentTake": 0,
-          "id": 1052,
+          "id": 1053,
           "length": 150.0,
           "name": "lead",
           "offset": 0.0,
@@ -15401,7 +15411,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Jup-8 V4.vst3",
-          "id": 1050,
+          "id": 1051,
           "layout": "_b64:55.LETVOUEU..P.A7TUTAUUTME..DP.BU0T.Df.o4FYkgG.ATP......vVX48VczAP.ET.SfHE...",
           "manufacturer": "Arturia",
           "name": "Jup-8 V4",
@@ -15421,7 +15431,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1048,
+          "id": 1049,
           "remapOnTempoChange": true,
           "type": "volume",
           "volume": 0.596120178699493,
@@ -15434,14 +15444,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1049,
+          "id": 1050,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1051,
+          "id": 1052,
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
@@ -15460,7 +15470,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1053,
+          "id": 1054,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15476,7 +15486,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1054,
+          "id": 1055,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15492,7 +15502,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1055,
+          "id": 1056,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15508,7 +15518,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1056,
+          "id": 1057,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -15532,8 +15542,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1057,
-      "mute": true,
+      "id": 1058,
       "name": "chords",
       "_children": [
         {
@@ -15546,7 +15555,7 @@
           "_type": "MIDICLIP",
           "colour": "ff00aaff",
           "currentTake": 0,
-          "id": 1063,
+          "id": 1064,
           "length": 150.0,
           "name": "chords",
           "offset": 0.0,
@@ -18168,7 +18177,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Prophet-5 V.vst3",
-          "id": 1060,
+          "id": 1061,
           "layout": "_b64:55.LETVOUEU..P.A7TUTAUUTME..DP.BU0T.Df.o4FYkgG.ATP......vVX48VczAP.ET.SfHE...",
           "manufacturer": "Arturia",
           "name": "Prophet-5 V",
@@ -18188,7 +18197,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1058,
+          "id": 1059,
           "pan": -0.03125,
           "remapOnTempoChange": true,
           "type": "volume",
@@ -18201,19 +18210,19 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1059,
+          "id": 1060,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Widener.vst3",
-          "id": 1061,
+          "id": 1062,
           "layout": "_b64:99.LETVOUEU..P.BjjSPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..OUEUPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..",
           "manufacturer": "Softube",
           "name": "Widener",
           "remapOnTempoChange": true,
-          "state": "535.VMjLg3f....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9LSL23hRPIUS1QUdLoGRS0DdHMDS5wTZMMiXS0TLToVSBMVdLgmK4wjdPkGT5o1PMECTS0DdDkFQBYFTtfEQlojaG4hRvjiTqXFNs4BLg4hK3MmbJEmKyL0QLMDSk4RcZgFdHg0RwIjLlkmZs4BRHcFaBEyLskiZM4Fa3XEYNUDdlIDQoYyZP8ldjElZTwlPscGMxYWYMklQVojYlwFQZMWUPAkRVkTTtbmargUPyHyP1jVcM8zTmolPCkDdS8zQiAGQvI2Unk1Lrg0ZHQDMwAWcBEkLBwFMXw1Q4cyYuEzUVYlYxrhKWgGSwc2RFMjPmUybScjS5EjPvYWNPYyL2jyPhYSXAAWZmkkV1fSYmUTd50Tck0zU4b0MtIUPMkmMqvFZYojK0UVV5s1JqkEavgiarcmUkoGLLMkKB4lb2ITLNgTRwj1SGoGdkU0Ql8lTnITcWIjQ0bWU3QTdFYjVx4jcKI0L4DTSOgmZ5YWQtLjKBclP5EzMxMDdPITV34RZYQCTVk0c5IESpU0TLMGT4wzYiM0Rn0DaYYmdn0zYUMDS1QjUNcVUrwjcTMDOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
+          "state": "535.VMjLg3f....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9LSL23hRPIUS1QUdLoGRS0DdHMDS5wTZMMiXS0TLToVSBMVdLgmK4wjdPkGT5o1PMECTS0DdDkFQBYFTtfEQlojaG4hRvjiTqXFNs4BLg4hK3MmbJEmKyL0QLMDSk4RcZgFdHg0RwIjLlkmZs4BRHcFaBEyLskiZM4Fa3XEYNUDdlIDQoYyZP8ldjElZTwlPscGMxYWYMklQVojYlwFQZMWUPAkRVkTTtbmargUPyHyP1jVcM8zTmolPCkDdS8zQiAGQvI2Unk1Lrg0ZHQDMwAWcBEkLBwFMXw1Q4cyYuEzUVYlYxrhKWgGSwc2RFMjPmUybScjS5EjPvYWNPYyL2jyPhYSXAAWZmkkV1fSYmUTd50Tck0zU4b0MtIUPMkmMqvFZYojK0UVV5s1JqkEavgiarcmUkoGLLMkKB4lb2ITLNgTRwj1SGoGdkU0Ql8lTnITcWIjQ0bWU3QTdFYjVx4jcKI0L4DTSOgmZ5YWQtLjKBclP5EzMxMDdPgFSvX1TXYGSFwDavHESw.0PYMGTSgkZmM0Rn0zPNcFLR4zYYwVVxX1PNgVVVwTdPMDOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..",
           "type": "vst",
           "uid": "ed4b585c",
           "uniqueId": "562a38dc",
@@ -18228,12 +18237,12 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1062,
+          "id": 1063,
           "layout": "_b64:131.LETVOUEU..P.BjjSPUEUSA..AHfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..BU0T.Df.o4FYkgG.ATP.A....vVX48VczAP.CTvP..vSUQETUQ0T..P.AHTUSAP.BjlajUFd.DPAA......agk2a0QG.ATPALAhT...",
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
-          "state": "2660.VMjLgrkB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DSNw.iKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRGYiKJASNRshY3LkRy01PtnUVGgSUxQjdVAiZNgDT1gVLQYGQDYCQF4jdCQWMynjctLTapQUbn4jPWETLDIGMTQ0TwIVUko2TTozZRsxQt4jRzcmbiQ1aJoWRqolTYIkRSQjUDgDUqjDUKg0LYE1RWU1LxrxMwY0RQoUPnEDQV4hSD4Rd0XScWMFLnslUOM2LDMTTlQyQLQlZBcDU1EEUNYVLQolQq4VPIUicPQSTSMkYw3jSgw1ZxMSa5sVbjoEbyIGdZE0Z0HUa3vVQ24RRHYTTgYyclMDStXVavrjXlslbDglYEgzU2vjKOA2LR4jbVQmKCYGTLIFdMImPIwzSRoFRtblZH0TQ2YTVtkWLgQVLxMDTMwTMwk1cjQGMvkjQ2.yU4kzUSM1YvASLRIFSkcDQDoEQzfCTS4DUmM0RXEkRtIWTCsjY0DkZKA0SPoFaW4VRicSaM8lK5ICcKElcskEMTUVU5U0Q1f0X3DiZ0X2U4kDV1XDbSYlKMc0c4sjVlMEU03Ba2LVXrc2agojQ0UmX1kkK03FUyomVQAiPggTZhw1Y2fGQ1kEMHcjPLYzaHY2MokEQAcWZi41YBEidQklQgolPGQEYRgmQM8DSYUSPxfjPGAEMHITQwbFas0TTwg1cMECMkY2MJ8lUNgjaIETSrEWXK4zaTwTQ0gURwzjY5IFQio0UFQjZTI2YKEUV4fUT4jESR8jYnomcD4larQzaIkzSOAUNlMDTm01TNcVaGYGQ2DTaRMSRIolco8jYDckSYQDQmA0LHYTTrg0MlckblgSRIsjcNoWTNQkKholKx3RP0fkKEYWZJAULtYTclUzalgWdFgTYhgWRsYmPKYlUYkDZV8VRlY0cIgFbJkycRwFb3HUNkcibkEWUkQmMvfCNXM1ZS4VLqP0arYGN3nlMZQyLHsBViQCV3fmRSgWRigCZzw1RB8TP34BZN4BRDgjPIsDMIYFZXIkTDMGZR4xbBMEQqomaD4zaTk1S3LyUBUlQhkFbSQWNIEGdkUCbxIidSwlT2AkZWozPPIFcME0at.CZt0jKGUyLh8zSZQjPHASchMEdXsjboAmTAUVUy8Tb2wFbvLSLXwTavcUSOIEZKAicIgUQKQiPVITTyHTTQ01ZRY1LUIiTIs1SYszZvQUbsQGYLYUUQY0TYYGMN0FTq4hcmsVUBYVatUDTCIGQQkVVyjlYxEjKAsDdHYjcyDUPEU0YKUCTSomKWwVPgAkRXQSTEAmYtH1cGIjZHUzUZclVLMDct81Qno2MCAkVBglaMcmcToWTvf1QTQUPH8FSwbSUgUCbyH0JpYCb17FVy8lXqQmZzo2Qs4TUvc0YS4BQQkVVHkFVtLjKyTDTzMSTqYkbzjlYPgGRMcicrUkaSglQlUid0D0agk1bwPUaS8VbqnWViozUqoTYN4lV3L2MHUGRSQDRo4lUCI2Y4kDT1gjTFAkdHIER1.UaV0FdoYTZtfFMhYyUv81SxT0Y4ACLUcTN4YyJvX0Sx.idgUiRL0TVqMVLSsBMgcESwjUQx7lS0PUSFYTYvLmTVk0MqnGMZQCUCgmTwcycZszR3UyaxTCcnIWL0IiV1bGVI01Rz3zb1UFclsjaBM1cTEGMrojbykiLZUVLqQVbVYWVBAWSgECbGElUYIWduI0JIIiLgkiZuQiLKsRLwL0Y4rBbTEib3cSbTYEU3okS4zzRS4DMvQiTNAGTGsBUrsTNK8lQWsBZYsFS4f0bHMkP1jyb5g0MznTbiIWN1HSMsMyLNcETyDVaNsRa2MWXiMmTzgmUsU0a4sTSzHUY4AyRxfiUMYkbq8TaTMUb0AiU2IGaR0zU1vld3HSLjgiSkQmLzTWYvPiXvTSLZY0Z1ESbMkEUJc1R2bVdzfGcjgiMRIyU4TiTqg1as4zUP01bZQGQ5MVXKEiVy.GLpYySUECZxQWTz.mbqQCY20lXAckUSEjLxfiRis1bWsFN4ojXgEGbpMzXDc0cvbkU2k0ZVAmUMUib0XEVzgTMEYlKYYCREYkY4sjUmoEUogTZHoFZ2fGS4gzP3cDUDAkaCkSTE4hZm4RZLkGQ4sDdLMETZQSazjlYVo1SPgEaIwTPmEDRBwjcVwDdKc2M3cFRDgkYQgzbHkVVDwVPHA0PAoEaNokT2YTbCoTVRkjMWASbgsxb3kGavL1YMU0crYSMVQGQ0jSaoM1SzjDNqXUbgUyblIGb0PyR2Y0LwgUSWshXRkCLTcUZznDQzgELoQ2ZBcUci4jLgk2XwjiaCUFYRYSN3nzPzgELvLma4PVYggGV5cEV4sFbVkVSxjGNw8FczcWTzkTaxEGVSMiT3EyarY0bWMEcIEmTzDiRpQCYsoTPYYEbIM0StcSSvfUajAWMiIWLZEGa3cGMhUENhIzZNsTXkkFNVsFLNYUZKISbiMDdXgWaDQWREo2Y1P0X0QSd2AGbuQ1XzfkSjgGcN0zUikmT0kFLJMULyw1LrAiaSQGUynGN3f1Xzw1P1nVd2PmdrU0bBM0atoEb04lTvHlcX4hYvklVh4xXJUzcPYTTpEEQQoVTRECZA0jTrEkdtw1R4YjUJIDVRQkPLQTZAkERAIkYDsxSrYlRTg2PxU1b1gjbOYkb2nzQFYmY1sTViMjaxQ1JicFa4sTdWUySPYDZxXlRngzQig1XskjPF4VTlMWU33lS24jRYs1cmQESUUDRvwTVkIGYgoUbhg0UjElPYolcSIUdgIGUlk0ZSI0SCwjTAU1RDwDaCo2Y2bkVmIGZIoTcEkTb2XkXpglUDYCaGIjU5ciKJQlX3IjM1fjQuUDTTQ1P3sTcYwDSzLCTlUkPtEWVRg2c0kUaZMCYCMlcFITd5IEZv3Vd0QSQvzVQAg0Th0lYxsTM1UmYx4BbYEmbV0TT1UGapYEaUcSbMoTcN4VXkcicscTLvrlPzUETzE1TmgVYrM0RVsRUgc1b0gUVHIFRocULiI2ayMSS1UkSYoETwTjVrshTqI2JVUjZWYFSDAiXRI0YMkiQA4BatblUHkjT5oWNyQCUVIlYr0DRVshX1M2ZukELgIWN4QmQVw1UKUlRuwFaqTyUKkWX2LDYw01RPcjSJszQoMWX2EGaDE2MxESYVMFYjI0ZPgjPwX0RscFasslbvMkY0PGUDgDMSUDcw3RR5MkXB4zUmgFQqTFRlMVbtjyPzcDVUQDSlc0SKITNUUETqTybVc0R0IzUvQWZW0DdqQzPvkSMxQ0ZOA2aoA0UP8ldyHDZwYGbyblbyg2PyvVMFg1JtPUPj4hK24hYAQjSXUkYtDkcR4hRMgTYnMSPvclYXwzMEE2c1ojR77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..",
+          "state": "2663.VMjLg3kB...O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DSNwHiKJAkTMYGU4wjdHMUS3gzPLoGSo0zLhMUSwPkZMIzX4wDdtjGS5AUdPomZC0TLPMUS3QTZDIjYP4BVDYlRIYiKJASNRshY3LkR3z1Pt.WVG4hUyLjdhMkVC4BS501P1wjLTUiRzbUQlkVZPMENY8jKXIGQO4hS1Ylc4LyS101TpM1JuIlcCYiQZgWb10zUzvVb23Dc5UmazfUZ0rhcJIER40FLwPTXXgkKlUjYFEzLZcUcocERyk2LWQGYqHSd5E0L1gjTtficOw1MuoVQzYmYqYDct4jPEokSAgyanokSVEiVKYUYXczMJgCcRkGTvICcJkVLPAWdIkFYyUDa14xUyUlVtLUQl4RU0EjKncGSFgGRpslKvoETEAEQmslLo4Va2Pja5kVUBoDRYQlXzLzRlIVTUwlTQQCU1rTUUI0RVoWbUkiXzjmckQ2aXg0bmgUaxLUa1LVL4g2a4UzSnI0PWolYwQyQtYmKPwlPt3RN20lTT4hc0LzUDkURnsjRswTaSkGbRgzc0TUXzDGNncWN2PCbygSXjE1YYoUZmU0LsM1TJMSMYQDUz7lVtLlaGckQxIWVwgiS5o2QiAUcUcmYuYjX3QiQJ4jZK4hStjjXRIiatMEVvkkPkMTZ5EkSLgFQHMCd3MjVlITQq4TTQQiYkwDMSsVTJEUUA0lXM4lcqUjb1YWUQomKUU0aww1P0DUY0nlc3bTd3nVZHoEZHQUN20Vdh4ja4UFTFolPVQUazn2Rkc1R4bWPDMVTnQVdA0TRicSPwsjRyf0XM01RJkFUUkUQBkEUpAGYHI0ZHYjTHwTRpoTZDoFbz4BQnUCMGkiaGcCTGgzXT0jRRUzbJklbA0jZAwjXAsDUAoDSmMUTtHTUtjEMtXDSt3xMo8TUqImPQ8DN5kFTtXmRtAiXEQUXxIDdMcUP54Tc0fka1XzaX0lU3byUkMGcNsldzUUbjIicYE1J5IWdqM2bZUjLj8zakgCbx7DMiEicGg1XVsBbWkEUjMGNXUzYKkDVMc1RlwDaxf0XA0ldhUjZZImPn0zULAWZXUyQFQzc5sTSZgiLp0TXkQ1a3jmcjU1XRgkM1kCLuwTLQMiYnEEZEIUVuEWYxIjcUwDc3kzaxAGZJwjUz71MMslcyfSa5wFL3UlMzMUc20TaxHib1v1XvgCNjYGRDEUQnYVa2IGZ2AEargTaSUWZXQyS5sxQFM1M4UiVqgCNpc2MzkzZ0w1cjQmLgwjLBwTRTAkRtUCbn8FR5UkPPAERhEES4fFTGYmKE4FdE0lMPQkUrMDSHIkRUclSBUUPpMFYtD0T2YFakgDZIwDTJQTT2s1RJUGVQEDawIETu4TahEja30lZXEENOoUbRIGSwn1bCkkdVQVZjMzczUWYvnjMmMGUGYyP3olPzIkKB4jYAojKAYjYq4BbtnjKq41UVszMEAiUJ8lZSwjKTUkVJYUdznWYv0jSwEEa2XiL3DWdY8TdSYSY0kESOojPuIkXlEGVGoTVvcTbBI1XtDGQh0zPyIlR4rBUQkkQKElMQc1b2vDZigWLrMWdNY1RJMmLYMVN5o0MU0VdrUUd4ECd3QlMSg0buQiV1DDNuYyMsgyUusTMwrzbq0jbx.UaVYyMwQibtUDdZMiRLEiYWMSasUlLjcUckUyM1fUQBkEdIESYVkmT48jM4EiUzrFMjcTZ3IVXo8jV3.iaMUFZsUmMYkGSgshc2HSd1XSS5sFdF8TbyX0brEGVVwVNMUWLnASLN8ldFkVY0MVa0n0LEMTYqHUYGkmZybkXngSXgsFYycFdKgyY1XSZ4HlLmUWUXciP2EyJwUWNjEWdFkiT08VS0HCUrUVXzzFLVEVVznFa0M2J1HSZMEFVg4DNWkmZLoEU4T2axkCZ1YSZwIkX4Qld0UVa1bWVqD0MhYUX2UiL3UURU4Tb5YUa4UWcgcmLgIWSRYCR4f1cwv1ZZkGMrszJGMGN0XTQSYSaoQyX4fGbikSVsY2UTgmbSk0RjkVc3fSSg4TbM4TLzMiUCEFTYgiU28TXCYzXwXTURM1XCczaMkybyMyRPgERCIiLy0TXzkmdogiXQYjX0fyPAUjcUEkb1IDL18zR2omKTIzPXY2ZNwVTNojRuolczYmQzf0Q5YFQuYVQxXGRpIUMtgFTJkzULQTSIoURFIzUxDkTYklXAcjcmEULmoWTQcTT2ICVFYTV5wjQBUldOIEZEYkL1ozaSQ0JyXFa5g1YXwjZwHldzgid0gyM1LVbYk1bCwVXMQSXnMmTZUUM4kTX3okRMkyXoUUYVU2XkQGdl0zRvDTZ3UmR2QVSwfGRhEiU1jmMzTUNZEVX4HEMhYTdyIlZj0VL0nFLqb0aMoWN2XUN2E1UukmUDUVc4wVSNcGc0UWTIAyJZI2ZkoWcjQTa371PrM2SLI2ZgEyRREFaLYSSFISNwHzZT8VZYMFRKgVVUsDcrYiM4A2booDNNYTY2ESczHVd3j0RjUyLH0jPwMmQ4HUc08TRyshaEIzcUI2b2oUcskmSyMmXKEGMvoWXWoWT1zFQJgibKUlU4fySpE0Z1U2YyrRXrsBYks1LWEVdRUyJh81TF0VLs0zX0gSMxLVYgkES0U2UWQWbWckKlAWZZgERioTQ2AkQQQTVDkkPooVMnETSRwVT54FaKomQVgjPXIEUBwDQoETVHEjTlQzJOwlYJQEdCIWYE4hKxMjT2wlYl0jYz7zU3UiQPkEN4XiPo01QmUGUkYFQEU2cWQTTjIVYwLFYHgkYHIjbAo2YEgVQTgmRpQGT4rzZpUWQtMzTwXycj8jROMybzPTQu4FMigkR1gDRIEkZF41Uwj0RxUGSjIWSYUDMIQ1ZkE2MVcVcHkWZxjFcDkzRDETZKQiK1PjU4EFLNoUNsgmRPQFYmkVbwczPS4DSDgzZxUiVro1MmECTqbVMYQWRLEGLYMGZZoGaWoWUVQjYMc2XrIGctMzJPIjK181b3UidDITaiIkVHEGZkAialUiYJYCbWIldY0zUZ4FTEclVxsDUlsVRtXFLSEmUXMzUxIzYiMSdJgiSVsTT2vVVsETV0bFbG0TV0UyJw7DbBgGatDFUmMkREEicxfjQPYjTJoVRQIjK1HiKNkEZGYmX1IEVMQ1S30VVv3zU2rBcFMVMVsjLKk0ZFASMWsTdgwjV0AyJEojLNIjKgMWQngTY2YzZ0Akc07Dcy.Sa5gjZEc1bvTSVLwjZnQELDQFcS4jPVYWVSMlMlQUMYIWYpQjUpE0QBsxc1ImYvkWPqjUPsciXYUjc3.mP1bUYBMVQrU0cvI1QMMmc5cDMW8zPNoGLmQVUx.2boA0UPsBLyHjVvYGc3QFNmEmc3PGYwQSSOoELOAEThA2bt3zPJMTToYGdtTyXIcUVN4RUhEkKnMGTN01UsEjK77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..",
           "type": "vst",
           "uid": "ac021178",
           "uniqueId": "7b732394",
@@ -18249,7 +18258,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1064,
+          "id": 1065,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18265,7 +18274,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1065,
+          "id": 1066,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18281,7 +18290,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1066,
+          "id": 1067,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18297,7 +18306,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1067,
+          "id": 1068,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18321,7 +18330,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1068,
+      "id": 1069,
       "mute": true,
       "name": "noise",
       "_children": [
@@ -18335,7 +18344,7 @@
           "_type": "MIDICLIP",
           "colour": "ff0055ff",
           "currentTake": 0,
-          "id": 1073,
+          "id": 1074,
           "length": 150.0,
           "name": "noise",
           "offset": 0.0,
@@ -18877,7 +18886,7 @@
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Surge XT.vst3",
-          "id": 1071,
+          "id": 1072,
           "manufacturer": "Surge Synth Team",
           "name": "Surge XT",
           "remapOnTempoChange": true,
@@ -18894,7 +18903,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1069,
+          "id": 1070,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -18906,14 +18915,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1070,
+          "id": 1071,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1072,
+          "id": 1073,
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
@@ -18932,7 +18941,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1074,
+          "id": 1075,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18948,7 +18957,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1075,
+          "id": 1076,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18964,7 +18973,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1076,
+          "id": 1077,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -18980,7 +18989,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1077,
+          "id": 1078,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19004,7 +19013,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1078,
+      "id": 1079,
       "name": "track8",
       "_children": [
         {
@@ -19017,7 +19026,7 @@
           "_type": "MIDICLIP",
           "colour": "ff0000ff",
           "currentTake": 0,
-          "id": 1082,
+          "id": 1083,
           "length": 150.0,
           "name": "track8",
           "offset": 0.0,
@@ -19044,7 +19053,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1081,
+          "id": 1082,
           "remapOnTempoChange": true,
           "type": "4osc",
           "windowLocked": true,
@@ -19057,7 +19066,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1079,
+          "id": 1080,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19069,29 +19078,13 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1080,
+          "id": 1081,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
           "busNum": 0,
-          "enabled": true,
-          "id": 1083,
-          "quickParamName": "send level",
-          "remapOnTempoChange": true,
-          "type": "auxsend",
-          "windowLocked": true,
-          "_children": [
-            {
-              "_type": "MODIFIERASSIGNMENTS"
-            }
-          ]
-        },
-        {
-          "_type": "PLUGIN",
-          "auxSendSliderPos": 0.0,
-          "busNum": 1,
           "enabled": true,
           "id": 1084,
           "quickParamName": "send level",
@@ -19107,7 +19100,7 @@
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
-          "busNum": 2,
+          "busNum": 1,
           "enabled": true,
           "id": 1085,
           "quickParamName": "send level",
@@ -19123,9 +19116,25 @@
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
-          "busNum": 3,
+          "busNum": 2,
           "enabled": true,
           "id": 1086,
+          "quickParamName": "send level",
+          "remapOnTempoChange": true,
+          "type": "auxsend",
+          "windowLocked": true,
+          "_children": [
+            {
+              "_type": "MODIFIERASSIGNMENTS"
+            }
+          ]
+        },
+        {
+          "_type": "PLUGIN",
+          "auxSendSliderPos": 0.0,
+          "busNum": 3,
+          "enabled": true,
+          "id": 1087,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19149,7 +19158,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1087,
+      "id": 1088,
       "name": "track9",
       "_children": [
         {
@@ -19162,7 +19171,7 @@
           "_type": "MIDICLIP",
           "colour": "ff5500ff",
           "currentTake": 0,
-          "id": 1092,
+          "id": 1093,
           "length": 150.0,
           "name": "track9",
           "offset": 0.0,
@@ -19263,7 +19272,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1090,
+          "id": 1091,
           "remapOnTempoChange": true,
           "type": "4osc",
           "windowLocked": true,
@@ -19276,7 +19285,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1088,
+          "id": 1089,
           "remapOnTempoChange": true,
           "type": "volume",
           "volume": 0.582468092441559,
@@ -19289,14 +19298,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1089,
+          "id": 1090,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Console 1.vst3",
-          "id": 1091,
+          "id": 1092,
           "manufacturer": "Softube",
           "name": "Console 1",
           "remapOnTempoChange": true,
@@ -19315,7 +19324,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 0,
           "enabled": true,
-          "id": 1093,
+          "id": 1094,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19331,7 +19340,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 1,
           "enabled": true,
-          "id": 1094,
+          "id": 1095,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19347,7 +19356,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 2,
           "enabled": true,
-          "id": 1095,
+          "id": 1096,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19363,7 +19372,7 @@
           "auxSendSliderPos": 0.0,
           "busNum": 3,
           "enabled": true,
-          "id": 1096,
+          "id": 1097,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19387,7 +19396,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1097,
+      "id": 1098,
       "name": "track10",
       "_children": [
         {
@@ -19400,7 +19409,7 @@
           "_type": "MIDICLIP",
           "colour": "ffaa00ff",
           "currentTake": 0,
-          "id": 1101,
+          "id": 1102,
           "length": 150.0,
           "name": "track10",
           "offset": 0.0,
@@ -19427,7 +19436,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1100,
+          "id": 1101,
           "remapOnTempoChange": true,
           "type": "4osc",
           "windowLocked": true,
@@ -19440,7 +19449,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1098,
+          "id": 1099,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19452,29 +19461,13 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1099,
+          "id": 1100,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
           "busNum": 0,
-          "enabled": true,
-          "id": 1102,
-          "quickParamName": "send level",
-          "remapOnTempoChange": true,
-          "type": "auxsend",
-          "windowLocked": true,
-          "_children": [
-            {
-              "_type": "MODIFIERASSIGNMENTS"
-            }
-          ]
-        },
-        {
-          "_type": "PLUGIN",
-          "auxSendSliderPos": 0.0,
-          "busNum": 1,
           "enabled": true,
           "id": 1103,
           "quickParamName": "send level",
@@ -19490,7 +19483,7 @@
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
-          "busNum": 2,
+          "busNum": 1,
           "enabled": true,
           "id": 1104,
           "quickParamName": "send level",
@@ -19506,9 +19499,25 @@
         {
           "_type": "PLUGIN",
           "auxSendSliderPos": 0.0,
-          "busNum": 3,
+          "busNum": 2,
           "enabled": true,
           "id": 1105,
+          "quickParamName": "send level",
+          "remapOnTempoChange": true,
+          "type": "auxsend",
+          "windowLocked": true,
+          "_children": [
+            {
+              "_type": "MODIFIERASSIGNMENTS"
+            }
+          ]
+        },
+        {
+          "_type": "PLUGIN",
+          "auxSendSliderPos": 0.0,
+          "busNum": 3,
+          "enabled": true,
+          "id": 1106,
           "quickParamName": "send level",
           "remapOnTempoChange": true,
           "type": "auxsend",
@@ -19532,7 +19541,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1106,
+      "id": 1107,
       "name": "Hall",
       "_children": [
         {
@@ -19554,7 +19563,7 @@
           "_type": "PLUGIN",
           "busNum": 0,
           "enabled": true,
-          "id": 1109,
+          "id": 1110,
           "remapOnTempoChange": true,
           "type": "auxreturn",
           "windowLocked": true
@@ -19562,7 +19571,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1107,
+          "id": 1108,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19574,14 +19583,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1108,
+          "id": 1109,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/ValhallaRoom.vst3",
-          "id": 1110,
+          "id": 1111,
           "manufacturer": "Valhalla DSP, LLC",
           "name": "ValhallaRoom",
           "remapOnTempoChange": true,
@@ -19599,7 +19608,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1111,
+      "id": 1112,
       "name": "Plate",
       "_children": [
         {
@@ -19621,7 +19630,7 @@
           "_type": "PLUGIN",
           "busNum": 1,
           "enabled": true,
-          "id": 1114,
+          "id": 1115,
           "remapOnTempoChange": true,
           "type": "auxreturn",
           "windowLocked": true
@@ -19629,7 +19638,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1112,
+          "id": 1113,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19641,14 +19650,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1113,
+          "id": 1114,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/ValhallaRoom.vst3",
-          "id": 1115,
+          "id": 1116,
           "manufacturer": "Valhalla DSP, LLC",
           "name": "ValhallaRoom",
           "remapOnTempoChange": true,
@@ -19666,7 +19675,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1116,
+      "id": 1117,
       "name": "Delay",
       "_children": [
         {
@@ -19688,7 +19697,7 @@
           "_type": "PLUGIN",
           "busNum": 2,
           "enabled": true,
-          "id": 1119,
+          "id": 1120,
           "remapOnTempoChange": true,
           "type": "auxreturn",
           "windowLocked": true
@@ -19696,7 +19705,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1117,
+          "id": 1118,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19708,14 +19717,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1118,
+          "id": 1119,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Tube Delay.vst3",
-          "id": 1120,
+          "id": 1121,
           "manufacturer": "Softube",
           "name": "Tube Delay",
           "remapOnTempoChange": true,
@@ -19733,7 +19742,7 @@
     },
     {
       "_type": "TRACK",
-      "id": 1121,
+      "id": 1122,
       "name": "Saturation",
       "_children": [
         {
@@ -19755,7 +19764,7 @@
           "_type": "PLUGIN",
           "busNum": 3,
           "enabled": true,
-          "id": 1124,
+          "id": 1125,
           "remapOnTempoChange": true,
           "type": "auxreturn",
           "windowLocked": true
@@ -19763,7 +19772,7 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1122,
+          "id": 1123,
           "remapOnTempoChange": true,
           "type": "volume",
           "_children": [
@@ -19775,14 +19784,14 @@
         {
           "_type": "PLUGIN",
           "enabled": true,
-          "id": 1123,
+          "id": 1124,
           "type": "level"
         },
         {
           "_type": "PLUGIN",
           "enabled": true,
           "filename": "/Library/Audio/Plug-Ins/VST3/Dist TUBE-CULTURE.vst3",
-          "id": 1125,
+          "id": 1126,
           "layout": "_b64:99.LETVOUEU..P.BjjSPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..OUEUPUEUSA..ADfPUME.AHPZtQVY3AP.ED......rEVduUGc.DPAEvDHRA..",
           "manufacturer": "Arturia",
           "name": "Dist TUBE-CULTURE",

@@ -10,7 +10,16 @@
 #include "BirdLoader.h"
 #include "PlaybackInfo.h"
 #include "ProjectState.h"
-#include "libraries/tracktion/examples/common/PluginWindow.h"
+// ExtendedUIBehaviour — minimal inline version for engine construction.
+// Full PluginWindow.h is only included in PluginManager.cpp to avoid
+// duplicate linker symbols from its non-inline function definitions.
+class ExtendedUIBehaviour : public te::UIBehaviour
+{
+public:
+    ExtendedUIBehaviour() = default;
+    std::unique_ptr<juce::Component> createPluginWindow (te::PluginWindowState& pws) override;
+    void recreatePluginWindowContentAsync (te::Plugin& p) override;
+};
 #include "MidiRecorder.h"
 #include "AudioRecorder.h"
 #include "TrackStateWatcher.h"

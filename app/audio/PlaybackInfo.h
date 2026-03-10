@@ -3,15 +3,20 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <memory>
 #include <vector>
+#include <atomic>
 
 namespace te = tracktion;
+
+class MasterAnalyzerPlugin;
 
 /**
  * PlaybackInfo — polls audio levels, transport position, and stereo analysis
  * at ~30Hz and pushes the data to the WebView as JSON events.
  *
- * Uses per-track LevelMeasurer::Client for track levels, and
- * EditPlaybackContext::masterLevels for true master output levels + raw FFT.
+ * Architecture:
+ *   Audio thread  → MasterAnalyzerPlugin::applyToBuffer() → lock-free ring buffer write
+ *   Background    → AnalysisThread pulls from ring buffer, computes FFT + stereo
+ *   Message thread → 30Hz timerCallback reads pre-computed atomic results, emits JSON
  *
  * Events emitted:
  *   "audioLevels"        — [[dBL, dBR], ...] per track + master
@@ -27,7 +32,7 @@ public:
     void setEdit(te::Edit* edit);
     void setWebView(juce::WebBrowserComponent* wv);
 
-    // Called from masterLevels.bufferCallback with raw master audio
+    // Called from MasterAnalyzerPlugin::applyToBuffer (audio thread)
     void processMasterBuffer(const juce::AudioBuffer<float>& buffer, int start, int numSamples);
 
 private:
@@ -45,26 +50,52 @@ private:
     std::unique_ptr<te::LevelMeasurer::Client> masterClient;
     bool masterClientAttached = false;
 
-    // Stereo analysis (smoothed values emitted to UI)
-    float stereoWidth = 0.0f;
-    float phaseCorrelation = 1.0f;
-    float stereoBalance = 0.0f;
+    // MasterAnalyzerPlugin instance (inserted on master track)
+    MasterAnalyzerPlugin* analyzerPlugin = nullptr;
 
-    // RMS accumulation for stereo analysis (fed from raw master buffer)
-    double rmsSumLSquared = 0.0;
-    double rmsSumRSquared = 0.0;
-    double rmsSumLR = 0.0;
-    int    rmsFrameCount = 0;
-    bool   analyzerAlive = false;
+    // ── Lock-free audio thread → background thread communication ──
 
-    // FFT processing
+    // Simple lock-free SPSC ring buffer for raw audio samples (mono-mixed)
+    static constexpr int ringSize = 8192;
+    float ringBuffer[ringSize] = { 0.0f };
+    std::atomic<int> ringWritePos { 0 };
+    std::atomic<int> ringReadPos { 0 };
+
+    // RMS accumulators — written from audio thread, read+reset from background thread
+    std::atomic<double> rmsInputSumLSq { 0.0 };
+    std::atomic<double> rmsInputSumRSq { 0.0 };
+    std::atomic<double> rmsInputSumLR  { 0.0 };
+    std::atomic<int>    rmsInputCount  { 0 };
+
+    // ── Background analysis thread ──
+
+    class AnalysisThread : public juce::Thread
+    {
+    public:
+        AnalysisThread(PlaybackInfo& owner);
+        void run() override;
+    private:
+        PlaybackInfo& owner;
+    };
+    std::unique_ptr<AnalysisThread> analysisThread;
+
+    // FFT buffers — used only by background thread
+    // The actual juce::dsp::FFT and WindowingFunction objects are created
+    // inside AnalysisThread::run() to avoid juce_dsp dependency in this header.
     static constexpr int fftOrder = 10;
     static constexpr int fftSize = 1 << fftOrder;
-    float fifo[fftSize] = { 0.0f };
+    float fftInputBuffer[fftSize] = { 0.0f };
     float fftData[fftSize * 2] = { 0.0f };
-    int fifoIndex = 0;
-    bool nextFFTBlockReady = false;
 
-    // Spectrum — 16 bands derived from real FFT
-    std::vector<float> spectrumMagnitudes;
+    // ── Pre-computed results (written by background thread, read by timer) ──
+
+    std::atomic<float> computedWidth       { 0.0f };
+    std::atomic<float> computedCorrelation { 1.0f };
+    std::atomic<float> computedBalance     { 0.0f };
+
+    static constexpr int numUIBands = 16;
+    float spectrumBands[numUIBands] = { 0.0f };
+    std::atomic<bool> spectrumLock { false };
+
+    bool analyzerAlive = false;
 };

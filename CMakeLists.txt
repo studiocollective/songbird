@@ -84,6 +84,7 @@ target_sources(SongbirdPlayer PRIVATE
     app/audio/AudioRecorder.cpp
     app/plugins/PluginManager.cpp
     app/audio/PlaybackInfo.cpp
+    app/audio/MasterAnalyzerPlugin.cpp
     app/loader/BirdLoader.cpp
     app/plugins/MacroMapper.cpp
     app/state/ProjectState.cpp

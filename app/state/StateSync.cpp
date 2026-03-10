@@ -99,23 +99,41 @@ void SongbirdEditor::handleStateUpdate(const juce::String& storeName, const juce
         // Generate descriptive commit message by diffing old vs new state
         juce::String commitMsg = describeMixerChange(prevMixerJson, jsonValue);
 
-        // Save state cache so echo suppression works, but only commit if there are
-        // actual project-relevant changes (not just UI state like mixer visibility)
-        saveStateCache();
+        // Save state cache in-memory (fast — just updates the cache map)
+        // Disk I/O is deferred to background thread below
+        stateCache[storeName] = juce::JSON::toString(juce::JSON::parse(jsonValue));
 
         if (commitMsg.isNotEmpty())
         {
-            saveEditState();
-            commitAndNotify(commitMsg, ProjectState::Mixer, false);
+            // Move ALL disk I/O to background thread to avoid blocking
+            // the message thread (which causes audio dropouts).
+            juce::Thread::launch([this, commitMsg]() {
+                saveStateCache();
+                saveEditState();
+                projectState.commit(commitMsg, ProjectState::Mixer, false);
+                juce::MessageManager::callAsync([this]() {
+                    if (webView)
+                        webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
+                });
+            });
         }
-
-        // Normalize the cached JSON so echo string comparison works.
-        stateCache[storeName] = juce::JSON::toString(juce::JSON::parse(jsonValue));
     }
     else if (storeName != "songbird-mixer")
     {
-        // Debounce session saves (transport position fires at ~60fps)
-        startTimer(500);
+        // Don't write transport position to disk during playback — it fires at
+        // ~60fps and the debounced disk writes every 500ms were blocking the
+        // message thread, causing audio dropouts.
+        bool isPlaying = edit && edit->getTransport().isPlaying();
+        if (storeName == "songbird-transport" && isPlaying)
+        {
+            // During playback: apply transport state in-memory only, no disk save.
+            // Session state will be saved when transport stops.
+        }
+        else
+        {
+            // For chat/lyria/transport-when-stopped: debounce session save
+            startTimer(500);
+        }
     }
 
     // Parse and react to state changes
