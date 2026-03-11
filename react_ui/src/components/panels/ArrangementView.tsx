@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useMixerStore, useTransportStore } from '@/data/store';
+import { getRtBuffer } from '@/data/meters';
 import type { Section, NoteData } from '@/data/slices/mixer';
 import { Chord } from '@tonaljs/tonal';
 import { AutomationOverlay } from './AutomationOverlay';
@@ -568,7 +569,8 @@ function LoopRegion({
   );
 }
 
-// --- Animated Playhead Component (direct DOM for max smoothness) ---
+// --- Animated Playhead — lerp smoothing ---
+// Computes target position from server data, lerps visual position toward it.
 
 function Playhead({
   totalBars,
@@ -579,45 +581,76 @@ function Playhead({
 }) {
   const elRef = useRef<HTMLDivElement>(null);
   const rAF = useRef<number | null>(null);
+  const parentWidthRef = useRef(0);
+  const visualPosRef = useRef(0);
+
+  useEffect(() => {
+    const el = elRef.current;
+    const parent = el?.parentElement;
+    if (!parent) return;
+    parentWidthRef.current = parent.offsetWidth;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) parentWidthRef.current = e.contentRect.width;
+    });
+    ro.observe(parent);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
 
     const update = () => {
-      const state = useTransportStore.getState();
-      let currentPos = state.position;
+      const { playing, bpm } = useTransportStore.getState();
+      const rt = getRtBuffer();
 
-      if (state.playing) {
-        const elapsed = (performance.now() - state.lastPositionUpdate) / 1000;
-        currentPos += elapsed;
+      // Target position = server position + time-since-last-update
+      let targetPos = rt.position;
+      if (playing && rt.lastPositionUpdate > 0) {
+        targetPos += (performance.now() - rt.lastPositionUpdate) / 1000;
       }
 
-      const currentBeat = currentPos * (state.bpm / 60);
+      if (playing) {
+        const gap = targetPos - visualPosRef.current;
+        if (Math.abs(gap) > 0.5) {
+          // Big jump (seek/loop) — snap
+          visualPosRef.current = targetPos;
+        } else {
+          // Lerp 30% toward target each frame
+          visualPosRef.current += gap * 0.15;
+        }
+      } else {
+        // When stopped, show exact position
+        visualPosRef.current = targetPos;
+      }
+
+      const currentBeat = visualPosRef.current * (bpm / 60);
       const pct = Math.min((currentBeat / (totalBars * 4)) * 100, 100);
+      const px = (pct / 100) * parentWidthRef.current;
+      el.style.transform = `translateX(${px}px)`;
 
-      // Direct DOM write — no React re-render
-      el.style.transform = `translateX(0) translateZ(0)`;
-      el.style.left = `${pct}%`;
-
-      if (state.playing) {
+      if (playing) {
         rAF.current = requestAnimationFrame(update);
+      } else {
+        rAF.current = null;
       }
     };
 
-    // Subscribe to store changes to restart loop when position/playing changes
     const unsub = useTransportStore.subscribe((state, prev) => {
-      if (
-        state.position !== prev.position ||
-        state.playing !== prev.playing ||
-        state.bpm !== prev.bpm
-      ) {
-        if (rAF.current !== null) cancelAnimationFrame(rAF.current);
-        rAF.current = requestAnimationFrame(update);
+      if (state.playing && !prev.playing) {
+        // Snap on play start
+        const rt = getRtBuffer();
+        visualPosRef.current = rt.position;
+        if (rAF.current === null) {
+          rAF.current = requestAnimationFrame(update);
+        }
+      } else if (!state.playing && prev.playing) {
+        requestAnimationFrame(update);
+      } else if (!state.playing && state.position !== prev.position) {
+        requestAnimationFrame(update);
       }
     });
 
-    // Kick off initial frame
     rAF.current = requestAnimationFrame(update);
 
     return () => {
@@ -809,7 +842,7 @@ const loopEdgeHandle = `
 
 // Playhead
 const playheadLane = `
-  absolute inset-y-0 w-px
+  absolute inset-y-0 left-0 w-px will-change-transform
   bg-[hsl(var(--foreground))]/60 z-20
   pointer-events-none`;
 

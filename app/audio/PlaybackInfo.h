@@ -12,13 +12,14 @@ class MasterAnalyzerPlugin;
 
 /**
  * PlaybackInfo — polls audio levels, transport position, and stereo analysis
- * at ~60Hz and pushes the data to the WebView as JSON events.
+ * at ~30Hz and pushes the data to the WebView as JSON events.
+ * JS-side rAF + ballistic smoothing provides visual 60Hz.
  *
  * Architecture:
  *   Audio thread  → MasterAnalyzerPlugin::applyToBuffer() → lock-free ring buffer write
  *   Background    → AnalysisThread: FFT + stereo, reads level snapshots, builds full JSON (snprintf)
- *   Message thread → 60Hz timerCallback: snapshots levels/transport into atomics,
- *                    reads pre-built JSON from background thread, emits to WebView
+ *   Message thread → 30Hz timerCallback: snapshots levels/transport,
+ *                    async-posts pre-built JSON to WebView via callAsync
  *
  * Events emitted:
  *   "rtFrame" — single batched event containing levels, transport, stereo, and CPU data
@@ -31,6 +32,9 @@ public:
 
     void setEdit(te::Edit* edit);
     void setWebView(juce::WebBrowserComponent* wv);
+
+    /** Returns the MasterAnalyzerPlugin (for fade ramp control). May be nullptr before edit is loaded. */
+    MasterAnalyzerPlugin* getAnalyzerPlugin() const { return analyzerPlugin; }
 
     // Called from MasterAnalyzerPlugin::applyToBuffer (audio thread)
     void processMasterBuffer(const juce::AudioBuffer<float>& buffer, int start, int numSamples);
@@ -126,6 +130,9 @@ private:
     char jsonBufB[jsonBufSize] = { 0 };
     std::atomic<const char*> readyJson { nullptr };
     char* jsonWriteBuf = jsonBufA; // only background thread touches this
+
+    // Pre-allocated String for emit — avoids malloc/free on every frame
+    juce::String cachedJsonString;
 
 public:
     // ── CPU data — written externally by DropoutDetector, read by timerCallback ──

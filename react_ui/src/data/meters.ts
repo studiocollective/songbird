@@ -96,49 +96,109 @@ const rtBuffer: RtBufferData = {
 /** Get current RT buffer snapshot (no copy, direct reference — read-only by convention) */
 export function getRtBuffer(): Readonly<RtBufferData> { return rtBuffer; }
 
-// Lightweight subscriber list for direct-DOM consumers
+// ─── Ballistic smoothing engine ───
+// C++ sends data at ~30Hz. Smoothing + subscriber notification fires only when
+// new data arrives, batched to the next paint via a single rAF.
+// Between data frames the WebView is completely IDLE — no canvas draws, no compositor work.
+
+// Smoothing constants (tuned for ~30fps data rate)
+const LEVEL_RELEASE = 0.78;     // ~300ms decay at 30fps
+const SPECTRUM_RELEASE = 0.68;  // ~200ms decay at 30fps
+const STEREO_SMOOTH = 0.72;     // ~250ms smoothing at 30fps
+const CPU_SMOOTH = 0.90;        // ~600ms smoothing at 30fps
+
+// The "display buffer" holds smoothed values that subscribers see
+const displayBuffer: RtBufferData = {
+  levels: [],
+  master: { left: 0, right: 0 },
+  stereoWidth: 0,
+  phaseCorrelation: 1,
+  balance: 0,
+  spectrum: new Array(16).fill(0),
+  position: 0,
+  currentBar: 1,
+  looping: true,
+  loopLength: 0,
+  loopBars: 0,
+  loopStartBar: 0,
+  lastPositionUpdate: 0,
+  cpuData: { cpu: 0, bufferSize: 0, sampleRate: 0 },
+};
+
 type RtSubscriber = (buf: Readonly<RtBufferData>) => void;
 const rtSubscribers: Set<RtSubscriber> = new Set();
 
-// rAF-driven render loop — updates are synced with browser paint timing.
-// C++ data writes to rtBuffer; this loop reads it and drives all DOM updates.
-let rafId: number | null = null;
-let hasNewData = false;
+let pendingRaf: number | null = null;
 
-function rtRenderLoop() {
-  if (hasNewData) {
-    hasNewData = false;
-    for (const fn of rtSubscribers) fn(rtBuffer);
-  }
-  rafId = requestAnimationFrame(rtRenderLoop);
+function ballisticSmooth(current: number, target: number, release: number): number {
+  if (target > current) return target;
+  return current * release + target * (1 - release);
 }
 
-function ensureRafRunning() {
-  if (rafId === null) {
-    rafId = requestAnimationFrame(rtRenderLoop);
+function applySmoothing() {
+  const raw = rtBuffer;
+
+  // Level meters
+  while (displayBuffer.levels.length < raw.levels.length)
+    displayBuffer.levels.push({ left: 0, right: 0 });
+  for (let i = 0; i < raw.levels.length; i++) {
+    displayBuffer.levels[i].left = ballisticSmooth(displayBuffer.levels[i].left, raw.levels[i].left, LEVEL_RELEASE);
+    displayBuffer.levels[i].right = ballisticSmooth(displayBuffer.levels[i].right, raw.levels[i].right, LEVEL_RELEASE);
+  }
+
+  // Master
+  displayBuffer.master.left = ballisticSmooth(displayBuffer.master.left, raw.master.left, LEVEL_RELEASE);
+  displayBuffer.master.right = ballisticSmooth(displayBuffer.master.right, raw.master.right, LEVEL_RELEASE);
+
+  // Spectrum
+  for (let i = 0; i < raw.spectrum.length; i++) {
+    if (i >= displayBuffer.spectrum.length) displayBuffer.spectrum.push(0);
+    displayBuffer.spectrum[i] = ballisticSmooth(displayBuffer.spectrum[i], raw.spectrum[i], SPECTRUM_RELEASE);
+  }
+
+  // Stereo
+  displayBuffer.stereoWidth = displayBuffer.stereoWidth * STEREO_SMOOTH + raw.stereoWidth * (1 - STEREO_SMOOTH);
+  displayBuffer.phaseCorrelation = displayBuffer.phaseCorrelation * STEREO_SMOOTH + raw.phaseCorrelation * (1 - STEREO_SMOOTH);
+  displayBuffer.balance = displayBuffer.balance * STEREO_SMOOTH + raw.balance * (1 - STEREO_SMOOTH);
+
+  // CPU
+  displayBuffer.cpuData = {
+    cpu: displayBuffer.cpuData.cpu * CPU_SMOOTH + raw.cpuData.cpu * (1 - CPU_SMOOTH),
+    bufferSize: raw.cpuData.bufferSize,
+    sampleRate: raw.cpuData.sampleRate,
+  };
+
+  // Transport — pass through
+  displayBuffer.position = raw.position;
+  displayBuffer.currentBar = raw.currentBar;
+  displayBuffer.looping = raw.looping;
+  displayBuffer.loopLength = raw.loopLength;
+  displayBuffer.loopBars = raw.loopBars;
+  displayBuffer.loopStartBar = raw.loopStartBar;
+  displayBuffer.lastPositionUpdate = raw.lastPositionUpdate;
+
+  // Schedule ONE rAF to batch canvas draws with the next browser paint
+  if (pendingRaf === null) {
+    pendingRaf = requestAnimationFrame(() => {
+      pendingRaf = null;
+      for (const fn of rtSubscribers) fn(displayBuffer);
+    });
   }
 }
 
-/** Mark that new data is available — the rAF loop will pick it up on next paint */
+/** Called when C++ data arrives */
 function markNewData() {
-  hasNewData = true;
-  ensureRafRunning();
+  applySmoothing();
 }
 
 /**
- * Subscribe to rAF-synced RT data. The callback fires once per browser paint frame.
- * Use this instead of `useMeterStore.subscribe()` for direct-DOM updates.
- * Returns an unsubscribe function.
+ * Subscribe to smoothed RT data. Callback fires once per C++ data frame (~30Hz),
+ * batched to the next browser paint via a single rAF.
  */
 export function subscribeRtBuffer(fn: RtSubscriber): () => void {
   rtSubscribers.add(fn);
-  ensureRafRunning();
   return () => {
     rtSubscribers.delete(fn);
-    if (rtSubscribers.size === 0 && rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
   };
 }
 

@@ -9,7 +9,8 @@ import { loadTheme, applyTheme, type Theme } from '@/lib/theme';
 const listMidiInputs = isPlugin ? Juce.getNativeFunction('listMidiInputs') : null;
 const getAudioDeviceInfo = isPlugin ? Juce.getNativeFunction('getAudioDeviceInfo') : null;
 const setAudioBufferSize = isPlugin ? Juce.getNativeFunction('setAudioBufferSize') : null;
-const setAudioDevice = isPlugin ? Juce.getNativeFunction('setAudioDevice') : null;
+const setAudioOutputDevice = isPlugin ? Juce.getNativeFunction('setAudioOutputDevice') : null;
+const setAudioInputDevice = isPlugin ? Juce.getNativeFunction('setAudioInputDevice') : null;
 const setAudioSampleRate = isPlugin ? Juce.getNativeFunction('setAudioSampleRate') : null;
 
 /* ------------------------------------------------------------------ */
@@ -24,7 +25,10 @@ interface AudioDeviceInfo {
   outputLatency: number;
   availableBufferSizes: number[];
   availableSampleRates: number[];
-  availableDevices: string[];
+  availableOutputDevices: string[];
+  availableInputDevices: string[];
+  inputDeviceName: string;
+  outputDeviceName: string;
   inputChannels: string[];
   outputChannels: string[];
 }
@@ -86,10 +90,17 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
     fetchData();
   };
 
-  /* Audio device change */
-  const handleDeviceChange = async (name: string) => {
-    if (!setAudioDevice) return;
-    await setAudioDevice(name);
+  /* Audio output device change */
+  const handleOutputDeviceChange = async (name: string) => {
+    if (!setAudioOutputDevice) return;
+    await setAudioOutputDevice(name);
+    fetchData();
+  };
+
+  /* Audio input device change */
+  const handleInputDeviceChange = async (name: string) => {
+    if (!setAudioInputDevice) return;
+    await setAudioInputDevice(name);
     fetchData();
   };
 
@@ -100,11 +111,16 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
     fetchData();
   };
 
-  /* Latency display */
-  const totalLatencySamples = audioInfo ? audioInfo.inputLatency + audioInfo.outputLatency + audioInfo.bufferSize : 0;
-  const totalLatencyMs = audioInfo && audioInfo.sampleRate > 0
-    ? ((totalLatencySamples / audioInfo.sampleRate) * 1000).toFixed(1)
+  /* Latency display — use JUCE's driver-reported values.
+     Better to over-report than under-report actual latency. */
+  const hasInput = audioInfo?.inputDeviceName ? true : false;
+  const latencySamples = audioInfo
+    ? (hasInput ? audioInfo.inputLatency : 0) + audioInfo.outputLatency + audioInfo.bufferSize
+    : 0;
+  const latencyMs = audioInfo && audioInfo.sampleRate > 0
+    ? ((latencySamples / audioInfo.sampleRate) * 1000).toFixed(1)
     : '—';
+  const latencyLabel = hasInput ? 'Round-trip Latency' : 'Output Latency';
 
   if (!open) return null;
 
@@ -149,22 +165,37 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
             </h3>
             {audioInfo ? (
               <div className={fieldGrid}>
-                {/* Device */}
+                {/* Output Device */}
                 <div className={fieldRow}>
-                  <span className={fieldLabel}>Device</span>
-                  {audioInfo.availableDevices?.length > 1 ? (
+                  <span className={fieldLabel}>Output</span>
+                  {audioInfo.availableOutputDevices?.length > 1 ? (
                     <select
-                      value={audioInfo.deviceName}
-                      onChange={(e) => handleDeviceChange(e.target.value)}
+                      value={audioInfo.outputDeviceName}
+                      onChange={(e) => handleOutputDeviceChange(e.target.value)}
                       className={selectInput}
                     >
-                      {audioInfo.availableDevices.map((name) => (
+                      {audioInfo.availableOutputDevices.map((name) => (
                         <option key={name} value={name}>{name}</option>
                       ))}
                     </select>
                   ) : (
-                    <span className={fieldValue}>{audioInfo.deviceName || '—'}</span>
+                    <span className={fieldValue}>{audioInfo.outputDeviceName || '—'}</span>
                   )}
+                </div>
+
+                {/* Input Device */}
+                <div className={fieldRow}>
+                  <span className={fieldLabel}>Input</span>
+                  <select
+                    value={audioInfo.inputDeviceName || ''}
+                    onChange={(e) => handleInputDeviceChange(e.target.value)}
+                    className={selectInput}
+                  >
+                    <option value="">None</option>
+                    {audioInfo.availableInputDevices?.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Sample Rate */}
@@ -217,10 +248,10 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
                 {/* Latency */}
                 <div className={`${fieldRow} ${latencyRow}`}>
-                  <span className={fieldLabel}>Round-trip Latency</span>
+                  <span className={fieldLabel}>{latencyLabel}</span>
                   <span className={fieldValueAccent}>
-                    {totalLatencyMs} ms
-                    <span className={fieldValueDim}> ({totalLatencySamples} samples)</span>
+                    {latencyMs} ms
+                    <span className={fieldValueDim}> ({latencySamples} samples)</span>
                   </span>
                 </div>
               </div>

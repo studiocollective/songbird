@@ -172,6 +172,7 @@ private:
 
     // Playback info (levels, transport position, stereo analysis)
     PlaybackInfo playbackInfo;
+    MasterAnalyzerPlugin* getAnalyzerPlugin() { return playbackInfo.getAnalyzerPlugin(); }
 
     // WebView zoom & inspector
     double zoomLevel = 1.0;

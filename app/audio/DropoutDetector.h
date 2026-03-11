@@ -127,7 +127,10 @@ private:
             obj->setProperty("expectedMs", expectedPeriodMs);
             obj->setProperty("xruns", newXruns);
             obj->setProperty("message", msg);
-            browser->emitEventIfBrowserIsVisible("dropoutDetected", juce::var(obj));
+            auto* b = browser;
+            juce::MessageManager::callAsync([b, obj]() {
+                b->emitEventIfBrowserIsVisible("dropoutDetected", juce::var(obj));
+            });
         }
 
         // --- CPU stats: feed into PlaybackInfo for batched rtFrame emission ---

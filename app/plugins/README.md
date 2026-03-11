@@ -2,10 +2,60 @@
 
 Plugin window management, swapping, and macro parameter mapping.
 
+## Architecture
+
+```
+React PluginSlots.tsx           C++ PluginManager.cpp           Tracktion Engine
+─────────────────────           ─────────────────────           ────────────────
+"Open Surge XT"            →    openPluginWindow()         →    te::Plugin::showWindow()
+"Change to Mini V3"        →    changePlugin()             →    remove old + insert new plugin
+                                                                on the track's plugin list
+
+React ChatPanel                 MacroMapper.cpp                  Plugin Parameters
+"set brightness to 80%"    →    mapMacroToParam()          →    setPluginParam()
+  via Gemini tool call           looks up "brightness"            writes normalized 0.0–1.0
+                                  → real param name               to the actual VST3/AU param
+```
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `PluginManager.cpp` | Opening/closing plugin editor windows, changing plugins on tracks. |
-| `MacroMapper.cpp/.h` | Maps high-level macro knobs to specific plugin parameters (e.g., Console 1 strip). |
-| `MacroMapper/` | Per-plugin macro mapping profiles (JSON definitions). |
+| `PluginManager.cpp` | Opening/closing plugin editor windows, changing plugins on tracks. Handles plugin scanning, window lifecycle, and the `changePlugin` flow (remove old → insert new → restore position). |
+| `MacroMapper.cpp/.h` | Maps semantic macro names (e.g., `brightness`, `drive`, `comp_thresh`) to actual plugin parameter names and indices. Used by both `.bird` step automation and the AI copilot's `set_plugin_param` tool. |
+| `MacroMapper/` | Per-plugin macro mapping profiles (future: JSON definitions for each supported plugin). |
+
+## Macro Mapping System
+
+The macro system lets `.bird` files and the AI copilot use **semantic names** instead of plugin-specific parameter names:
+
+```
+.bird file:   brightness 80 40 60 90
+                  ↓
+MacroMapper:  "brightness" → "Cutoff Frequency" (for Mini V3)
+                           → "Filter Cutoff"    (for Jup-8 V4)
+                  ↓
+Plugin API:   setParameter("Cutoff Frequency", 0.8)
+```
+
+Macro categories:
+- **Synth**: `brightness`/`cutoff`, `resonance`, `attack`, `decay`, `release`
+- **Drums/Bass**: `pitch`, `decay`, `volume`, `drive`
+- **Effects**: `mix`, `decay`, `width`
+- **Channel Strip (Console 1)**: `input_gain`, `comp_thresh`, `comp_ratio`, `eq_mid_gain`, `low_cut`
+
+See `documentation/bird.md` for the complete macro reference.
+
+## Design Principles
+
+- **Plugin window ownership** — Plugin windows are owned by Tracktion's `UIBehaviour` system via `ExtendedUIBehaviour`. The plugin manager requests windows through the engine, not by creating JUCE components directly.
+- **Async plugin loading** — Plugins load asynchronously. After `changePlugin()`, there's a settling period where `audioProcessorParameterChanged` fires as the plugin initializes. The `isLoadFinished` gate prevents these from triggering erroneous commits.
+- **Normalized values** — All macro mappings work with normalized `0.0–1.0` values. The mapping layer handles conversion from semantic values (e.g., percentage 0–100) to normalized plugin parameters.
+- **Plugin scanning** — `scanForPlugins()` discovers available VST3/AU plugins on the system. Results are cached and sent to React via `getAvailablePlugins` for the plugin selector UI.
+
+## Extending
+
+To add macro support for a new plugin:
+1. Use `tools/scan_plugin_params.cpp` to dump the plugin's parameter names
+2. Add the parameter name mappings in `MacroMapper.cpp`
+3. Test with `.bird` step automation to verify the mapping

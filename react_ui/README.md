@@ -1,73 +1,59 @@
-# React + TypeScript + Vite
+# Songbird React UI (`react_ui/`)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React frontend provides the full DAW interface for Songbird. It runs inside a JUCE WebView (not a regular browser) and communicates with the C++ backend via native functions.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** — UI framework
+- **Vite** — Build tool with `@vitejs/plugin-react-swc`
+- **TypeScript** — Type safety
+- **Tailwind CSS v4** — Utility-first styling (via `@tailwindcss/vite`)
+- **Zustand** — Lightweight state management with persistence
+- **Radix UI** — Accessible primitive components
+- **class-variance-authority** — Component variant styling
+- **@tonaljs** — Music theory (chords, notes, scales)
 
-## React Compiler
+## Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+react_ui/
+├── src/
+│   ├── App.tsx           — Root component, panel layout, loading state
+│   ├── main.tsx          — Entry point, React root mount
+│   ├── components/       — UI components (atomic design: atoms → panels)
+│   ├── data/             — State management (Zustand stores, bridge, meters)
+│   ├── lib/              — Non-React utilities (JUCE bridge, AI, theme)
+│   └── assets/           — Static assets
+├── index.html            — HTML entry point
+├── vite.config.ts        — Vite configuration
+├── tsconfig.app.json     — TypeScript config
+└── package.json          — Dependencies
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build & Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd react_ui
+npm install
+npm run dev      # Vite dev server (standalone browser development)
+npm run build    # Production build → dist/ (served by JUCE WebView)
 ```
+
+> **Important:** In production, the React app runs inside the JUCE WebView, not a browser. The `window.__JUCE__` global is injected by JUCE and provides the native function bridge. When running `npm run dev`, bridge calls are no-ops.
+
+## WebView Embedding
+
+The C++ backend loads the built React app from `react_ui/dist/` via the JUCE `WebBrowserComponent`. Key implications:
+
+- **No browser APIs**: `localStorage`, `fetch` to external URLs, and other browser-specific APIs are unavailable or restricted
+- **State persistence**: All persistence routes through `juceBridge` (Zustand ↔ C++ ↔ disk)
+- **Native functions**: Use `nativeFunction('name')` from `@/data/bridge` instead of HTTP requests
+- **Events**: C++ pushes data via `emitEventIfBrowserIsVisible()` → `addStateListener()` in JS
+
+## Key Conventions
+
+- **Atomic Design**: Components organized as atoms → molecules → organisms → panels
+- **Tailwind-only styling**: No CSS modules or styled-components. Use `cn()` from `@/lib/utils` for conditional classes
+- **Zustand for state**: Never use React Context or prop drilling for shared state
+- **Direct DOM for meters**: High-frequency visuals (level meters, playheads) use `subscribeRtBuffer()` + direct DOM manipulation, bypassing React's render cycle
+- **Path aliases**: `@/` maps to `src/` (configured in `tsconfig.app.json`)

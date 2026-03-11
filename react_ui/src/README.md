@@ -85,11 +85,10 @@ C++ engine change
 
 | Event | Direction | Description |
 |-------|-----------|-------------|
-| `transportPosition` | C++ → JS | High-frequency transport position (30Hz) |
+| `rtFrame` | C++ → JS | Batched real-time data at 30Hz: per-track levels, master levels, transport position, spectrum, stereo analysis, CPU stats. JS-side ballistic smoothing provides visual 60Hz. |
 | `trackState` | C++ → JS | Full track/section/note data after .bird load |
 | `notesChanged` | C++ → JS | Lightweight note update from MIDI editing |
 | `trackMixerUpdate` | C++ → JS | Per-track volume/pan/mute/solo from ValueTree listeners |
-| `audioLevels` | C++ → JS | Per-track peak/RMS levels for meters |
 | `loadingProgress` | C++ → JS | Loading progress messages during startup |
 | `birdContentChanged` | C++ → JS | Notifies BirdFilePanel of .bird file content changes |
 

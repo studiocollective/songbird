@@ -30,7 +30,10 @@ export function PanControl({ trackId, value, color }: PanControlProps) {
           endSliderDrag();
           useMixerStore.getState().setPan(trackId, v);
         }}
-        onDoubleClick={() => useMixerStore.getState().setPan(trackId, DEFAULT_PAN)}
+        onDoubleClick={() => {
+          useMixerStore.getState().setPan(trackId, DEFAULT_PAN);
+          setMixerParamRT(trackId, 'pan', DEFAULT_PAN);
+        }}
         className={root}
       >
         <SliderPrimitive.Track className={track}>

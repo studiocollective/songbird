@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useMixerStore, useTransportStore } from '@/data/store';
+import { getRtBuffer } from '@/data/meters';
 import { nativeFunction } from '@/data/bridge';
 import type { NoteData } from '@/data/slices/mixer';
 import { SheetMusicView } from './SheetMusicView';
@@ -940,7 +941,7 @@ function NoteGrid({
   );
 }
 
-// --- Playhead ---
+// --- Playhead (lerp smoothing) ---
 function MidiEditorPlayhead({
   sectionStartBeat, sectionLengthBeats, gridWidth, pianoKeyWidth,
 }: {
@@ -951,40 +952,62 @@ function MidiEditorPlayhead({
 }) {
   const elRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
+  const visualPosRef = useRef(0);
 
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
 
     const update = () => {
-      const state = useTransportStore.getState();
-      let currentPos = state.position;
+      const { playing, bpm } = useTransportStore.getState();
+      const rt = getRtBuffer();
 
-      if (state.playing) {
-        const elapsed = (performance.now() - state.lastPositionUpdate) / 1000;
-        currentPos += elapsed;
+      let targetPos = rt.position;
+      if (playing && rt.lastPositionUpdate > 0) {
+        targetPos += (performance.now() - rt.lastPositionUpdate) / 1000;
       }
 
-      const currentBeat = currentPos * (state.bpm / 60);
+      if (playing) {
+        const gap = targetPos - visualPosRef.current;
+        if (Math.abs(gap) > 0.5) {
+          visualPosRef.current = targetPos;
+        } else {
+          visualPosRef.current += gap * 0.15;
+        }
+      } else {
+        visualPosRef.current = targetPos;
+      }
+
+      const currentBeat = visualPosRef.current * (bpm / 60);
 
       if (currentBeat >= sectionStartBeat && currentBeat < sectionStartBeat + sectionLengthBeats) {
         const relativeBeat = currentBeat - sectionStartBeat;
         const pct = relativeBeat / sectionLengthBeats;
-        el.style.left = `${pianoKeyWidth + pct * gridWidth}px`;
+        const px = pianoKeyWidth + pct * gridWidth;
+        el.style.transform = `translateX(${px}px)`;
         el.style.display = 'block';
       } else {
         el.style.display = 'none';
       }
 
-      if (state.playing) {
+      if (playing) {
         rafRef.current = requestAnimationFrame(update);
+      } else {
+        rafRef.current = null;
       }
     };
 
     const unsub = useTransportStore.subscribe((state, prev) => {
-      if (state.position !== prev.position || state.playing !== prev.playing) {
-        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(update);
+      if (state.playing && !prev.playing) {
+        const rt = getRtBuffer();
+        visualPosRef.current = rt.position;
+        if (rafRef.current === null) {
+          rafRef.current = requestAnimationFrame(update);
+        }
+      } else if (!state.playing && prev.playing) {
+        requestAnimationFrame(update);
+      } else if (!state.playing && state.position !== prev.position) {
+        requestAnimationFrame(update);
       }
     });
 
@@ -1187,7 +1210,7 @@ const selectionRectCls = `
 
 // Playhead
 const playheadCls = `
-  absolute top-0 bottom-0 w-px z-40 pointer-events-none
+  absolute top-0 bottom-0 left-0 w-px z-40 pointer-events-none will-change-transform
   bg-[hsl(var(--playhead))] shadow-[0_0_4px_hsl(var(--playhead)/0.3)]`;
 
 // --- Velocity lane ---

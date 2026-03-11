@@ -2,28 +2,33 @@ import { useRef, useEffect } from 'react';
 import { subscribeRtBuffer } from '@/data/meters';
 
 interface MasterChannelProps {
-  returnsOpen?: boolean;
-  onToggleReturns?: () => void;
-  recordStripOpen?: boolean;
   onToggleRecordStrip?: () => void;
+  recordStripOpen?: boolean;
+  onToggleReturns?: () => void;
+  returnsOpen?: boolean;
 }
 
-/**
- * MasterChannel — direct DOM manipulation for zero-overhead metering.
- *
- * Renders once, then imperatively updates meter fills and readout
- * via a subscribeRtBuffer subscription + DOM refs. No React re-renders for level changes.
- */
-export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, onToggleRecordStrip }: MasterChannelProps) {
-  const leftRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
+export function MasterChannel({ onToggleRecordStrip, recordStripOpen, onToggleReturns, returnsOpen }: MasterChannelProps) {
+  const leftCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rightCanvasRef = useRef<HTMLCanvasElement>(null);
+  const leftCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const rightCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (leftCanvasRef.current) leftCtxRef.current = leftCanvasRef.current.getContext('2d');
+    if (rightCanvasRef.current) rightCtxRef.current = rightCanvasRef.current.getContext('2d');
+  }, []);
 
   useEffect(() => {
     const unsub = subscribeRtBuffer((buf) => {
       const { master } = buf;
-      if (leftRef.current) leftRef.current.style.transform = `scaleY(${master.left / 100})`;
-      if (rightRef.current) rightRef.current.style.transform = `scaleY(${master.right / 100})`;
+
+      // Draw left channel
+      drawMeterBar(leftCtxRef.current, leftCanvasRef.current, master.left);
+      // Draw right channel
+      drawMeterBar(rightCtxRef.current, rightCanvasRef.current, master.right);
+
       if (readoutRef.current) {
         const avg = Math.max(master.left, master.right);
         readoutRef.current.textContent = avg > 0
@@ -38,27 +43,11 @@ export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, o
     <div className={channel}>
       <span className={label}>Master</span>
       <div className={meterWrapper}>
-        {/* Left channel */}
         <div className={meterTrack}>
-          <div ref={leftRef} className={meterFill} />
-          {Array.from({ length: 12 }, (_, i) => (
-            <div
-              key={i}
-              className={segment}
-              style={{ '--seg-bottom': `${(i / 12) * 100}%` } as React.CSSProperties}
-            />
-          ))}
+          <canvas ref={leftCanvasRef} width={6} height={112} className="w-full h-full rounded-full" />
         </div>
-        {/* Right channel */}
         <div className={meterTrack}>
-          <div ref={rightRef} className={meterFill} />
-          {Array.from({ length: 12 }, (_, i) => (
-            <div
-              key={i}
-              className={segment}
-              style={{ '--seg-bottom': `${(i / 12) * 100}%` } as React.CSSProperties}
-            />
-          ))}
+          <canvas ref={rightCanvasRef} width={6} height={112} className="w-full h-full rounded-full" />
         </div>
       </div>
       <div ref={readoutRef} className={readout}>-∞</div>
@@ -96,14 +85,34 @@ export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, o
   );
 }
 
+function drawMeterBar(ctx: CanvasRenderingContext2D | null, canvas: HTMLCanvasElement | null, level: number) {
+  if (!ctx || !canvas) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const levelH = (level / 100) * h;
+  if (levelH <= 0) return;
+
+  const grad = ctx.createLinearGradient(0, h, 0, 0);
+  grad.addColorStop(0, 'rgba(16,185,129,0.8)');   // emerald-500
+  grad.addColorStop(0.7, 'rgba(52,211,153,1)');    // emerald-400
+  grad.addColorStop(1, 'rgba(239,68,68,1)');       // red-500
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, h - levelH, w, levelH);
+
+  // Segment lines (like the original dividers)
+  ctx.fillStyle = 'hsl(var(--mixer))';
+  for (let i = 1; i < 12; i++) {
+    const y = Math.round((i / 12) * h);
+    ctx.fillRect(0, y, w, 1);
+  }
+}
+
 const channel = `
   w-16 shrink-0 border-r border-[hsl(var(--border))]
   flex flex-col items-center py-2 bg-[hsl(var(--mixer))]`;
 const label = `text-[9px] text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2`;
 const meterWrapper = `flex-1 flex items-center justify-center gap-0.5`;
-const meterTrack = `relative w-1.5 h-28 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
-const meterFill = `
-  absolute bottom-0 w-full h-full rounded-full origin-bottom will-change-transform
-  bg-gradient-to-t from-emerald-500/80 via-emerald-400 to-red-500`;
-const segment = `absolute w-full h-px bg-[hsl(var(--mixer))] bottom-[var(--seg-bottom)]`;
+const meterTrack = `w-1.5 h-28 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
 const readout = `text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-1`;

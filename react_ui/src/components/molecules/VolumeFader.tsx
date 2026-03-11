@@ -32,7 +32,10 @@ export function VolumeFader({ trackId, value, color, height = 'h-24' }: VolumeFa
         // Re-call setVolume with persist enabled to flush final state to C++
         useMixerStore.getState().setVolume(trackId, v);
       }}
-      onDoubleClick={() => useMixerStore.getState().setVolume(trackId, DEFAULT_VOLUME)}
+      onDoubleClick={() => {
+        useMixerStore.getState().setVolume(trackId, DEFAULT_VOLUME);
+        setMixerParamRT(trackId, 'volume', DEFAULT_VOLUME);
+      }}
       className={cn(root, height)}
     >
       <SliderPrimitive.Track className={track}>

@@ -2,27 +2,42 @@ import { useRef, useEffect } from 'react';
 import { subscribeRtBuffer } from '@/data/meters';
 import type { CpuData } from '@/data/meters';
 
+const CPU_W = 48, CPU_H = 6;
+
 /**
  * Compact CPU meter for the transport bar.
- * Shows a small bar + percentage that turns amber > red as load increases.
- * Uses direct DOM manipulation via subscribeRtBuffer — no React re-renders for CPU changes.
+ * Canvas-based fill + DOM text readout.
  */
 export function CpuMeter() {
-  const fillRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const pctRef = useRef<HTMLSpanElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = CPU_W * dpr;
+      canvas.height = CPU_H * dpr;
+      const ctx = canvas.getContext('2d');
+      if (ctx) { ctx.scale(dpr, dpr); ctxRef.current = ctx; }
+    }
+  }, []);
+
+  useEffect(() => {
     const unsub = subscribeRtBuffer((buf) => {
+      const ctx = ctxRef.current;
       const pct = Math.min(buf.cpuData.cpu, 100);
       const color =
-        pct > 80 ? 'hsl(0 80% 55%)' :
-        pct > 50 ? 'hsl(35 90% 55%)' :
-        'hsl(var(--progress))';
+        pct > 80 ? 'hsl(0,80%,55%)' :
+        pct > 50 ? 'hsl(35,90%,55%)' :
+        'hsl(142,70%,45%)';
 
-      if (fillRef.current) {
-        fillRef.current.style.transform = `scaleX(${pct / 100})`;
-        fillRef.current.style.backgroundColor = color;
+      if (ctx) {
+        ctx.clearRect(0, 0, CPU_W, CPU_H);
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, (pct / 100) * CPU_W, CPU_H);
       }
       if (pctRef.current) {
         pctRef.current.textContent = `${pct.toFixed(0)}%`;
@@ -38,9 +53,11 @@ export function CpuMeter() {
   return (
     <div ref={wrapRef} className={meterWrap} title="CPU: 0%">
       <span className={meterLabel}>CPU</span>
-      <div className={meterTrack}>
-        <div ref={fillRef} className={meterFill} />
-      </div>
+      <canvas
+        ref={canvasRef}
+        style={{ width: CPU_W, height: CPU_H }}
+        className="rounded-full"
+      />
       <span ref={pctRef} className={meterPct}>0%</span>
     </div>
   );
@@ -48,11 +65,6 @@ export function CpuMeter() {
 
 /**
  * Per-track CPU breakdown panel.
- * Toggled from the stereo metering section.
- *
- * Note: Per-track CPU estimation was removed when DropoutDetector stopped
- * emitting its own cpuStats event. The panel now shows only overall CPU.
- * To re-add per-track estimates, include track data in the rtFrame payload.
  */
 export function TrackCpuPanel({ open }: { open: boolean }) {
   const labelRef = useRef<HTMLSpanElement>(null);
@@ -82,15 +94,10 @@ export function TrackCpuPanel({ open }: { open: boolean }) {
   );
 }
 
-// Keep the CpuData type re-export for any external consumers
 export type { CpuData };
-
-// ─── Tailwind classes ───
 
 const meterWrap = `flex items-center gap-1.5 px-2`;
 const meterLabel = `text-[9px] uppercase tracking-wider text-[hsl(var(--muted-foreground))] font-semibold`;
-const meterTrack = `w-12 h-1.5 bg-[hsl(var(--border))] rounded-full overflow-hidden`;
-const meterFill = `h-full w-full rounded-full origin-left will-change-transform`;
 const meterPct = `text-[10px] font-mono min-w-[28px] text-right`;
 
 const panelWrap = `

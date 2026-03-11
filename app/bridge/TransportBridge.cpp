@@ -1,4 +1,5 @@
 #include "SongbirdEditor.h"
+#include "MasterAnalyzerPlugin.h"
 
 //==============================================================================
 // Bridge: Transport controls and export
@@ -11,6 +12,9 @@ void SongbirdEditor::registerTransportBridge(juce::WebBrowserComponent::Options&
         .withNativeFunction("transportPlay", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this]() {
                 if (edit) {
+                    // Set up fade-in BEFORE play so the first buffer is already ramping
+                    if (auto* analyzer = getAnalyzerPlugin())
+                        analyzer->requestFadeIn();
                     edit->getTransport().play(false);
                     DBG("Transport: Playing (Native)");
                 }
@@ -20,8 +24,18 @@ void SongbirdEditor::registerTransportBridge(juce::WebBrowserComponent::Options&
         .withNativeFunction("transportPause", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this]() {
                 if (edit) {
-                    edit->getTransport().stop(false, false);
-                    DBG("Transport: Paused (Native)");
+                    // Start fade-out, then stop after ramp completes (~6ms)
+                    if (auto* analyzer = getAnalyzerPlugin())
+                        analyzer->requestFadeOut();
+                    juce::Timer::callAfterDelay(8, [this]() {
+                        if (edit) {
+                            edit->getTransport().stop(false, false);
+                            // Reset to idle so next play starts clean
+                            if (auto* analyzer = getAnalyzerPlugin())
+                                analyzer->goIdle();
+                            DBG("Transport: Paused after fade-out (Native)");
+                        }
+                    });
                 }
             });
             complete("ok");
@@ -29,9 +43,18 @@ void SongbirdEditor::registerTransportBridge(juce::WebBrowserComponent::Options&
         .withNativeFunction("transportStop", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this]() {
                 if (edit) {
-                    edit->getTransport().stop(false, false);
-                    edit->getTransport().setPosition(te::TimePosition::fromSeconds(0.0));
-                    DBG("Transport: Stopped & Rewound (Native)");
+                    // Start fade-out, then stop + rewind after ramp completes
+                    if (auto* analyzer = getAnalyzerPlugin())
+                        analyzer->requestFadeOut();
+                    juce::Timer::callAfterDelay(8, [this]() {
+                        if (edit) {
+                            edit->getTransport().stop(false, false);
+                            edit->getTransport().setPosition(te::TimePosition::fromSeconds(0.0));
+                            if (auto* analyzer = getAnalyzerPlugin())
+                                analyzer->goIdle();
+                            DBG("Transport: Stopped & Rewound after fade-out (Native)");
+                        }
+                    });
                 }
             });
             complete("ok");

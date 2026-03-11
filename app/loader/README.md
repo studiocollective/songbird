@@ -2,9 +2,50 @@
 
 Parsing and loading `.bird` music notation files into the Tracktion Engine.
 
+## Architecture
+
+```
+.bird text file
+  → BirdLoader::parse() [background thread]
+  → BirdParseResult (tracks, sections, notes, plugins, arrangement)
+  → BirdLoader::populateEdit() [message thread]
+  → Tracktion Engine (te::Edit with tracks, plugins, MIDI clips)
+  → emitTrackState() → React UI updates
+```
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `BirdLoader.cpp/.h` | Core parser: `.bird` text → `BirdParseResult` → `populateEdit()` → `te::Edit`. |
-| `Entitlements.plist` | macOS app sandbox entitlements. |
+| `BirdLoader.cpp/.h` | Core parser: `.bird` text → `BirdParseResult` → `populateEdit()` → `te::Edit`. Contains the tokenizer, section parser, note/velocity/pattern resolvers, and arrangement logic. |
+| `BirdFileOps.cpp` | File I/O operations: reading/writing `.bird` files, content validation, scheduling reloads with debouncing. |
+| `Entitlements.plist` | macOS app sandbox entitlements for file system access. |
+
+## Key Data Structures
+
+### `BirdParseResult`
+Output of `parse()` — contains all data needed to populate a Tracktion Edit:
+- `tracks` — channel definitions (name, plugin keyword, FX, strip, type)
+- `sections` — section definitions with per-channel note/velocity/pattern data
+- `arrangement` — ordered list of `(sectionName, barCount)` pairs
+- `globalBars` — default bar count (from `b` token)
+- `key` — project key signature
+
+### Parse → Edit Pipeline
+1. **Parse** (background thread): Tokenizes `.bird` text line-by-line, resolves durations to ticks, expands chord names to MIDI pitches, handles velocity cycling and relative offsets
+2. **Populate** (message thread): Creates/reuses Tracktion tracks, loads plugins by keyword lookup, creates MIDI clips per section, inserts notes at computed tick positions
+
+## Design Principles
+
+- **Background parsing** — `parse()` is thread-safe and does no JUCE/Tracktion calls. Only `populateEdit()` touches the engine (must be on message thread).
+- **Keyword → plugin mapping** — Plugin keywords (e.g., `mini`, `kick`, `surge`) are resolved to full plugin names via a lookup table in the parser. See `documentation/bird.md` for the keyword list.
+- **Incremental reload** — `scheduleReload()` debounces rapid edits (from the AI copilot or bird file panel) to avoid re-parsing on every keystroke.
+- **Section offsets** — Each section's bar position in the arrangement determines the absolute beat offset for its MIDI clips. This arithmetic is critical for correct playback.
+
+## Extending
+
+To add a new `.bird` token:
+1. Add parsing logic in `BirdLoader::parse()` — handle the new token in the line tokenizer
+2. Store the parsed data in `BirdParseResult`
+3. Apply it in `populateEdit()` when creating Tracktion clips/tracks
+4. Document the token in `documentation/bird.md`

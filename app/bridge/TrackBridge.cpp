@@ -25,6 +25,7 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
         .withNativeFunction("getAudioDeviceInfo", [this](auto&, auto complete) {
             auto& dm = engine.getDeviceManager().deviceManager;
             auto* device = dm.getCurrentAudioDevice();
+            auto currentSetup = dm.getAudioDeviceSetup();
             juce::DynamicObject* result = new juce::DynamicObject();
             if (device) {
                 result->setProperty("deviceName", device->getName());
@@ -33,6 +34,13 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                 result->setProperty("bufferSize", device->getCurrentBufferSizeSamples());
                 result->setProperty("inputLatency", device->getInputLatencyInSamples());
                 result->setProperty("outputLatency", device->getOutputLatencyInSamples());
+
+                DBG("AudioDeviceInfo: sr=" + juce::String(device->getCurrentSampleRate())
+                    + " buf=" + juce::String(device->getCurrentBufferSizeSamples())
+                    + " inLat=" + juce::String(device->getInputLatencyInSamples())
+                    + " outLat=" + juce::String(device->getOutputLatencyInSamples())
+                    + " inDev=" + currentSetup.inputDeviceName
+                    + " outDev=" + currentSetup.outputDeviceName);
 
                 // Available buffer sizes
                 juce::Array<juce::var> bufSizes;
@@ -59,13 +67,25 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                 result->setProperty("outputChannels", outputs);
             }
 
-            // Available audio device names (for device switching)
-            juce::Array<juce::var> deviceNames;
+            // Current input/output device names from setup
+            result->setProperty("inputDeviceName", currentSetup.inputDeviceName);
+            result->setProperty("outputDeviceName", currentSetup.outputDeviceName);
+
+            // Available output devices
+            juce::Array<juce::var> outputDeviceNames;
             for (auto type : dm.getAvailableDeviceTypes()) {
-                for (auto& name : type->getDeviceNames(false))  // output devices
-                    deviceNames.add(juce::var(name));
+                for (auto& name : type->getDeviceNames(false))  // false = output devices
+                    outputDeviceNames.add(juce::var(name));
             }
-            result->setProperty("availableDevices", deviceNames);
+            result->setProperty("availableOutputDevices", outputDeviceNames);
+
+            // Available input devices
+            juce::Array<juce::var> inputDeviceNames;
+            for (auto type : dm.getAvailableDeviceTypes()) {
+                for (auto& name : type->getDeviceNames(true))  // true = input devices
+                    inputDeviceNames.add(juce::var(name));
+            }
+            result->setProperty("availableInputDevices", inputDeviceNames);
 
             complete(juce::JSON::toString(juce::var(result)));
         })
@@ -80,66 +100,110 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
             complete(juce::JSON::toString(juce::var(arr)));
         })
 
-        .withNativeFunction("setAudioDevice", [this](auto& args, auto complete) {
+        .withNativeFunction("setAudioOutputDevice", [this](auto& args, auto complete) {
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             juce::String deviceName = args[0].toString();
             auto& dm = engine.getDeviceManager().deviceManager;
+            // Stop transport before device change to avoid transients
+            bool wasPlaying = edit && edit->getTransport().isPlaying();
+            double pos = edit ? edit->getTransport().getPosition().inSeconds() : 0.0;
+            if (wasPlaying) edit->getTransport().stop(false, false);
             auto previousSetup = dm.getAudioDeviceSetup();
             auto setup = previousSetup;
             setup.outputDeviceName = deviceName;
-            // Don't blindly set input to the output device name — they may differ
-            // (e.g. external interface for output, built-in mic for input)
             auto err = dm.setAudioDeviceSetup(setup, true);
             if (err.isEmpty()) {
-                DBG("setAudioDevice: switched to " + deviceName);
+                DBG("setAudioOutputDevice: switched to " + deviceName);
+                if (wasPlaying && edit) {
+                    edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                    edit->getTransport().play(false);
+                }
                 complete("{\"success\":true}");
             } else {
-                DBG("setAudioDevice: error " + err + " — restoring previous device");
-                // Restore previous working device so the engine isn't left broken
+                DBG("setAudioOutputDevice: error " + err + " — restoring previous device");
                 auto restoreErr = dm.setAudioDeviceSetup(previousSetup, true);
                 if (restoreErr.isNotEmpty()) {
-                    // Previous device also gone — try system default
-                    DBG("setAudioDevice: restore also failed, trying default device");
+                    DBG("setAudioOutputDevice: restore also failed, trying default device");
                     dm.initialiseWithDefaultDevices(2, 0);
+                }
+                if (wasPlaying && edit) {
+                    edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                    edit->getTransport().play(false);
                 }
                 complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
+        })
+
+        .withNativeFunction("setAudioInputDevice", [this](auto& args, auto complete) {
+            if (args.size() < 1) { complete("{\"success\":false}"); return; }
+            juce::String deviceName = args[0].toString();
+            auto& dm = engine.getDeviceManager().deviceManager;
+            bool wasPlaying = edit && edit->getTransport().isPlaying();
+            double pos = edit ? edit->getTransport().getPosition().inSeconds() : 0.0;
+            if (wasPlaying) edit->getTransport().stop(false, false);
+            auto previousSetup = dm.getAudioDeviceSetup();
+            auto setup = previousSetup;
+            setup.inputDeviceName = deviceName;  // empty string = no input
+            auto err = dm.setAudioDeviceSetup(setup, true);
+            if (err.isEmpty()) {
+                DBG("setAudioInputDevice: switched to " + (deviceName.isEmpty() ? "None" : deviceName));
+            } else {
+                DBG("setAudioInputDevice: error " + err + " — restoring previous device");
+                dm.setAudioDeviceSetup(previousSetup, true);
+            }
+            if (wasPlaying && edit) {
+                edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                edit->getTransport().play(false);
+            }
+            complete(err.isEmpty() ? "{\"success\":true}" : "{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
         })
 
         .withNativeFunction("setAudioSampleRate", [this](auto& args, auto complete) {
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             double sampleRate = static_cast<double>(args[0]);
             auto& dm = engine.getDeviceManager().deviceManager;
+            bool wasPlaying = edit && edit->getTransport().isPlaying();
+            double pos = edit ? edit->getTransport().getPosition().inSeconds() : 0.0;
+            if (wasPlaying) edit->getTransport().stop(false, false);
             auto previousSetup = dm.getAudioDeviceSetup();
             auto setup = previousSetup;
             setup.sampleRate = sampleRate;
             auto err = dm.setAudioDeviceSetup(setup, true);
             if (err.isEmpty()) {
                 DBG("setAudioSampleRate: set to " + juce::String(sampleRate));
-                complete("{\"success\":true}");
             } else {
                 DBG("setAudioSampleRate: error " + err + " — restoring previous");
                 dm.setAudioDeviceSetup(previousSetup, true);
-                complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
+            if (wasPlaying && edit) {
+                edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                edit->getTransport().play(false);
+            }
+            complete(err.isEmpty() ? "{\"success\":true}" : "{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
         })
 
         .withNativeFunction("setAudioBufferSize", [this](auto& args, auto complete) {
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             int bufferSize = static_cast<int>(args[0]);
             auto& dm = engine.getDeviceManager().deviceManager;
+            bool wasPlaying = edit && edit->getTransport().isPlaying();
+            double pos = edit ? edit->getTransport().getPosition().inSeconds() : 0.0;
+            if (wasPlaying) edit->getTransport().stop(false, false);
             auto previousSetup = dm.getAudioDeviceSetup();
             auto setup = previousSetup;
             setup.bufferSize = bufferSize;
             auto err = dm.setAudioDeviceSetup(setup, true);
             if (err.isEmpty()) {
                 DBG("setAudioBufferSize: set to " + juce::String(bufferSize));
-                complete("{\"success\":true}");
             } else {
                 DBG("setAudioBufferSize: error " + err + " — restoring previous");
                 dm.setAudioDeviceSetup(previousSetup, true);
-                complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
+            if (wasPlaying && edit) {
+                edit->getTransport().setPosition(te::TimePosition::fromSeconds(pos));
+                edit->getTransport().play(false);
+            }
+            complete(err.isEmpty() ? "{\"success\":true}" : "{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
         })
 
         .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {

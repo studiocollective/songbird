@@ -10,6 +10,8 @@
 PlaybackInfo::PlaybackInfo()
 {
     masterClient = std::make_unique<te::LevelMeasurer::Client>();
+    // Pre-allocate so the cached string never mallocs during steady-state playback
+    cachedJsonString.preallocateBytes(jsonBufSize);
 }
 
 PlaybackInfo::~PlaybackInfo()
@@ -36,8 +38,8 @@ void PlaybackInfo::setWebView(juce::WebBrowserComponent* wv)
     webView = wv;
     if (webView && currentEdit && !isTimerRunning())
     {
-        startTimerHz(60);
-        DBG("PlaybackInfo: Timer started (60Hz)");
+        startTimerHz(30);
+        DBG("PlaybackInfo: Timer started (30Hz — JS-side ballistic smoothing handles visual 60Hz)");
     }
 }
 
@@ -99,7 +101,7 @@ void PlaybackInfo::AnalysisThread::run()
 
     while (!threadShouldExit())
     {
-        wait(16);
+        wait(33);
 
         // ── Pull samples from ring buffer into FFT input ──
         int rp = owner.ringReadPos.load(std::memory_order_relaxed);
@@ -338,7 +340,13 @@ void PlaybackInfo::attachClients()
             analyzerPlugin->onBuffer = [this](const juce::AudioBuffer<float>& buf, int s, int n) {
                 processMasterBuffer(buf, s, n);
             };
-            DBG("PlaybackInfo: MasterAnalyzerPlugin attached on master track");
+            // Start silent to suppress init transients, fade in after plugins settle
+            analyzerPlugin->goSilent();
+            juce::Timer::callAfterDelay(200, [this]() {
+                if (analyzerPlugin)
+                    analyzerPlugin->requestFadeIn();
+            });
+            DBG("PlaybackInfo: MasterAnalyzerPlugin attached (silent → fade-in in 200ms)");
         }
         else
         {
@@ -356,8 +364,8 @@ void PlaybackInfo::attachClients()
 
     if (webView)
     {
-        startTimerHz(60);
-        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " track clients, timer started (60Hz)");
+        startTimerHz(30);
+        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " track clients, timer started (30Hz)");
     }
 }
 
@@ -399,7 +407,8 @@ void PlaybackInfo::detachClients()
 }
 
 //==============================================================================
-// Timer callback — 60Hz ULTRA-LIGHT: snapshot levels → emit pre-built JSON
+// Timer callback — 30Hz: snapshot levels → async emit pre-built JSON
+// JS-side rAF + ballistic smoothing provides visual 60Hz
 //==============================================================================
 
 void PlaybackInfo::timerCallback()
@@ -426,9 +435,8 @@ void PlaybackInfo::timerCallback()
     // ── Snapshot levels + transport into the write buffer (fast atomic reads) ──
     {
         LevelSnapshot* snap = levelSnapWriting;
-        auto tracks = te::getAudioTracks(*currentEdit);
-        int numTracks = juce::jmin((int)trackClients.size(), (int)tracks.size());
-        numTracks = juce::jmin(numTracks, maxTracks);
+        // Use cached trackClients.size() — no ValueTree iteration needed!
+        int numTracks = juce::jmin((int)trackClients.size(), maxTracks);
         snap->numTracks = numTracks;
 
         for (int i = 0; i < numTracks; i++)
@@ -485,11 +493,12 @@ void PlaybackInfo::timerCallback()
         levelSnapWriting = (snap == &levelSnapA) ? &levelSnapB : &levelSnapA;
     }
 
-    // ── Emit the pre-built JSON from the background thread ──
+    // ── Emit the pre-built JSON synchronously (30Hz is lightweight) ──
     const char* json = readyJson.load(std::memory_order_acquire);
     if (json && json[0] != '\0')
     {
-        webView->emitEventIfBrowserIsVisible("rtFrame", juce::var(juce::String(json)));
+        cachedJsonString = juce::String(juce::CharPointer_UTF8(json));
+        if (webView) webView->emitEventIfBrowserIsVisible("rtFrame", juce::var(cachedJsonString));
     }
 }
 

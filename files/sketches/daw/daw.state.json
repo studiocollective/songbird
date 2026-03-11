@@ -11,7 +11,7 @@
           "muted": false,
           "solo": false,
           "volume": 90,
-          "pan": 0,
+          "pan": 63,
           "instrument": {
             "pluginId": "sonicacademy.kick-3",
             "pluginName": "Kick 3",
@@ -3084,7 +3084,7 @@
           "name": "bass",
           "type": "midi",
           "color": "#45B7D1",
-          "muted": false,
+          "muted": true,
           "solo": false,
           "volume": 58,
           "pan": 0,

@@ -20,8 +20,21 @@ export function getResolvedTheme(theme: Theme): 'light' | 'dark' {
 }
 
 /** Apply theme class to document root */
-export function applyTheme(theme: Theme) {
-  const resolved = getResolvedTheme(theme);
+export async function applyTheme(theme: Theme) {
+  let resolved = getResolvedTheme(theme);
+
+  // Inside the JUCE WebView, matchMedia may not reflect the real OS theme.
+  // Query the native C++ side for the actual appearance.
+  if (theme === 'system' && isPlugin) {
+    try {
+      const getSystemTheme = Juce.getNativeFunction('getSystemTheme');
+      const nativeTheme = await getSystemTheme();
+      if (nativeTheme === 'dark' || nativeTheme === 'light') {
+        resolved = nativeTheme;
+      }
+    } catch { /* fall back to matchMedia result */ }
+  }
+
   document.documentElement.classList.toggle('dark', resolved === 'dark');
   cachedTheme = theme;
   savePreference('theme', theme);
@@ -42,25 +55,7 @@ export async function initTheme() {
     }
   } catch { /* use default */ }
 
-  const theme = cachedTheme;
-
-  // When running inside JUCE webview with 'system' preference,
-  // query the native C++ side for the actual OS appearance as a fallback
-  if (theme === 'system' && isPlugin) {
-    try {
-      const getSystemTheme = Juce.getNativeFunction('getSystemTheme');
-      const nativeTheme = await getSystemTheme();
-      if (nativeTheme === 'dark' || nativeTheme === 'light') {
-        document.documentElement.classList.toggle('dark', nativeTheme === 'dark');
-      } else {
-        applyTheme(theme);
-      }
-    } catch {
-      applyTheme(theme);
-    }
-  } else {
-    applyTheme(theme);
-  }
+  await applyTheme(cachedTheme);
 
   // Listen for OS theme changes when using 'system'
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {

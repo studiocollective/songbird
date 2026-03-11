@@ -174,14 +174,23 @@ private:
     {
         if (!web) return;
         
-        // Build a minimal update for just this track
-        auto* obj = new juce::DynamicObject();
-        obj->setProperty("trackIndex", index);
-        obj->setProperty("volume", juce::roundToInt(lastVolume * 127.0f));
-        obj->setProperty("pan", juce::roundToInt(lastPan * 64.0f));
-        obj->setProperty("muted", lastMuted);
-        obj->setProperty("solo", lastSolo);
+        // Capture values for the async lambda
+        auto* wv = web;
+        int idx = index;
+        float vol = lastVolume;
+        float p = lastPan;
+        bool m = lastMuted;
+        bool s = lastSolo;
         
-        web->emitEventIfBrowserIsVisible("trackMixerUpdate", juce::var(obj));
+        juce::MessageManager::callAsync([wv, idx, vol, p, m, s]() {
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty("trackIndex", idx);
+            obj->setProperty("volume", juce::roundToInt(vol * 127.0f));
+            obj->setProperty("pan", juce::roundToInt(p * 64.0f));
+            obj->setProperty("muted", m);
+            obj->setProperty("solo", s);
+            
+            wv->emitEventIfBrowserIsVisible("trackMixerUpdate", juce::var(obj));
+        });
     }
 };
