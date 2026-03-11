@@ -1,6 +1,20 @@
 # Songbird
 
-Songbird is a DAW (Digital Audio Workstation) built as a native macOS desktop app. It combines a **C++ audio engine** (JUCE + Tracktion Engine) with a **React-based UI** rendered in a WebView, and an **AI copilot** powered by Gemini for music composition.
+Songbird is a DAW (Digital Audio Workstation) for electronic music production. It combines a **C++ audio engine** (JUCE + Tracktion Engine) with a **React-based UI** rendered in a native WebView, and an **AI copilot** powered by Gemini that can write music, tweak synths, and mix tracks through natural language.
+
+## DAW Features
+
+- **Arrangement View** — Timeline with track lanes, section markers, scroll/zoom, and click-to-seek. Sections are defined in `.bird` files and rendered as colored regions.
+- **Piano Roll** — Full MIDI editor with note draw/move/resize/delete, velocity lane, grid snapping, and round-trip serialization back to `.bird` format.
+- **Mixer** — Per-track channel strips with volume faders, pan knobs, mute/solo, 4 send controls, and plugin slot management (instrument, FX, channel strip).
+- **Audio Metering** — Real-time level meters, 16-band spectrum analyzer, stereo width, phase correlation, and balance — all at 60Hz with GPU-composited rendering.
+- **VST3/AU Plugin Hosting** — Load any VST3 or Audio Unit plugin. Plugin editor windows, parameter scanning, and macro mapping for programmatic control.
+- **MIDI Recording** — Record from hardware MIDI controllers with grid quantization. Recorded MIDI is serialized back to `.bird` notation.
+- **Audio Recording** — Record audio input to tracks with beat-aligned quantization.
+- **Export** — Render individual stems (per-track WAV), master bounce (stereo WAV), and sheet music.
+- **AI Copilot** — Gemini-powered assistant that can create tracks, write patterns, set plugin parameters, adjust the mix, and generate audio via Lyria — all through chat or function calls.
+- **Git-Based Undo/Redo** — Every change is committed to an in-process git repo (libgit2). Full history panel with human-readable commit messages.
+- **`.bird` Notation** — A text-based music format ("Markdown for music") that defines tracks, instruments, patterns, notes, chords, swing, and automation in a human-readable syntax.
 
 ## Architecture
 
@@ -33,10 +47,11 @@ Songbird is a DAW (Digital Audio Workstation) built as a native macOS desktop ap
 
 ## Key Concepts
 
-- **`.bird` files** — A text-based music notation format ("Markdown for music"). Defines tracks, instruments, patterns, notes, and arrangement. See [`documentation/bird.md`](documentation/bird.md).
-- **State management** — Three-layer system: React (Zustand) ↔ C++ (StateSync) ↔ Git (libgit2). Every meaningful change is committed to an in-process git repo. See [`documentation/state-management.md`](documentation/state-management.md).
-- **WebView bridge** — All React↔C++ communication flows through JUCE native functions registered in [`app/bridge/`](app/bridge/).
-- **Real-time metering** — 30Hz C++ data → ballistic smoothing → 60Hz GPU-composited DOM updates. Zero React re-renders for meters.
+- **`.bird` files** — A text-based music notation format. Defines tracks, instruments, patterns, notes, and arrangement. See [`documentation/bird.md`](documentation/bird.md).
+- **State management** — Three-layer system: React (Zustand) ↔ C++ (StateSync) ↔ Git (libgit2). Every meaningful change is committed to git for undo/redo. See [`documentation/state-management.md`](documentation/state-management.md).
+- **WebView bridge** — All React↔C++ communication flows through JUCE native functions registered in [`app/bridge/`](app/bridge/). Domain-specific bridge files handle transport, mixer, plugins, recording, etc.
+- **Real-time metering** — 30Hz C++ data → ballistic smoothing → 60Hz GPU-composited DOM updates. Zero React re-renders for meters. See [`app/audio/README.md`](app/audio/README.md).
+- **Macro mapping** — Semantic parameter names (`brightness`, `drive`, `comp_thresh`) map to actual plugin parameters, enabling both `.bird` automation and AI copilot control. See [`app/plugins/README.md`](app/plugins/README.md).
 
 ## Project Structure
 
@@ -50,8 +65,11 @@ songbird-chirp/
 ├── utils/            — Build scripts and shell utilities
 ├── eval/             — LLM evaluation framework for AI copilot
 ├── files/            — Sample .bird projects, MIDI files, plugin configs
+├── embedded/         — Legacy Arduino/ESP32 firmware (FeatherS2 prototype)
 └── CMakeLists.txt    — CMake build configuration
 ```
+
+Each subdirectory contains a `README.md` with architecture details, design principles, and extension guidelines.
 
 ## Build
 

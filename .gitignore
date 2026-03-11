@@ -5,3 +5,5 @@
 *.dSYM
 songbird
 build/*
+build_error.log
+build_output.txt
