@@ -281,6 +281,10 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                                     }
                                 }
                                 if (channelsBlockEnd < 0) channelsBlockEnd = lines.size();
+                                // Walk back past trailing blank lines so new track appears
+                                // right after the last existing channel, not after whitespace
+                                while (channelsBlockEnd > channelsBlockStart + 1 && lines[channelsBlockEnd - 1].trim().isEmpty())
+                                    channelsBlockEnd--;
                                 break;
                             }
                         }
@@ -396,6 +400,10 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                                     }
                                 }
                                 if (channelsBlockEnd < 0) channelsBlockEnd = lines.size();
+                                // Walk back past trailing blank lines so new track appears
+                                // right after the last existing channel, not after whitespace
+                                while (channelsBlockEnd > channelsBlockStart + 1 && lines[channelsBlockEnd - 1].trim().isEmpty())
+                                    channelsBlockEnd--;
                                 break;
                             }
                         }

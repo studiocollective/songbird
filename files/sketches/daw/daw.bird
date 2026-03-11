@@ -35,7 +35,6 @@ channels
   10 track10
     type midi
     strip console1
-
   11 audio11
     type audio
     strip console1
@@ -45,6 +44,7 @@ channels
   13 audio13
     type audio
     strip console1
+
 arr
   intro 16
   verse 16
