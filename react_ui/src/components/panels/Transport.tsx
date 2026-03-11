@@ -3,6 +3,7 @@ import { useTransportStore, useMixerStore, useChatStore } from '@/data/store';
 import { cn } from '@/lib/utils';
 import { Juce, isPlugin } from '@/lib';
 import { nativeFunction } from '@/data/bridge';
+import { CpuMeter } from '@/components/molecules/CpuMeter';
 
 const setProjectScale = nativeFunction('setProjectScale');
 
@@ -145,6 +146,8 @@ export function Transport({ onSettingsOpen }: { onSettingsOpen: () => void }) {
       </div>
 
       <div className="flex-1" />
+      <CpuMeter />
+      <div className={`${divider}`} />
       <span className={title}>🐦 Songbird Player</span>
       <div className="flex-1" />
 

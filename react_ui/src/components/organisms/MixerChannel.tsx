@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils';
-import { TrackColorDot, MuteSoloButtons, LevelMeter, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
-import { useMeterStore } from '@/data/meters';
+import { TrackColorDot, MuteSoloButtons, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
+import { subscribeRtBuffer } from '@/data/meters';
 import type { PluginSlot, Track, AudioSource } from '@/data/slices/mixer';
+import { useRef, useEffect } from 'react';
 
 interface MixerChannelProps {
   trackId: number;
@@ -28,11 +29,34 @@ interface MixerChannelProps {
 export function MixerChannel({
   trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false, sidechainTrackId, trackList, sidechainSensitivity, recordArmed
 }: MixerChannelProps) {
-  const level = useMeterStore((s) => {
-    if (isMaster) return Math.max(s.master.left, s.master.right);
-    const ch = s.levels[trackIndex];
-    return ch ? Math.max(ch.left, ch.right) : 0;
-  });
+  // Direct DOM refs for level meter — bypasses React re-renders entirely
+  const volumeFillRef = useRef<HTMLDivElement>(null);
+  const levelFillRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = subscribeRtBuffer((buf) => {
+      let level: number;
+      if (isMaster) {
+        level = Math.max(buf.master.left, buf.master.right);
+      } else {
+        const ch = buf.levels[trackIndex];
+        level = ch ? Math.max(ch.left, ch.right) : 0;
+      }
+      const displayLevel = muted ? 0 : level;
+      if (levelFillRef.current) {
+        levelFillRef.current.style.transform = `scaleY(${displayLevel / 100})`;
+      }
+    });
+    return unsub;
+  }, [trackIndex, isMaster, muted]);
+
+  // Update volume fill when volume prop changes (not high-frequency)
+  useEffect(() => {
+    const pct = volume / 127;
+    if (volumeFillRef.current) {
+      volumeFillRef.current.style.transform = `scaleY(${pct})`;
+    }
+  }, [volume]);
 
   return (
     <div className={cn(channel, isReturn && channelReturn)}>
@@ -55,7 +79,25 @@ export function MixerChannel({
       </div>
 
       <div className={faderArea}>
-        <LevelMeter level={level} volume={volume} color={color} height="h-20" muted={muted} />
+        {/* Inline level meter with refs for direct DOM updates — no React re-renders */}
+        <div className={meterTrack}>
+          <div
+            ref={volumeFillRef}
+            className={meterVolumeFill}
+            style={{
+              transform: `scaleY(${volume / 127})`,
+              '--meter-color': color,
+            } as React.CSSProperties}
+          />
+          <div
+            ref={levelFillRef}
+            className={meterLevelFill}
+            style={{
+              transform: 'scaleY(0)',
+              '--meter-color': color,
+            } as React.CSSProperties}
+          />
+        </div>
         <VolumeFader trackId={trackId} value={volume} color={color} height="h-20" />
       </div>
 
@@ -88,4 +130,11 @@ const faderArea = `flex-1 flex items-center gap-1.5`;
 const panWrapper = `mt-1`;
 const volumeReadout = `text-[9px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5`;
 
-
+// Inline meter styles (matching LevelMeter component)
+const meterTrack = `relative w-1.5 h-20 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
+const meterVolumeFill = `
+  absolute bottom-0 w-full h-full rounded-full origin-bottom will-change-transform
+  bg-[var(--meter-color)]/10`;
+const meterLevelFill = `
+  absolute bottom-0 w-full h-full rounded-full origin-bottom will-change-transform
+  bg-gradient-to-t from-[var(--meter-color)]/50 to-[var(--meter-color)]/90`;

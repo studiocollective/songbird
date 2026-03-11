@@ -72,7 +72,7 @@ export const useChatStore = create<ChatState>()(
       storage: createJSONStorage(() => juceBridge),
       version: 3,
       partialize: (state) => {
-        // Exclude: apiKey (security), threads/threadMenu (localStorage),
+        // Exclude: apiKey (security), threads/threadMenu (C++ file-based),
         // transient UI state (thinking, streaming, toolUse)
         /* eslint-disable @typescript-eslint/no-unused-vars */
         const { apiKey: _a, threads: _t, threadMenuOpen: _tm, activeThreadId: _at,
@@ -134,19 +134,7 @@ addStateListener(LyriaStateID, (data: unknown) => {
   }));
 });
 
-// --- Transport position updates (high-frequency from C++ timer) ---
-addStateListener('transportPosition', (data: unknown) => {
-  const d = data as { position: number; bar: number; looping?: boolean; loopLength?: number; loopBars?: number; loopStartBar?: number };
-  useTransportStore.setState({
-    position: d.position,
-    currentBar: d.bar,
-    ...(d.looping !== undefined && { looping: d.looping }),
-    ...(d.loopLength !== undefined && { loopLength: d.loopLength }),
-    ...(d.loopBars !== undefined && { loopBars: d.loopBars }),
-    ...(d.loopStartBar !== undefined && { loopStartBar: d.loopStartBar }),
-    lastPositionUpdate: performance.now(),
-  });
-});
+// Transport position is now part of the batched rtFrame event (see meters.ts)
 
 // --- Track notes updates (from BirdLoader after .bird file load) ---
 const SECTION_COLORS = [
@@ -307,6 +295,12 @@ addStateListener('trackMixerUpdate', (data: unknown) => {
 addStateListener('cppLog', (data: unknown) => {
   const d = data as { message: string };
   if (d?.message) console.log(d.message);
+});
+
+// --- Audio dropout detector events ---
+addStateListener('dropoutDetected', (data: unknown) => {
+  const d = data as { timingGaps: number; worstGapMs: number; expectedMs: number; xruns: number; message: string };
+  console.warn(`🔴 AUDIO DROPOUT: ${d.timingGaps} gap(s), worst=${d.worstGapMs?.toFixed(1)}ms (expected=${d.expectedMs?.toFixed(1)}ms), xruns=${d.xruns}`);
 });
 
 // --- Fetch available plugins on startup (track state is pushed by C++ via chunked events) ---

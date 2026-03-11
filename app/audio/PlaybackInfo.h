@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <atomic>
+#include <cstdio>
 
 namespace te = tracktion;
 
@@ -11,17 +12,16 @@ class MasterAnalyzerPlugin;
 
 /**
  * PlaybackInfo — polls audio levels, transport position, and stereo analysis
- * at ~30Hz and pushes the data to the WebView as JSON events.
+ * at ~60Hz and pushes the data to the WebView as JSON events.
  *
  * Architecture:
  *   Audio thread  → MasterAnalyzerPlugin::applyToBuffer() → lock-free ring buffer write
- *   Background    → AnalysisThread pulls from ring buffer, computes FFT + stereo
- *   Message thread → 30Hz timerCallback reads pre-computed atomic results, emits JSON
+ *   Background    → AnalysisThread: FFT + stereo, reads level snapshots, builds full JSON (snprintf)
+ *   Message thread → 60Hz timerCallback: snapshots levels/transport into atomics,
+ *                    reads pre-built JSON from background thread, emits to WebView
  *
  * Events emitted:
- *   "audioLevels"        — [[dBL, dBR], ...] per track + master
- *   "transportPosition"  — { position, bar, looping, loopLength, loopBars }
- *   "stereoAnalysis"     — { width, correlation, balance, spectrum: [...] }
+ *   "rtFrame" — single batched event containing levels, transport, stereo, and CPU data
  */
 class PlaybackInfo : public juce::Timer
 {
@@ -98,4 +98,39 @@ private:
     std::atomic<bool> spectrumLock { false };
 
     bool analyzerAlive = false;
+
+    // ── Level + transport snapshots (written by timer thread, read by background thread) ──
+    // Timer callback snapshots these quickly, background thread reads at leisure for JSON building.
+    static constexpr int maxTracks = 64;
+    struct LevelSnapshot {
+        float trackL[maxTracks] = {};
+        float trackR[maxTracks] = {};
+        float masterL = -100.0f;
+        float masterR = -100.0f;
+        int numTracks = 0;
+        // Transport
+        double posSeconds = 0.0;
+        int bar = 1;
+        bool looping = false;
+        double loopLenSeconds = 0.0;
+        int loopBars = 0;
+        int loopStartBar = 0;
+    };
+    LevelSnapshot levelSnapA, levelSnapB;
+    std::atomic<LevelSnapshot*> levelSnapReady { nullptr };
+    LevelSnapshot* levelSnapWriting = &levelSnapA;
+
+    // ── Pre-built JSON payload (written by background thread, read by timer) ──
+    static constexpr int jsonBufSize = 8192;
+    char jsonBufA[jsonBufSize] = { 0 };
+    char jsonBufB[jsonBufSize] = { 0 };
+    std::atomic<const char*> readyJson { nullptr };
+    char* jsonWriteBuf = jsonBufA; // only background thread touches this
+
+public:
+    // ── CPU data — written externally by DropoutDetector, read by timerCallback ──
+    std::atomic<double> cpuPercent   { 0.0 };
+    std::atomic<int>    cpuBufferSize { 0 };
+    std::atomic<double> cpuSampleRate { 0.0 };
 };
+

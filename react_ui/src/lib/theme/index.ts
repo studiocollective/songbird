@@ -5,7 +5,11 @@ import { isPlugin, Juce } from '@/lib';
 
 export type Theme = 'light' | 'dark' | 'system';
 
-const STORAGE_KEY = 'songbird-theme';
+const savePreference = isPlugin ? Juce.getNativeFunction('savePreference') : () => Promise.resolve(null);
+const loadPreferenceNative = isPlugin ? Juce.getNativeFunction('loadPreference') : () => Promise.resolve('');
+
+// In-memory cache so synchronous reads work after init
+let cachedTheme: Theme = 'system';
 
 /** Get the resolved theme (light or dark) based on current preference */
 export function getResolvedTheme(theme: Theme): 'light' | 'dark' {
@@ -19,17 +23,26 @@ export function getResolvedTheme(theme: Theme): 'light' | 'dark' {
 export function applyTheme(theme: Theme) {
   const resolved = getResolvedTheme(theme);
   document.documentElement.classList.toggle('dark', resolved === 'dark');
-  localStorage.setItem(STORAGE_KEY, theme);
+  cachedTheme = theme;
+  savePreference('theme', theme);
 }
 
 /** Load saved theme preference (defaults to 'system') */
 export function loadTheme(): Theme {
-  return (localStorage.getItem(STORAGE_KEY) as Theme) || 'system';
+  return cachedTheme;
 }
 
 /** Initialize theme on app startup */
 export async function initTheme() {
-  const theme = loadTheme();
+  // Load saved preference from C++ file-based storage
+  try {
+    const saved = await loadPreferenceNative('theme');
+    if (saved === 'light' || saved === 'dark' || saved === 'system') {
+      cachedTheme = saved as Theme;
+    }
+  } catch { /* use default */ }
+
+  const theme = cachedTheme;
 
   // When running inside JUCE webview with 'system' preference,
   // query the native C++ side for the actual OS appearance as a fallback

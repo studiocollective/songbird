@@ -1,15 +1,17 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
 import { MasterChannel, MixerChannel } from '@/components/organisms';
 import { SendControl } from '@/components/molecules';
 import { RecordStrip } from '@/components/molecules/RecordStrip';
 import { StereoWidthMeter, PhaseCorrelationMeter, SpectrumAnalyzer } from '@/components/molecules/StereoMeters';
+import { TrackCpuPanel } from '@/components/molecules/CpuMeter';
 
 export function MixerPanel() {
   const { tracks, mixerOpen, returnsOpen, toggleReturns, recordStripOpen, toggleRecordStrip } = useMixerStore();
   const sendScrollRef = useRef<HTMLDivElement>(null);
   const recordScrollRef = useRef<HTMLDivElement>(null);
+  const [cpuPanelOpen, setCpuPanelOpen] = useState(false);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (sendScrollRef.current) {
@@ -147,6 +149,18 @@ export function MixerPanel() {
             <SpectrumAnalyzer />
             <StereoWidthMeter />
             <PhaseCorrelationMeter />
+            <button
+              onClick={() => setCpuPanelOpen((v) => !v)}
+              className={`text-[9px] uppercase tracking-wider font-semibold px-2 py-1 rounded transition-colors ${
+                cpuPanelOpen
+                  ? 'bg-[hsl(var(--selection))] text-[hsl(var(--primary-foreground))]'
+                  : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]'
+              }`}
+              title="Toggle per-track CPU display"
+            >
+              CPU
+            </button>
+            {cpuPanelOpen && <TrackCpuPanel open={cpuPanelOpen} />}
           </div>
         </div>
       </div>

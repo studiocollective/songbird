@@ -91,5 +91,49 @@ void SongbirdEditor::registerStateBridge(juce::WebBrowserComponent::Options& opt
                 stateCache.erase(storeName);
                 complete("ok");
             }
+        })
+
+        // --- File-based chat history (replaces localStorage to avoid WebKit SQLite stalls) ---
+        .withNativeFunction("saveChatHistory", [this](auto& args, auto complete) {
+            if (args.size() < 1) { complete("ok"); return; }
+            juce::String jsonData = args[0].toString();
+            // Write asynchronously on a background thread to never block the message thread
+            juce::Thread::launch([jsonData]() {
+                auto dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                               .getChildFile("Songbird");
+                dir.createDirectory();
+                dir.getChildFile("chat_history.json").replaceWithText(jsonData);
+            });
+            complete("ok");
+        })
+        .withNativeFunction("loadChatHistory", [](auto&, auto complete) {
+            auto file = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                            .getChildFile("Songbird").getChildFile("chat_history.json");
+            if (file.existsAsFile())
+                complete(file.loadFileAsString());
+            else
+                complete("null");
+        })
+
+        // --- File-based preferences (replaces localStorage for theme, etc.) ---
+        .withNativeFunction("savePreference", [](auto& args, auto complete) {
+            if (args.size() < 2) { complete("ok"); return; }
+            juce::String key = args[0].toString();
+            juce::String value = args[1].toString();
+            auto dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                           .getChildFile("Songbird");
+            dir.createDirectory();
+            dir.getChildFile("pref_" + key + ".txt").replaceWithText(value);
+            complete("ok");
+        })
+        .withNativeFunction("loadPreference", [](auto& args, auto complete) {
+            if (args.size() < 1) { complete(""); return; }
+            juce::String key = args[0].toString();
+            auto file = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                            .getChildFile("Songbird").getChildFile("pref_" + key + ".txt");
+            if (file.existsAsFile())
+                complete(file.loadFileAsString());
+            else
+                complete("");
         });
 }

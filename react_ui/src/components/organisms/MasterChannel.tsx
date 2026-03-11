@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useMeterStore } from '@/data/meters';
+import { subscribeRtBuffer } from '@/data/meters';
 
 interface MasterChannelProps {
   returnsOpen?: boolean;
@@ -12,7 +12,7 @@ interface MasterChannelProps {
  * MasterChannel — direct DOM manipulation for zero-overhead metering.
  *
  * Renders once, then imperatively updates meter fills and readout
- * via a store subscription + DOM refs. No React re-renders for level changes.
+ * via a subscribeRtBuffer subscription + DOM refs. No React re-renders for level changes.
  */
 export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, onToggleRecordStrip }: MasterChannelProps) {
   const leftRef = useRef<HTMLDivElement>(null);
@@ -20,10 +20,10 @@ export function MasterChannel({ returnsOpen, onToggleReturns, recordStripOpen, o
   const readoutRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsub = useMeterStore.subscribe((state) => {
-      const { master } = state;
-      if (leftRef.current) leftRef.current.style.height = `${master.left}%`;
-      if (rightRef.current) rightRef.current.style.height = `${master.right}%`;
+    const unsub = subscribeRtBuffer((buf) => {
+      const { master } = buf;
+      if (leftRef.current) leftRef.current.style.transform = `scaleY(${master.left / 100})`;
+      if (rightRef.current) rightRef.current.style.transform = `scaleY(${master.right / 100})`;
       if (readoutRef.current) {
         const avg = Math.max(master.left, master.right);
         readoutRef.current.textContent = avg > 0
@@ -103,7 +103,7 @@ const label = `text-[9px] text-[hsl(var(--muted-foreground))] uppercase tracking
 const meterWrapper = `flex-1 flex items-center justify-center gap-0.5`;
 const meterTrack = `relative w-1.5 h-28 bg-[hsl(var(--card))] rounded-full overflow-hidden`;
 const meterFill = `
-  absolute bottom-0 w-full rounded-full
+  absolute bottom-0 w-full h-full rounded-full origin-bottom will-change-transform
   bg-gradient-to-t from-emerald-500/80 via-emerald-400 to-red-500`;
 const segment = `absolute w-full h-px bg-[hsl(var(--mixer))] bottom-[var(--seg-bottom)]`;
 const readout = `text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-1`;

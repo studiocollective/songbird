@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { Juce, isPlugin } from '@/lib';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,33 +15,40 @@ export interface ChatThread {
   summary?: string;
 }
 
-// --- localStorage helpers ---
-const THREADS_KEY = 'songbird-chat-threads';
-const ACTIVE_THREAD_KEY = 'songbird-chat-active-thread';
+// --- C++ file-based persistence (replaces localStorage to avoid WebKit SQLite stalls) ---
+
+const saveChatHistoryNative = isPlugin ? Juce.getNativeFunction('saveChatHistory') : () => Promise.resolve(null);
+const loadChatHistoryNative = isPlugin ? Juce.getNativeFunction('loadChatHistory') : () => Promise.resolve('null');
+
+// Debounce timer for save — coalesce writes to at most once per 2s
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function loadThreads(): ChatThread[] {
-  try {
-    const raw = localStorage.getItem(THREADS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
+// In-memory cache (loaded from C++ on init, written back debounced)
+let cachedThreads: ChatThread[] = [];
+let cachedActiveId: string | null = null;
 
 function saveThreads(threads: ChatThread[]) {
-  try {
-    localStorage.setItem(THREADS_KEY, JSON.stringify(threads));
-  } catch { /* ignore quota errors */ }
-}
-
-function loadActiveThreadId(): string | null {
-  return localStorage.getItem(ACTIVE_THREAD_KEY);
+  cachedThreads = threads;
+  // Debounce: coalesce writes
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const data = JSON.stringify({ threads, activeThreadId: cachedActiveId });
+    saveChatHistoryNative(data);
+  }, 2000);
 }
 
 function saveActiveThreadId(id: string) {
-  localStorage.setItem(ACTIVE_THREAD_KEY, id);
+  cachedActiveId = id;
+  // Will be saved along with threads in the next debounced write
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const data = JSON.stringify({ threads: cachedThreads, activeThreadId: id });
+    saveChatHistoryNative(data);
+  }, 2000);
 }
 
 // --- Chat State Slice ---
@@ -100,24 +108,39 @@ function createThread(): ChatThread {
 }
 
 export const useChatSlice: StateCreator<ChatState> = (set, get) => {
-  // Load saved threads and active thread on init
-  const savedThreads = loadThreads();
-  const savedActiveId = loadActiveThreadId();
-  let activeThread = savedThreads.find(t => t.id === savedActiveId);
-  if (!activeThread) {
-    activeThread = createThread();
-    savedThreads.unshift(activeThread);
-    saveThreads(savedThreads);
-    saveActiveThreadId(activeThread.id);
-  }
+  // Start with an empty thread — real history loads async in initialize()
+  const initialThread = createThread();
 
   return {
     initialized: false,
-    initialize: () => set({ initialized: true }),
+    initialize: () => {
+      // Async-load chat history from C++ file on first call
+      loadChatHistoryNative().then((raw: unknown) => {
+        try {
+          const data = typeof raw === 'string' ? JSON.parse(raw) : null;
+          if (data && Array.isArray(data.threads) && data.threads.length > 0) {
+            cachedThreads = data.threads;
+            cachedActiveId = data.activeThreadId || data.threads[0].id;
+            const active = cachedThreads.find(t => t.id === cachedActiveId) || cachedThreads[0];
+            set({
+              initialized: true,
+              threads: cachedThreads,
+              activeThreadId: active.id,
+              chatMessages: active.messages,
+            });
+            return;
+          }
+        } catch { /* ignore parse errors */ }
+        // No saved history — keep the initial empty thread
+        cachedThreads = [initialThread];
+        cachedActiveId = initialThread.id;
+        set({ initialized: true });
+      });
+    },
 
     chatOpen: true,
     rightPanel: 'chat' as 'chat' | 'history' | 'bird' | null,
-    chatMessages: activeThread.messages,
+    chatMessages: [],
     chatInput: '',
     apiKey: null,
     selectedModel: 'gemini-3.1-pro-preview',
@@ -126,8 +149,8 @@ export const useChatSlice: StateCreator<ChatState> = (set, get) => {
     thinkingText: '',
     toolUseLabel: null,
 
-    activeThreadId: activeThread.id,
-    threads: savedThreads,
+    activeThreadId: initialThread.id,
+    threads: [initialThread],
     threadMenuOpen: false,
 
     toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),

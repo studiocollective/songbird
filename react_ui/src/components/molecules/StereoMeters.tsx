@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useMeterStore } from '@/data/meters';
+import { subscribeRtBuffer } from '@/data/meters';
 
 /**
  * BalanceOMeter — morphing triangle inscribed in a circle.
@@ -23,9 +23,9 @@ export function StereoWidthMeter() {
   const polyRef = useRef<SVGPolygonElement>(null);
 
   useEffect(() => {
-    const unsub = useMeterStore.subscribe((state) => {
-      const { phaseCorrelation: corr } = state; // -1 to +1
-      const { left, right } = state.master; // 0–100
+    const unsub = subscribeRtBuffer((buf) => {
+      const { phaseCorrelation: corr } = buf;
+      const { left, right } = buf.master;
       
       const linL = left / 100;
       const linR = right / 100;
@@ -93,7 +93,7 @@ export function StereoWidthMeter() {
           strokeWidth="1.5"
           strokeLinejoin="round"
           opacity="0.9"
-          style={{ transition: 'all 0.15s ease-out' }}
+          style={{ willChange: 'transform' }}
         />
         {/* Labels */}
         <text x={cx} y={cy - r - 5} textAnchor="middle"
@@ -117,8 +117,8 @@ export function PhaseCorrelationMeter() {
   const indicatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsub = useMeterStore.subscribe((state) => {
-      const correlation = state.phaseCorrelation;
+    const unsub = subscribeRtBuffer((buf) => {
+      const correlation = buf.phaseCorrelation;
       const pct = ((correlation + 1) / 2) * 100;
 
       // Color based on correlation value
@@ -128,11 +128,11 @@ export function PhaseCorrelationMeter() {
       else color = 'rgb(239 68 68)';                          // red
 
       if (fillRef.current) {
-        fillRef.current.style.width = `${pct}%`;
+        fillRef.current.style.transform = `scaleX(${pct / 100})`;
         fillRef.current.style.backgroundColor = color;
       }
       if (indicatorRef.current) {
-        indicatorRef.current.style.left = `${pct}%`;
+        indicatorRef.current.style.transform = `translateX(${pct * 0.64}px)`;
         indicatorRef.current.style.backgroundColor = color;
       }
     });
@@ -173,8 +173,8 @@ export function SpectrumAnalyzer() {
   const SVG_H = 48;
 
   useEffect(() => {
-    const unsub = useMeterStore.subscribe((state) => {
-      const spectrum = state.spectrum;
+    const unsub = subscribeRtBuffer((buf) => {
+      const spectrum = buf.spectrum;
       if (!spectrum || spectrum.length === 0) return;
 
       for (let i = 0; i < Math.min(NUM_BANDS, spectrum.length); i++) {
@@ -223,8 +223,8 @@ const phaseTrack = `
   relative w-16 h-2 bg-[hsl(var(--card))] rounded-full overflow-hidden
   border border-[hsl(var(--border))]`;
 const scaleMarkVert = `absolute h-full w-px bg-[hsl(var(--muted-foreground))]/20`;
-const phaseFill = `absolute left-0 h-full rounded-full opacity-60 transition-all duration-75`;
-const phaseIndicator = `absolute h-full w-0.5 rounded-full transition-all duration-75`;
+const phaseFill = `absolute left-0 h-full w-full rounded-full opacity-60 origin-left will-change-transform`;
+const phaseIndicator = `absolute h-full w-0.5 rounded-full will-change-transform`;
 const phaseLabels = `
   flex justify-between w-16
   text-[7px] text-[hsl(var(--muted-foreground))] leading-none`;

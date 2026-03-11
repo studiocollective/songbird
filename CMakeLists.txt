@@ -80,7 +80,6 @@ target_sources(SongbirdPlayer PRIVATE
     app/bridge/MidiEditBridge.cpp
     app/bridge/UndoRedoBridge.cpp
     app/ai/LyriaManager.cpp
-    app/midi/MidiRecorder.cpp
     app/audio/AudioRecorder.cpp
     app/plugins/PluginManager.cpp
     app/audio/PlaybackInfo.cpp
@@ -90,7 +89,6 @@ target_sources(SongbirdPlayer PRIVATE
     app/state/ProjectState.cpp
     app/midi/MidiToBird.cpp
     app/audio/AudioQuantizer.cpp
-    app/audio/LevelMeterBridge.cpp
     app/state/SessionState.cpp
     app/audio/PluginStateTracker.cpp
     app/loader/BirdFileOps.cpp

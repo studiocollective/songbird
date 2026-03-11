@@ -84,15 +84,24 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             juce::String deviceName = args[0].toString();
             auto& dm = engine.getDeviceManager().deviceManager;
-            auto setup = dm.getAudioDeviceSetup();
+            auto previousSetup = dm.getAudioDeviceSetup();
+            auto setup = previousSetup;
             setup.outputDeviceName = deviceName;
-            setup.inputDeviceName = deviceName;  // typically same device on macOS
+            // Don't blindly set input to the output device name — they may differ
+            // (e.g. external interface for output, built-in mic for input)
             auto err = dm.setAudioDeviceSetup(setup, true);
             if (err.isEmpty()) {
                 DBG("setAudioDevice: switched to " + deviceName);
                 complete("{\"success\":true}");
             } else {
-                DBG("setAudioDevice: error " + err);
+                DBG("setAudioDevice: error " + err + " — restoring previous device");
+                // Restore previous working device so the engine isn't left broken
+                auto restoreErr = dm.setAudioDeviceSetup(previousSetup, true);
+                if (restoreErr.isNotEmpty()) {
+                    // Previous device also gone — try system default
+                    DBG("setAudioDevice: restore also failed, trying default device");
+                    dm.initialiseWithDefaultDevices(2, 0);
+                }
                 complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
         })
@@ -101,14 +110,16 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             double sampleRate = static_cast<double>(args[0]);
             auto& dm = engine.getDeviceManager().deviceManager;
-            auto setup = dm.getAudioDeviceSetup();
+            auto previousSetup = dm.getAudioDeviceSetup();
+            auto setup = previousSetup;
             setup.sampleRate = sampleRate;
             auto err = dm.setAudioDeviceSetup(setup, true);
             if (err.isEmpty()) {
                 DBG("setAudioSampleRate: set to " + juce::String(sampleRate));
                 complete("{\"success\":true}");
             } else {
-                DBG("setAudioSampleRate: error " + err);
+                DBG("setAudioSampleRate: error " + err + " — restoring previous");
+                dm.setAudioDeviceSetup(previousSetup, true);
                 complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
         })
@@ -117,17 +128,17 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
             if (args.size() < 1) { complete("{\"success\":false}"); return; }
             int bufferSize = static_cast<int>(args[0]);
             auto& dm = engine.getDeviceManager().deviceManager;
-            auto* device = dm.getCurrentAudioDevice();
-            if (device) {
-                auto setup = dm.getAudioDeviceSetup();
-                setup.bufferSize = bufferSize;
-                auto err = dm.setAudioDeviceSetup(setup, true);
-                if (err.isEmpty())
-                    complete("{\"success\":true}");
-                else
-                    complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
+            auto previousSetup = dm.getAudioDeviceSetup();
+            auto setup = previousSetup;
+            setup.bufferSize = bufferSize;
+            auto err = dm.setAudioDeviceSetup(setup, true);
+            if (err.isEmpty()) {
+                DBG("setAudioBufferSize: set to " + juce::String(bufferSize));
+                complete("{\"success\":true}");
             } else {
-                complete("{\"success\":false,\"error\":\"No audio device\"}");
+                DBG("setAudioBufferSize: error " + err + " — restoring previous");
+                dm.setAudioDeviceSetup(previousSetup, true);
+                complete("{\"success\":false,\"error\":\"" + err.replace("\"", "\\\"") + "\"}");
             }
         })
 

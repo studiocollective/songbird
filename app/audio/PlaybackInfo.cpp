@@ -36,8 +36,8 @@ void PlaybackInfo::setWebView(juce::WebBrowserComponent* wv)
     webView = wv;
     if (webView && currentEdit && !isTimerRunning())
     {
-        startTimerHz(30);
-        DBG("PlaybackInfo: Timer started (30Hz)");
+        startTimerHz(60);
+        DBG("PlaybackInfo: Timer started (60Hz)");
     }
 }
 
@@ -83,7 +83,7 @@ void PlaybackInfo::processMasterBuffer(const juce::AudioBuffer<float>& buffer, i
 }
 
 //==============================================================================
-// Background analysis thread — does FFT + stereo computation
+// Background analysis thread — does FFT + stereo computation + JSON building
 //==============================================================================
 
 PlaybackInfo::AnalysisThread::AnalysisThread(PlaybackInfo& o)
@@ -99,7 +99,7 @@ void PlaybackInfo::AnalysisThread::run()
 
     while (!threadShouldExit())
     {
-        wait(33);
+        wait(16);
 
         // ── Pull samples from ring buffer into FFT input ──
         int rp = owner.ringReadPos.load(std::memory_order_relaxed);
@@ -198,6 +198,78 @@ void PlaybackInfo::AnalysisThread::run()
             owner.computedCorrelation.store(prevCorr * alphaFast + correlation * (1.0f - alphaFast), std::memory_order_relaxed);
             owner.computedBalance.store(prevBal * alphaSlow + balance * (1.0f - alphaSlow), std::memory_order_relaxed);
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Build the full JSON payload using snprintf (ZERO heap allocations)
+        // Read the latest level snapshot from the timer thread
+        // ═══════════════════════════════════════════════════════════════════
+
+        LevelSnapshot* snap = owner.levelSnapReady.load(std::memory_order_acquire);
+        if (!snap) continue; // no data yet
+
+        char* buf = owner.jsonWriteBuf;
+        int pos = 0;
+        int remaining = jsonBufSize - 1;
+
+        // ── Levels ──
+        pos += snprintf(buf + pos, remaining - pos, "{\"levels\":[");
+
+        for (int i = 0; i < snap->numTracks; i++)
+        {
+            if (i > 0) pos += snprintf(buf + pos, remaining - pos, ",");
+            pos += snprintf(buf + pos, remaining - pos, "[%.1f,%.1f]",
+                            (double)snap->trackL[i], (double)snap->trackR[i]);
+        }
+
+        pos += snprintf(buf + pos, remaining - pos, ",[%.1f,%.1f]]",
+                        (double)snap->masterL, (double)snap->masterR);
+
+        // ── Transport ──
+        pos += snprintf(buf + pos, remaining - pos,
+            ",\"transport\":{\"position\":%.3f,\"bar\":%d,\"looping\":%s,\"loopLength\":%.2f,\"loopBars\":%d,\"loopStartBar\":%d}",
+            snap->posSeconds, snap->bar,
+            snap->looping ? "true" : "false",
+            snap->loopLenSeconds, snap->loopBars, snap->loopStartBar);
+
+        // ── Stereo analysis ──
+        float width2 = owner.computedWidth.load(std::memory_order_relaxed);
+        float corr2 = owner.computedCorrelation.load(std::memory_order_relaxed);
+        float bal2 = owner.computedBalance.load(std::memory_order_relaxed);
+
+        float localBands2[numUIBands];
+        {
+            bool exp2 = false;
+            while (!owner.spectrumLock.compare_exchange_weak(exp2, true, std::memory_order_acquire))
+                exp2 = false;
+            std::copy(owner.spectrumBands, owner.spectrumBands + numUIBands, localBands2);
+            owner.spectrumLock.store(false, std::memory_order_release);
+        }
+
+        pos += snprintf(buf + pos, remaining - pos,
+            ",\"stereo\":{\"width\":%.4f,\"correlation\":%.4f,\"balance\":%.4f,\"spectrum\":[",
+            (double)width2, (double)corr2, (double)bal2);
+
+        for (int i = 0; i < numUIBands; ++i)
+        {
+            if (i > 0) pos += snprintf(buf + pos, remaining - pos, ",");
+            pos += snprintf(buf + pos, remaining - pos, "%.4f", (double)localBands2[i]);
+        }
+        pos += snprintf(buf + pos, remaining - pos, "]}");
+
+        // ── CPU stats ──
+        pos += snprintf(buf + pos, remaining - pos,
+            ",\"cpu\":{\"cpu\":%.1f,\"bufferSize\":%d,\"sampleRate\":%.0f}}",
+            owner.cpuPercent.load(std::memory_order_relaxed),
+            owner.cpuBufferSize.load(std::memory_order_relaxed),
+            owner.cpuSampleRate.load(std::memory_order_relaxed));
+
+        buf[pos] = '\0';
+
+        // Publish: swap the ready pointer to this buffer
+        owner.readyJson.store(buf, std::memory_order_release);
+
+        // Switch to the other write buffer for next iteration
+        owner.jsonWriteBuf = (buf == owner.jsonBufA) ? owner.jsonBufB : owner.jsonBufA;
     }
 }
 
@@ -284,8 +356,8 @@ void PlaybackInfo::attachClients()
 
     if (webView)
     {
-        startTimerHz(30);
-        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " track clients, timer started");
+        startTimerHz(60);
+        DBG("PlaybackInfo: Attached " + juce::String((int)trackClients.size()) + " track clients, timer started (60Hz)");
     }
 }
 
@@ -327,7 +399,7 @@ void PlaybackInfo::detachClients()
 }
 
 //==============================================================================
-// Timer callback — 30Hz UI pump (LIGHTWEIGHT — just reads pre-computed values)
+// Timer callback — 60Hz ULTRA-LIGHT: snapshot levels → emit pre-built JSON
 //==============================================================================
 
 void PlaybackInfo::timerCallback()
@@ -351,93 +423,73 @@ void PlaybackInfo::timerCallback()
         }
     }
 
-    auto tracks = te::getAudioTracks(*currentEdit);
-
-    // ── Per-track audio levels (lightweight — just reading cached values) ──
-    juce::String json = "[";
-    int numTracks = juce::jmin((int)trackClients.size(), (int)tracks.size());
-
-    for (int i = 0; i < numTracks; i++)
+    // ── Snapshot levels + transport into the write buffer (fast atomic reads) ──
     {
-        auto levelL = trackClients[i]->getAndClearAudioLevel(0);
-        auto levelR = trackClients[i]->getAndClearAudioLevel(1);
+        LevelSnapshot* snap = levelSnapWriting;
+        auto tracks = te::getAudioTracks(*currentEdit);
+        int numTracks = juce::jmin((int)trackClients.size(), (int)tracks.size());
+        numTracks = juce::jmin(numTracks, maxTracks);
+        snap->numTracks = numTracks;
 
-        if (i > 0) json += ",";
-        json += "[" + juce::String(levelL.dB, 1) + "," + juce::String(levelR.dB, 1) + "]";
-    }
-
-    // ── Master levels ──
-    float masterL = -100.0f, masterR = -100.0f;
-    if (masterClientAttached)
-    {
-        auto ml = masterClient->getAndClearAudioLevel(0);
-        auto mr = masterClient->getAndClearAudioLevel(1);
-        masterL = ml.dB;
-        masterR = mr.dB;
-    }
-    else
-    {
         for (int i = 0; i < numTracks; i++)
         {
-            auto ll = trackClients[i]->getAndClearAudioLevel(0);
-            auto lr = trackClients[i]->getAndClearAudioLevel(1);
-            if (ll.dB > masterL) masterL = ll.dB;
-            if (lr.dB > masterR) masterR = lr.dB;
+            auto levelL = trackClients[i]->getAndClearAudioLevel(0);
+            auto levelR = trackClients[i]->getAndClearAudioLevel(1);
+            snap->trackL[i] = levelL.dB;
+            snap->trackR[i] = levelR.dB;
         }
+
+        if (masterClientAttached)
+        {
+            auto ml = masterClient->getAndClearAudioLevel(0);
+            auto mr = masterClient->getAndClearAudioLevel(1);
+            snap->masterL = ml.dB;
+            snap->masterR = mr.dB;
+        }
+        else
+        {
+            snap->masterL = -100.0f;
+            snap->masterR = -100.0f;
+            for (int i = 0; i < numTracks; i++)
+            {
+                if (snap->trackL[i] > snap->masterL) snap->masterL = snap->trackL[i];
+                if (snap->trackR[i] > snap->masterR) snap->masterR = snap->trackR[i];
+            }
+        }
+
+        // Transport position
+        auto& transport = currentEdit->getTransport();
+        snap->posSeconds = transport.getPosition().inSeconds();
+        auto barsBeats = currentEdit->tempoSequence.toBarsAndBeats(transport.getPosition());
+        snap->bar = barsBeats.bars + 1;
+
+        snap->looping = transport.looping.get();
+        if (snap->looping)
+        {
+            auto loopRange = transport.getLoopRange();
+            snap->loopLenSeconds = loopRange.getLength().inSeconds();
+            auto loopStartBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getStart());
+            snap->loopStartBar = loopStartBB.bars;
+            auto loopEndBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getEnd());
+            snap->loopBars = loopEndBB.bars;
+        }
+        else
+        {
+            snap->loopLenSeconds = 0.0;
+            snap->loopBars = 0;
+            snap->loopStartBar = 0;
+        }
+
+        // Publish snapshot — swap to the other buffer
+        levelSnapReady.store(snap, std::memory_order_release);
+        levelSnapWriting = (snap == &levelSnapA) ? &levelSnapB : &levelSnapA;
     }
 
-    json += ",[" + juce::String(masterL, 1) + "," + juce::String(masterR, 1) + "]]";
-    webView->emitEventIfBrowserIsVisible("audioLevels", juce::var(json));
-
-    // ── Transport position (lightweight) ──
-    auto& transport = currentEdit->getTransport();
-    double posSeconds = transport.getPosition().inSeconds();
-    auto barsBeats = currentEdit->tempoSequence.toBarsAndBeats(transport.getPosition());
-    int bar = barsBeats.bars + 1;
-
-    bool looping = transport.looping.get();
-    double loopLenSeconds = 0.0;
-    int loopBars = 0;
-    int loopStartBar = 0;
-    if (looping)
+    // ── Emit the pre-built JSON from the background thread ──
+    const char* json = readyJson.load(std::memory_order_acquire);
+    if (json && json[0] != '\0')
     {
-        auto loopRange = transport.getLoopRange();
-        loopLenSeconds = loopRange.getLength().inSeconds();
-        auto loopStartBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getStart());
-        loopStartBar = loopStartBB.bars;
-        auto loopEndBB = currentEdit->tempoSequence.toBarsAndBeats(loopRange.getEnd());
-        loopBars = loopEndBB.bars;
+        webView->emitEventIfBrowserIsVisible("rtFrame", juce::var(juce::String(json)));
     }
-
-    juce::String posJson = "{\"position\":" + juce::String(posSeconds, 3)
-        + ",\"bar\":" + juce::String(bar)
-        + ",\"looping\":" + (looping ? "true" : "false")
-        + ",\"loopLength\":" + juce::String(loopLenSeconds, 2)
-        + ",\"loopBars\":" + juce::String(loopBars)
-        + ",\"loopStartBar\":" + juce::String(loopStartBar) + "}";
-    webView->emitEventIfBrowserIsVisible("transportPosition", juce::var(posJson));
-
-    // ── Stereo analysis — just read pre-computed atomics ──
-    float width = computedWidth.load(std::memory_order_relaxed);
-    float correlation = computedCorrelation.load(std::memory_order_relaxed);
-    float balance = computedBalance.load(std::memory_order_relaxed);
-
-    float localBands[numUIBands];
-    bool expected = false;
-    while (!spectrumLock.compare_exchange_weak(expected, true, std::memory_order_acquire))
-        expected = false;
-    std::copy(spectrumBands, spectrumBands + numUIBands, localBands);
-    spectrumLock.store(false, std::memory_order_release);
-
-    juce::Array<juce::var> spectrumArray;
-    for (int i = 0; i < numUIBands; ++i)
-        spectrumArray.add(juce::var(localBands[i]));
-
-    juce::DynamicObject::Ptr stereoObj = new juce::DynamicObject();
-    stereoObj->setProperty("width", width);
-    stereoObj->setProperty("correlation", correlation);
-    stereoObj->setProperty("balance", balance);
-    stereoObj->setProperty("spectrum", spectrumArray);
-
-    webView->emitEventIfBrowserIsVisible("stereoAnalysis", juce::var(stereoObj.get()));
 }
+

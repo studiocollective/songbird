@@ -218,6 +218,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
             edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
             edit->tempoSequence.getTempos()[0]->setBpm(120.0);
             playbackInfo.setEdit(edit.get());
+            dropoutDetector.setEdit(edit.get());
         }
         return;
     }
@@ -231,6 +232,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
             edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
             edit->tempoSequence.getTempos()[0]->setBpm(120.0);
             playbackInfo.setEdit(edit.get());
+            dropoutDetector.setEdit(edit.get());
         }
         return;
     }
@@ -239,6 +241,7 @@ void SongbirdEditor::loadBirdFile(const juce::File& birdFile)
         edit = std::make_unique<te::Edit>(engine, te::Edit::EditRole::forEditing);
         edit->tempoSequence.getTempos()[0]->setBpm(120.0);
         playbackInfo.setEdit(edit.get());
+        dropoutDetector.setEdit(edit.get());
     }
 
     BirdLoader::populateEdit(*edit, result, engine, [this](const juce::String& msg, float progress) {

@@ -24,8 +24,9 @@ void LevelMeterBridge::setWebView(juce::WebBrowserComponent* wv)
     webView = wv;
     if (webView && currentEdit && !isTimerRunning())
     {
-        startTimerHz(30);
-        DBG("LevelMeterBridge: Timer started (30Hz)");
+        // DISABLED: rtFrame from PlaybackInfo now handles all meter + transport data at 60Hz.
+        // startTimerHz(30);
+        // DBG("LevelMeterBridge: Timer started (30Hz)");
     }
 }
 
@@ -54,8 +55,9 @@ void LevelMeterBridge::attachClients()
 
     if (webView)
     {
-        startTimerHz(30);
-        DBG("LevelMeterBridge: Attached " + juce::String((int)trackClients.size()) + " clients, timer started");
+        // DISABLED: rtFrame from PlaybackInfo now handles all meter + transport data at 60Hz.
+        // startTimerHz(30);
+        DBG("LevelMeterBridge: Attached " + juce::String((int)trackClients.size()) + " clients (timer disabled — rtFrame handles meters)");
     }
     else
     {

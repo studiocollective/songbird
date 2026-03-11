@@ -8,6 +8,9 @@
 
 SongbirdEditor::SongbirdEditor()
 {
+    // Create the virtual MIDI input for computer keyboard injection
+    if (auto res = engine.getDeviceManager().createVirtualMidiDevice("Computer Keyboard"); !res.wasOk())
+        DBG("Failed to create Computer Keyboard virtual MIDI device: " + res.getErrorMessage());
     // Check command line arguments for a sketch name
     auto args = juce::JUCEApplicationBase::getCommandLineParameterArray();
     juce::String sketchName;
@@ -116,6 +119,10 @@ SongbirdEditor::SongbirdEditor()
     // Start audio level metering (Edit is set later)
     playbackInfo.setWebView(webView.get());
 
+    // Start dropout detector (monitors audio callback timing)
+    dropoutDetector.setPlaybackInfo(&playbackInfo);
+    dropoutDetector.start(engine.getDeviceManager().deviceManager, webView.get(), &engine);
+
     // Load the React UI
     #if JUCE_DEBUG
         webView->goToURL("http://localhost:5173");
@@ -172,6 +179,7 @@ void SongbirdEditor::startBackgroundLoading()
         
         if (edit)
             playbackInfo.setEdit(edit.get());
+            dropoutDetector.setEdit(edit.get());
         DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] playbackInfo.setEdit");
         // NOTE: trackState is already emitted at the end of loadBirdFile() — 
         // do NOT emit it again here (212KB JSON blocks the message thread for ~40s).
@@ -302,35 +310,77 @@ void SongbirdEditor::timerCallback()
         return;
     }
 
-    // --- Non-MIDI timer work (plugin params, project load) stays on message thread ---
-    DBG("  timer: saveSessionState...");
-    saveSessionState();
-    DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveSessionState done");
-    DBG("  timer: saveEditState...");
-    saveEditState();
-    DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveEditState done");
+    // --- Non-MIDI timer work: defer heavy I/O to background thread ---
+    // Collect state snapshots on message thread (fast), then write to disk in background.
+    // This prevents message-thread file I/O from causing priority inversion with the audio thread.
+
+    // Snapshot: session state JSON string (fast — just JSON::toString on in-memory data)
+    juce::String sessionJson;
+    {
+        juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+        for (auto& pair : stateCache)
+        {
+            if (pair.first == "songbird-mixer") continue;
+            obj->setProperty(pair.first, juce::JSON::parse(pair.second));
+        }
+        if (obj->getProperties().size() > 0)
+            sessionJson = juce::JSON::toString(obj.get());
+    }
+    auto sessionFile = currentBirdFile.existsAsFile()
+        ? currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".session.json")
+        : juce::File();
+
+    // Snapshot: edit state (flush dirty plugins on message thread — requires edit access)
+    juce::String editJson;
+    juce::File editFile;
+    bool hasEditWork = false;
+    if (edit && currentBirdFile.existsAsFile() && !dirtyPlugins.empty())
+    {
+        for (auto* plugin : dirtyPlugins)
+            if (plugin) edit->flushPluginStateIfNeeded(*plugin);
+        dirtyPlugins.clear();
+        editJson = ValueTreeJSON::toJsonString(edit->state);
+        editFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".edit.json");
+        hasEditWork = true;
+    }
+    else
+    {
+        dirtyPlugins.clear(); // clear even if no work
+    }
+
+    DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] snapshots taken (message thread done)");
+
+    // Determine commit work (stays on message thread for now — just collecting params)
+    bool needsCommit = false;
+    juce::String commitMsg;
+    ProjectState::Source commitSource = ProjectState::Autosave;
 
     if (pendingProjectLoadCommit)
     {
         if (!reactHydrated)
         {
             DBG("  timer: React not hydrated yet, retrying in 200ms");
-            startTimer(200);  // React not ready yet, check again soon
+            startTimer(200);
             return;
         }
         pendingProjectLoadCommit = false;
-        DBG("  timer: saveStateCache...");
-        saveStateCache();
-        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] saveStateCache done");
-        DBG("  timer: commitAndNotify...");
-        commitAndNotify("Project loaded", ProjectState::Autosave);
-        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] commitAndNotify done");
+        // Also snapshot stateCache for the project-load commit
+        {
+            juce::DynamicObject::Ptr obj = new juce::DynamicObject();
+            auto it = stateCache.find("songbird-mixer");
+            if (it != stateCache.end())
+                obj->setProperty(it->first, juce::JSON::parse(it->second));
+            auto stateFile = currentBirdFile.getSiblingFile(currentBirdFile.getFileNameWithoutExtension() + ".state.json");
+            if (obj->getProperties().size() > 0)
+                stateFile.replaceWithText(juce::JSON::toString(obj.get()));
+        }
+        needsCommit = true;
+        commitMsg = "Project loaded";
+        commitSource = ProjectState::Autosave;
         isLoadFinished = true;
-        DBG("  timer: [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] === PROJECT LOAD COMMIT COMPLETE ===");
     }
     else if (pluginParamsDirty && !undoRedoInProgress.load())
     {
-        juce::String commitMsg;
         if (dirtyPluginParams.empty())
         {
             commitMsg = "Plugin parameter change";
@@ -355,7 +405,31 @@ void SongbirdEditor::timerCallback()
         }
         dirtyPluginParams.clear();
         pluginParamsDirty = false;
-        commitAndNotify(commitMsg, ProjectState::Plugin);
+        needsCommit = true;
+        commitSource = ProjectState::Plugin;
     }
+
+    // Launch background thread for all file I/O + git commit
+    juce::Thread::launch([this, sessionJson, sessionFile, editJson, editFile,
+                          hasEditWork, needsCommit, commitMsg, commitSource]() {
+        // Write session state
+        if (sessionJson.isNotEmpty() && sessionFile != juce::File())
+            sessionFile.replaceWithText(sessionJson);
+
+        // Write edit state
+        if (hasEditWork && editJson.isNotEmpty())
+            editFile.replaceWithText(editJson);
+
+        // Git commit
+        if (needsCommit)
+        {
+            projectState.commit(commitMsg, commitSource, true);
+
+            juce::MessageManager::callAsync([this]() {
+                if (webView)
+                    webView->emitEventIfBrowserIsVisible("historyChanged", juce::var("ok"));
+            });
+        }
+    });
 }
 

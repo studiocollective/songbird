@@ -20,8 +20,9 @@ public:
     std::unique_ptr<juce::Component> createPluginWindow (te::PluginWindowState& pws) override;
     void recreatePluginWindowContentAsync (te::Plugin& p) override;
 };
-#include "MidiRecorder.h"
+
 #include "AudioRecorder.h"
+#include "DropoutDetector.h"
 #include "TrackStateWatcher.h"
 
 namespace te = tracktion;
@@ -41,6 +42,9 @@ private:
     // Engine & Edit
     te::Engine engine { "Songbird Player", std::make_unique<ExtendedUIBehaviour>(), nullptr };
     std::unique_ptr<te::Edit> edit;
+
+    // Audio dropout detector
+    DropoutDetector dropoutDetector;
 
     // WebView
     std::unique_ptr<juce::WebBrowserComponent> webView;
@@ -130,8 +134,7 @@ private:
     void setLyriaTrackPrompts(int trackId, const juce::var& prompts);
     void setLyriaQuantize(int trackId, int bars);
 
-    // MIDI recorder
-    std::unique_ptr<MidiRecorder> midiRecorder;
+    // Track for injecting live MIDI from keyboard
     int midiRecordTrackId = -1;
 
     // Audio recorder

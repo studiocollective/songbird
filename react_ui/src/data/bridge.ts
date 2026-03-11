@@ -64,8 +64,10 @@ export const juceBridge: StateStorage = {
 // --- Event listener bridge (C++ → JS) ---
 export function addStateListener(event: string, callback: (data: unknown) => void) {
   if (!isPlugin) return () => {};
+  // Skip logging for high-frequency rtFrame events (60Hz would saturate the log buffer)
+  const shouldLog = event !== 'rtFrame';
   const jsonCallback = (data: unknown) => {
-    pushLog({ direction: '←C++', method: 'event', storeName: event, payload: typeof data === 'string' ? data : undefined });
+    if (shouldLog) pushLog({ direction: '←C++', method: 'event', storeName: event, payload: typeof data === 'string' ? data : undefined });
     // JUCE emitByBackend already JSON.parse's the payload.
     // When C++ passes a DynamicObject var, data is already an object.
     // When C++ passes a string var, data is a string that needs parsing.
