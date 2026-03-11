@@ -33,6 +33,7 @@ export function VolumeFader({ trackId, value, color, height = 'h-24' }: VolumeFa
         useMixerStore.getState().setVolume(trackId, v);
       }}
       onDoubleClick={() => {
+        endSliderDrag();
         useMixerStore.getState().setVolume(trackId, DEFAULT_VOLUME);
         setMixerParamRT(trackId, 'volume', DEFAULT_VOLUME);
       }}

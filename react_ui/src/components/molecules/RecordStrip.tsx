@@ -12,6 +12,125 @@ interface RecordStripCellProps {
   trackList: Track[];
 }
 
+/* ── MIDI Channel Selector ─────────────────────────────────────── */
+function MidiChannelSelector({ track }: { track: Track }) {
+  const [open, setOpen] = useState(false);
+  const current = track.midiChannel; // null = All
+
+  const select = (ch: number | null) => {
+    useMixerStore.getState().setMidiChannel(track.id, ch);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        className={channelSelectBtn}
+        onClick={() => setOpen(!open)}
+        title="MIDI channel filter"
+      >
+        <span className="text-[7px] uppercase tracking-wider opacity-60">Ch</span>
+        <span className="flex-1 text-left">{current ? current : 'All'}</span>
+        <svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className={channelDropdown}>
+          <div
+            className={cn(channelOption, !current && channelOptionActive)}
+            onClick={() => select(null)}
+          >
+            All
+          </div>
+          {Array.from({ length: 16 }, (_, i) => i + 1).map((ch) => (
+            <div
+              key={ch}
+              className={cn(channelOption, current === ch && channelOptionActive)}
+              onClick={() => select(ch)}
+            >
+              {ch}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Audio Channel Selector ────────────────────────────────────── */
+function AudioChannelSelector({ track }: { track: Track }) {
+  const [open, setOpen] = useState(false);
+  const channels = track.audioSource?.channels;
+  // Display label: show channel pair like "1-2", or "All" if not set
+  const label = channels && channels.length > 0
+    ? channels.map(c => c + 1).join('-')
+    : '1-2';
+
+  const select = (chs: number[]) => {
+    useMixerStore.getState().setAudioInputChannels(track.id, chs);
+    setOpen(false);
+  };
+
+  // Generate pairs: 1-2, 3-4, 5-6, ... up to 16
+  const pairs: { label: string; channels: number[] }[] = [];
+  for (let i = 0; i < 16; i += 2) {
+    pairs.push({ label: `${i + 1}-${i + 2}`, channels: [i, i + 1] });
+  }
+  // Also individual mono channels
+  const monos: { label: string; channels: number[] }[] = [];
+  for (let i = 0; i < 16; i++) {
+    monos.push({ label: `${i + 1}`, channels: [i] });
+  }
+
+  return (
+    <div className="relative">
+      <button
+        className={channelSelectBtn}
+        onClick={() => setOpen(!open)}
+        title="Audio input channels"
+      >
+        <span className="text-[7px] uppercase tracking-wider opacity-60">Ch</span>
+        <span className="flex-1 text-left">{label}</span>
+        <svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className={channelDropdown}>
+          <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1 pb-0.5">Stereo</div>
+          {pairs.map((p) => (
+            <div
+              key={p.label}
+              className={cn(channelOption,
+                channels && channels.length === 2 && channels[0] === p.channels[0] && channelOptionActive
+              )}
+              onClick={() => select(p.channels)}
+            >
+              {p.label}
+            </div>
+          ))}
+          <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1.5 pb-0.5 border-t border-[hsl(var(--border))]/30">Mono</div>
+          <div className="grid grid-cols-4 gap-0">
+            {monos.map((m) => (
+              <div
+                key={m.label}
+                className={cn(channelOption, 'text-center',
+                  channels && channels.length === 1 && channels[0] === m.channels[0] && channelOptionActive
+                )}
+                onClick={() => select(m.channels)}
+              >
+                {m.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── MIDI Input Cell ───────────────────────────────────────────── */
 function MidiInputCell({ track }: RecordStripCellProps) {
   const [open, setOpen] = useState(false);
   const [devices, setDevices] = useState<string[]>([]);
@@ -60,6 +179,8 @@ function MidiInputCell({ track }: RecordStripCellProps) {
           </svg>
         </button>
       </div>
+      {/* MIDI channel selector */}
+      <MidiChannelSelector track={track} />
 
       {open && (
         <div className={dropdownMenu}>
@@ -111,6 +232,7 @@ function MidiInputCell({ track }: RecordStripCellProps) {
   );
 }
 
+/* ── Audio Input Cell ──────────────────────────────────────────── */
 function AudioInputCell({ track, trackList }: RecordStripCellProps) {
   const [open, setOpen] = useState(false);
   const [availableInputs, setAvailableInputs] = useState<string[]>([]);
@@ -158,6 +280,8 @@ function AudioInputCell({ track, trackList }: RecordStripCellProps) {
           </svg>
         </button>
       </div>
+      {/* Audio channel selector */}
+      {audioSource && <AudioChannelSelector track={track} />}
 
       {open && (
         <div className={dropdownMenu}>
@@ -212,6 +336,7 @@ function AudioInputCell({ track, trackList }: RecordStripCellProps) {
   );
 }
 
+/* ── Record Strip Container ────────────────────────────────────── */
 interface RecordStripProps {
   tracks: Track[];
 }
@@ -232,7 +357,7 @@ export function RecordStrip({ tracks }: RecordStripProps) {
 }
 
 // --- Styles ---
-const stripContainer = `flex w-full`;
+const stripContainer = `flex`;
 
 const cellOuter = `w-28 shrink-0 flex items-end justify-center`;
 
@@ -248,6 +373,25 @@ const inputSelectBtn = `
   text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
   transition-colors cursor-pointer border border-[hsl(var(--border))]/30
   min-w-0`;
+
+const channelSelectBtn = `
+  w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-medium
+  bg-[hsl(var(--muted))]/30 hover:bg-[hsl(var(--muted))]/60
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  transition-colors cursor-pointer border border-[hsl(var(--border))]/20`;
+
+const channelDropdown = `
+  absolute right-0 top-full z-[60] mt-0.5
+  bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+  rounded-md shadow-xl max-h-48 overflow-y-auto min-w-[3rem]`;
+
+const channelOption = `
+  px-1.5 py-1 text-[8px] cursor-pointer
+  text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
+  hover:bg-[hsl(var(--muted))]/50 transition-colors`;
+
+const channelOptionActive = `
+  bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))]`;
 
 const btnRow = `flex items-center justify-center gap-1`;
 

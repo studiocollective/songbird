@@ -65,6 +65,19 @@ juce::String SongbirdEditor::describeMixerChange(const juce::String& oldJson, co
                         changes.add("'" + name + "' send" + juce::String(s));
                 }
             }
+
+            // Audio source
+            auto oldSrc = oldT.getProperty("audioSource", {});
+            auto newSrc = newT.getProperty("audioSource", {});
+            if (oldSrc != newSrc && newSrc.isObject())
+            {
+                juce::String devName = newSrc.getProperty("deviceName", "").toString();
+                juce::String srcType = newSrc.getProperty("type", "").toString();
+                if (srcType == "hardware" && devName.isNotEmpty())
+                    changes.add("'" + name + "' input '" + devName + "'");
+                else if (srcType == "loopback")
+                    changes.add("'" + name + "' input loopback");
+            }
         }
     }
 
@@ -310,6 +323,28 @@ void SongbirdEditor::applyMixerState(const juce::var& state)
                         double sendVol = (double)(*sendsArray)[b];
                         sendPlugin->setGainDb(juce::Decibels::gainToDecibels(static_cast<float>(sendVol)));
                     }
+                }
+            }
+        }
+
+        // Audio source (input assignment) — restore from persisted state
+        if (trackState.hasProperty("audioSource") && audioRecorder)
+        {
+            auto srcVar = trackState.getProperty("audioSource", {});
+            if (srcVar.isObject())
+            {
+                juce::String type = srcVar.getProperty("type", "").toString();
+                if (type == "hardware")
+                {
+                    juce::String devName = srcVar.getProperty("deviceName", "").toString();
+                    if (devName.isNotEmpty())
+                        audioRecorder->setHardwareInputSource(i, devName);
+                }
+                else if (type == "loopback")
+                {
+                    int srcTrackId = (int)srcVar.getProperty("sourceTrackId", -1);
+                    if (srcTrackId >= 0)
+                        audioRecorder->setLoopbackSource(i, srcTrackId);
                 }
             }
         }

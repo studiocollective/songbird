@@ -177,9 +177,12 @@ void SongbirdEditor::startBackgroundLoading()
         loadBirdFile(currentBirdFile);
         DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] loadBirdFile complete");
         
-        if (edit)
+        if (edit) {
+            // Always stop transport on launch — never auto-play
+            edit->getTransport().stop(false, false);
             playbackInfo.setEdit(edit.get());
             dropoutDetector.setEdit(edit.get());
+        }
         DBG("  [" + juce::String(juce::Time::getMillisecondCounterHiRes() - t0, 0) + "ms] playbackInfo.setEdit");
         // NOTE: trackState is already emitted at the end of loadBirdFile() — 
         // do NOT emit it again here (212KB JSON blocks the message thread for ~40s).

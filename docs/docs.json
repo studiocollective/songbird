@@ -1,0 +1,107 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Songbird",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "bird",
+              "state-management"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "C++ Backend",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "app/index"
+            ]
+          },
+          {
+            "group": "Modules",
+            "pages": [
+              "app/bridge",
+              "app/state",
+              "app/audio",
+              "app/loader",
+              "app/plugins",
+              "app/midi",
+              "app/ai",
+              "app/export"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "React UI",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "react-ui/index",
+              "react-ui/src"
+            ]
+          },
+          {
+            "group": "State & Data",
+            "pages": [
+              "react-ui/data",
+              "react-ui/slices",
+              "react-ui/lib"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "react-ui/components",
+              "react-ui/atoms",
+              "react-ui/molecules",
+              "react-ui/organisms",
+              "react-ui/panels"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Tools & Support",
+        "groups": [
+          {
+            "group": "Development",
+            "pages": [
+              "support/utils",
+              "support/tools",
+              "support/eval"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "support/files",
+              "support/embedded"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

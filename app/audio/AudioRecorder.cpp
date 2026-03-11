@@ -20,15 +20,12 @@ AudioRecorder::~AudioRecorder()
 // Device enumeration
 //==============================================================================
 
-juce::StringArray AudioRecorder::listAudioInputs()
+juce::StringArray AudioRecorder::listAudioInputs(juce::AudioDeviceManager& dm)
 {
     juce::StringArray names;
 
-    // Use JUCE's audio device manager to query hardware input channels
-    juce::AudioDeviceManager tempDM;
-    tempDM.initialiseWithDefaultDevices(2, 2); // 2 in, 2 out
-
-    if (auto* device = tempDM.getCurrentAudioDevice())
+    // Query input channels from the existing audio device
+    if (auto* device = dm.getCurrentAudioDevice())
     {
         auto inputNames = device->getInputChannelNames();
         for (auto& name : inputNames)
@@ -38,7 +35,7 @@ juce::StringArray AudioRecorder::listAudioInputs()
     // Fallback: list raw device type names
     if (names.isEmpty())
     {
-        for (auto type : tempDM.getAvailableDeviceTypes())
+        for (auto type : dm.getAvailableDeviceTypes())
         {
             for (auto& name : type->getDeviceNames(true))
                 names.add(name);
@@ -100,48 +97,59 @@ void AudioRecorder::removeAudioTrack(int trackId)
 void AudioRecorder::setHardwareInputSource(int trackId, const juce::String& deviceName)
 {
     juce::ScopedLock sl(lock);
-    if (auto* info = findTrackInfo(trackId))
+    auto* info = findTrackInfo(trackId);
+    if (!info)
     {
-        info->sourceType   = SourceType::HardwareInput;
-        info->sourceName   = deviceName;
-        info->sourceTrackId = -1;
-        DBG("AudioRecorder: Track " + juce::String(trackId) + " src → hardware '" + deviceName + "'");
+        // Auto-create entry (e.g. when restoring from persisted state)
+        AudioTrackInfo newInfo;
+        newInfo.trackId = trackId;
+        trackInfos.add(newInfo);
+        info = &trackInfos.getReference(trackInfos.size() - 1);
     }
+    info->sourceType   = SourceType::HardwareInput;
+    info->sourceName   = deviceName;
+    info->sourceTrackId = -1;
+    DBG("AudioRecorder: Track " + juce::String(trackId) + " src → hardware '" + deviceName + "'");
 }
 
 void AudioRecorder::setLoopbackSource(int trackId, int sourceTrackId)
 {
     juce::ScopedLock sl(lock);
-    if (auto* info = findTrackInfo(trackId))
+    auto* info = findTrackInfo(trackId);
+    if (!info)
     {
-        // Wire an AuxSend on the source track → AuxReturn on bus 3 (reserved for loopback)
-        if (auto* srcTrack = getAudioTrack(sourceTrackId))
-        {
-            // Ensure source track has an AuxSend on bus 3
-            bool foundSend = false;
-            for (auto p : srcTrack->pluginList)
-                if (auto* send = dynamic_cast<te::AuxSendPlugin*>(p))
-                    if (send->busNumber == 3) { foundSend = true; break; }
+        AudioTrackInfo newInfo;
+        newInfo.trackId = trackId;
+        trackInfos.add(newInfo);
+        info = &trackInfos.getReference(trackInfos.size() - 1);
+    }
+    // Wire an AuxSend on the source track → AuxReturn on bus 3 (reserved for loopback)
+    if (auto* srcTrack = getAudioTrack(sourceTrackId))
+    {
+        // Ensure source track has an AuxSend on bus 3
+        bool foundSend = false;
+        for (auto p : srcTrack->pluginList)
+            if (auto* send = dynamic_cast<te::AuxSendPlugin*>(p))
+                if (send->busNumber == 3) { foundSend = true; break; }
 
-            if (!foundSend)
+        if (!foundSend)
+        {
+            if (auto plugin = edit.getPluginCache().createNewPlugin(te::AuxSendPlugin::xmlTypeName, {}))
             {
-                if (auto plugin = edit.getPluginCache().createNewPlugin(te::AuxSendPlugin::xmlTypeName, {}))
+                srcTrack->pluginList.insertPlugin(*plugin, -1, nullptr);
+                if (auto* sp = dynamic_cast<te::AuxSendPlugin*>(plugin.get()))
                 {
-                    srcTrack->pluginList.insertPlugin(*plugin, -1, nullptr);
-                    if (auto* sp = dynamic_cast<te::AuxSendPlugin*>(plugin.get()))
-                    {
-                        sp->busNumber = 3;
-                        sp->setGainDb(0.0f);
-                    }
+                    sp->busNumber = 3;
+                    sp->setGainDb(0.0f);
                 }
             }
         }
-
-        info->sourceType    = SourceType::TrackLoopback;
-        info->sourceTrackId = sourceTrackId;
-        info->sourceName    = "Loopback";
-        DBG("AudioRecorder: Track " + juce::String(trackId) + " src → loopback from track " + juce::String(sourceTrackId));
     }
+
+    info->sourceType    = SourceType::TrackLoopback;
+    info->sourceTrackId = sourceTrackId;
+    info->sourceName    = "Loopback";
+    DBG("AudioRecorder: Track " + juce::String(trackId) + " src → loopback from track " + juce::String(sourceTrackId));
 }
 
 //==============================================================================

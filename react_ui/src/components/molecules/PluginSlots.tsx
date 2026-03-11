@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
-import type { PluginSlot, Track } from '@/data/slices/mixer';
+import type { PluginSlot, Track, AudioMode } from '@/data/slices/mixer';
 
 interface PluginSlotButtonProps {
   slot: PluginSlot;
@@ -133,8 +133,76 @@ function SidechainSelector({ trackId, sidechainTrackId, sidechainSensitivity, tr
   );
 }
 
-interface PluginSlotsProps {
+/* ── Audio Mode Selector (Record / Generate) ─────────────────── */
+interface AudioModeSelectorProps {
+  trackId: number;
+  mode: AudioMode;
+}
 
+function AudioModeSelector({ trackId, mode }: AudioModeSelectorProps) {
+  const [open, setOpen] = useState(false);
+
+  const isRecord = mode === 'record';
+
+  const selectMode = (m: AudioMode) => {
+    useMixerStore.getState().setAudioMode(trackId, m);
+    setOpen(false);
+  };
+
+  return (
+    <div className={slotWrapper}>
+      <div className={slotRow}>
+        {/* Mode indicator dot */}
+        <span className={cn(
+          'w-1.5 h-1.5 rounded-full shrink-0',
+          isRecord ? 'bg-red-400' : 'bg-violet-400'
+        )} />
+        {/* Mode icon */}
+        <span className={typeIcon}>{isRecord ? '🎤' : '✨'}</span>
+        {/* Mode selector button */}
+        <button
+          onClick={() => setOpen(!open)}
+          className={cn(nameBtn, isRecord ? nameLoaded : 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25')}
+          title={isRecord ? 'Record from input' : 'AI generation'}
+        >
+          {isRecord ? 'Record' : 'Generate'}
+        </button>
+        {/* Expand button — opens generation UI when in Generate mode */}
+        <button
+          onClick={() => {
+            if (!isRecord) {
+              // TODO: Open generation interface panel
+              console.log('[AudioMode] Open generation UI for track', trackId);
+            }
+          }}
+          className={cn(openPluginBtn, isRecord && 'invisible')}
+          title="Open generation settings"
+        >
+          ⤢
+        </button>
+      </div>
+
+      {open && (
+        <div className={dropdown}>
+          <button
+            onClick={() => selectMode('record')}
+            className={cn(dropdownItem, isRecord && dropdownItemSelected)}
+          >
+            🎤 Record
+          </button>
+          <button
+            onClick={() => selectMode('generate')}
+            className={cn(dropdownItem, !isRecord && dropdownItemSelected)}
+          >
+            ✨ Generate
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PluginSlotsProps {
   trackId: number;
   trackType: 'midi' | 'audio';
   instrument: PluginSlot;
@@ -144,9 +212,10 @@ interface PluginSlotsProps {
   sidechainTrackId?: number | null;
   sidechainSensitivity?: number;
   trackList?: Track[];
+  audioMode?: AudioMode;
 }
 
-export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster, sidechainTrackId, sidechainSensitivity, trackList }: PluginSlotsProps) {
+export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster, sidechainTrackId, sidechainSensitivity, trackList, audioMode }: PluginSlotsProps) {
   const emptySlot: PluginSlot = { pluginId: null, pluginName: null, bypassed: false };
   const inst = instrument ?? emptySlot;
   const fxSlot = fx ?? emptySlot;
@@ -174,7 +243,7 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
           }
         />
       ) : (
-        <div className="h-4" />
+        <AudioModeSelector trackId={trackId} mode={audioMode ?? 'record'} />
       )}
       <PluginSlotButton
         slot={fxSlot}
@@ -207,8 +276,8 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
         }
       />
 
-      {/* Sidechain selector — shown when a channel strip is loaded and not on master/return */}
-      {stripSlot.pluginId && !isMaster && (
+      {/* Sidechain selector — always shown for non-master tracks */}
+      {!isMaster && (
         <SidechainSelector
           trackId={trackId}
           sidechainTrackId={sidechainTrackId ?? null}

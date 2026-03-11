@@ -1959,7 +1959,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 1,
@@ -3077,14 +3081,18 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 2,
           "name": "bass",
           "type": "midi",
           "color": "#45B7D1",
-          "muted": true,
+          "muted": false,
           "solo": false,
           "volume": 58,
           "pan": 0,
@@ -5893,7 +5901,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 3,
@@ -9291,7 +9303,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 4,
@@ -9328,7 +9344,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 5,
@@ -11310,7 +11330,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 6,
@@ -11732,7 +11756,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 7,
@@ -11769,7 +11797,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 8,
@@ -11861,7 +11893,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 9,
@@ -11898,11 +11934,15 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 10,
-          "name": "Hall",
+          "name": "audio11",
           "type": "midi",
           "color": "#45B7D1",
           "muted": false,
@@ -11915,8 +11955,8 @@
             "bypassed": false
           },
           "fx": {
-            "pluginId": "",
-            "pluginName": "ValhallaRoom",
+            "pluginId": null,
+            "pluginName": null,
             "bypassed": false
           },
           "channelStrip": {
@@ -11926,7 +11966,7 @@
           },
           "notes": [],
           "loopLengthBeats": 0,
-          "isReturn": true,
+          "isReturn": false,
           "isMaster": false,
           "sends": [
             0,
@@ -11935,13 +11975,99 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
           "id": 11,
-          "name": "Plate",
+          "name": "audio12",
           "type": "midi",
           "color": "#96CEB4",
+          "muted": false,
+          "solo": false,
+          "volume": 127,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "notes": [],
+          "loopLengthBeats": 0,
+          "isReturn": false,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
+        },
+        {
+          "id": 12,
+          "name": "audio13",
+          "type": "midi",
+          "color": "#FFEAA7",
+          "muted": false,
+          "solo": false,
+          "volume": 127,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "notes": [],
+          "loopLengthBeats": 0,
+          "isReturn": false,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
+        },
+        {
+          "id": 13,
+          "name": "Hall",
+          "type": "midi",
+          "color": "#DDA0DD",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -11972,13 +12098,58 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
-          "id": 12,
+          "id": 14,
+          "name": "Plate",
+          "type": "midi",
+          "color": "#98D8C8",
+          "muted": false,
+          "solo": false,
+          "volume": 127,
+          "pan": 0,
+          "instrument": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "fx": {
+            "pluginId": "",
+            "pluginName": "ValhallaRoom",
+            "bypassed": false
+          },
+          "channelStrip": {
+            "pluginId": null,
+            "pluginName": null,
+            "bypassed": false
+          },
+          "notes": [],
+          "loopLengthBeats": 0,
+          "isReturn": true,
+          "isMaster": false,
+          "sends": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sidechainTrackId": null,
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
+        },
+        {
+          "id": 15,
           "name": "Delay",
           "type": "midi",
-          "color": "#FFEAA7",
+          "color": "#F7DC6F",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -12009,13 +12180,17 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
-          "id": 13,
+          "id": 16,
           "name": "Saturation",
           "type": "midi",
-          "color": "#DDA0DD",
+          "color": "#FF6B6B",
           "muted": false,
           "solo": false,
           "volume": 127,
@@ -12046,13 +12221,17 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         },
         {
-          "id": 14,
+          "id": 17,
           "name": "Master",
           "type": "midi",
-          "color": "#98D8C8",
+          "color": "#4ECDC4",
           "muted": false,
           "solo": false,
           "volume": 80,
@@ -12083,7 +12262,11 @@
             0
           ],
           "sidechainTrackId": null,
-          "sidechainSensitivity": 0.6
+          "sidechainSensitivity": 0.6,
+          "audioSource": null,
+          "midiInput": null,
+          "midiChannel": null,
+          "inputMonitoring": false
         }
       ],
       "sections": [

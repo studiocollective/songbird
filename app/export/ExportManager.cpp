@@ -65,7 +65,36 @@ void SongbirdEditor::exportSheetMusic()
 juce::String SongbirdEditor::getTrackStateJSON()
 {
     if (!edit) return "{}";
-    return BirdLoader::getTrackStateJSON(*edit, &lastParseResult);
+    auto json = BirdLoader::getTrackStateJSON(*edit, &lastParseResult);
+
+    // Inject audioSource per track from AudioRecorder state
+    if (audioRecorder)
+    {
+        auto parsed = juce::JSON::parse(json);
+        if (auto* tracks = parsed.getProperty("tracks", {}).getArray())
+        {
+            for (auto& t : *tracks)
+            {
+                if (auto* obj = t.getDynamicObject())
+                {
+                    int id = (int)obj->getProperty("id");
+                    if (auto* info = audioRecorder->findTrackInfo(id))
+                    {
+                        auto* src = new juce::DynamicObject();
+                        src->setProperty("type", info->sourceType == AudioRecorder::SourceType::HardwareInput ? "hardware" : "loopback");
+                        if (info->sourceType == AudioRecorder::SourceType::HardwareInput)
+                            src->setProperty("deviceName", info->sourceName);
+                        else
+                            src->setProperty("sourceTrackId", info->sourceTrackId);
+                        obj->setProperty("audioSource", juce::var(src));
+                    }
+                }
+            }
+        }
+        json = juce::JSON::toString(parsed);
+    }
+
+    return json;
 }
 
 void SongbirdEditor::exportStems(bool includeReturnFx)

@@ -16,11 +16,13 @@ void SongbirdEditor::registerBirdFileBridge(juce::WebBrowserComponent::Options& 
         juce::StringArray lines;
         lines.addLines(content);
 
-        // Remove existing bpm and scale lines
+        // Remove existing sig block, bare bpm/scale lines
         for (int i = lines.size() - 1; i >= 0; i--) {
             auto trimmed = lines[i].trimStart();
-            if (trimmed.startsWith("bpm ") ||
-                (trimmed.startsWith("scale ") && !trimmed.startsWith("scale_")))
+            if (trimmed == "sig")
+                lines.remove(i);
+            else if (trimmed.startsWith("bpm ") ||
+                     (trimmed.startsWith("scale ") && !trimmed.startsWith("scale_")))
                 lines.remove(i);
         }
 
@@ -33,21 +35,21 @@ void SongbirdEditor::registerBirdFileBridge(juce::WebBrowserComponent::Options& 
         while (headerEnd < lines.size() && lines[headerEnd].trim().isEmpty())
             lines.remove(headerEnd);
 
-        // Build meta lines
-        juce::StringArray meta;
-        if (lastParseResult.bpm > 0)
-            meta.add("bpm " + juce::String(lastParseResult.bpm));
-        if (!lastParseResult.scaleRoot.empty() && !lastParseResult.scaleMode.empty())
-            meta.add("scale " + juce::String(lastParseResult.scaleRoot) + " " + juce::String(lastParseResult.scaleMode));
+        // Build sig block
+        bool hasBpm = lastParseResult.bpm > 0;
+        bool hasScale = !lastParseResult.scaleRoot.empty() && !lastParseResult.scaleMode.empty();
 
-        // Insert meta section after the header with single blank line separators
-        if (meta.size() > 0) {
-            // Blank line after meta block (before content)
+        if (hasBpm || hasScale) {
+            // Blank line after sig block (before content)
             lines.insert(headerEnd, "");
-            // Insert meta lines
-            for (int i = meta.size() - 1; i >= 0; i--)
-                lines.insert(headerEnd, meta[i]);
-            // Blank line before meta block (after header) — only if there's a header
+            // Insert indented entries (reverse order for insert-at-same-index)
+            if (hasScale)
+                lines.insert(headerEnd, "  scale " + juce::String(lastParseResult.scaleRoot) + " " + juce::String(lastParseResult.scaleMode));
+            if (hasBpm)
+                lines.insert(headerEnd, "  bpm " + juce::String(lastParseResult.bpm));
+            // sig header
+            lines.insert(headerEnd, "sig");
+            // Blank line before sig block (after header) — only if there's a header
             if (headerEnd > 0)
                 lines.insert(headerEnd, "");
         }

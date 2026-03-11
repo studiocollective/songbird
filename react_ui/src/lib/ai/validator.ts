@@ -52,6 +52,10 @@ export function validateBirdSyntax(content: string): { isValid: boolean, error?:
             inGlobal = false;
         }
         
+        else if (cmd === 'sig' || cmd === 'bpm' || cmd === 'scale') {
+            continue;
+        }
+        
         // --- Structural rules inside sections ---
         else if (['plugin', 'fx', 'strip'].includes(cmd)) {
             if (!inGlobal) {

@@ -58,11 +58,17 @@ public:
     //==========================================================================
     void audioDeviceIOCallbackWithContext(const float* const* /*in*/,
                                           int /*numIn*/,
-                                          float* const* /*out*/,
-                                          int /*numOut*/,
+                                          float* const* out,
+                                          int numOut,
                                           int numSamples,
                                           const juce::AudioIODeviceCallbackContext&) override
     {
+        // CRITICAL: Clear output buffers — JUCE mixes all registered callbacks'
+        // outputs additively. Leaving these uncleared adds garbage to the audio.
+        for (int ch = 0; ch < numOut; ++ch)
+            if (out[ch] != nullptr)
+                juce::FloatVectorOperations::clear(out[ch], numSamples);
+
         double now = juce::Time::getMillisecondCounterHiRes();
         double prev = lastCallbackTime.exchange(now);
 
@@ -76,8 +82,6 @@ public:
                 while (gapMs > current && !worstGapMs.compare_exchange_weak(current, gapMs)) {}
             }
         }
-
-        (void)numSamples;
     }
 
     void audioDeviceAboutToStart(juce::AudioIODevice* device) override

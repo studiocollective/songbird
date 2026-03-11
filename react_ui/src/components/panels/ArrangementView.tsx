@@ -271,6 +271,13 @@ export function ArrangementView() {
                   >
                     S
                   </button>
+                  <button
+                    onClick={() => useMixerStore.getState().removeTrack(track.id)}
+                    className={`${muteSoloBtn} ${removeBtn}`}
+                    title="Remove track"
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
 
@@ -617,7 +624,7 @@ function Playhead({
           visualPosRef.current = targetPos;
         } else {
           // Lerp 30% toward target each frame
-          visualPosRef.current += gap * 0.15;
+          visualPosRef.current += gap * 0.4;
         }
       } else {
         // When stopped, show exact position
@@ -848,7 +855,7 @@ const playheadLane = `
 
 const lanesScroll = `flex-1 overflow-auto`;
 
-const laneRow = `flex h-16 border-b border-[hsl(var(--border))]/50 group`;
+const laneRow = `flex w-full h-16 border-b border-[hsl(var(--border))]/50 group`;
 const laneHeader = `
   w-44 shrink-0 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]
   flex items-center px-3 gap-2 sticky left-0 z-30`;
@@ -860,6 +867,7 @@ const muteSoloBtn = `w-5 h-5 rounded text-[9px] font-bold flex items-center just
 const muteBtnActive = `bg-[hsl(var(--plugin-bypassed))] text-[hsl(var(--primary-foreground))]`;
 const soloBtnActive = `bg-yellow-500 text-black`;
 const muteSoloBtnInactive = `text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]`;
+const removeBtn = `text-[hsl(var(--muted-foreground))] hover:text-red-400 hover:bg-red-500/10`;
 
 const laneContent = `flex-1 relative`;
 
@@ -920,7 +928,7 @@ const audioSourceBtn = `
   hover:border-[hsl(var(--border))]/60`;
 
 // --- Add track buttons ---
-const addTrackRow = `flex h-10 border-b border-[hsl(var(--border))]/30`;
+const addTrackRow = `flex w-full h-10 border-b border-[hsl(var(--border))]/30`;
 
 const addTrackSpacerWithButtons = `
   w-44 shrink-0 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))]

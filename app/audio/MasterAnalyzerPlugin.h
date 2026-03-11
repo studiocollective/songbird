@@ -139,12 +139,12 @@ public:
 
 private:
     enum RampState { Idle = 0, FadingOut = 1, Silent = 2, FadingIn = 3 };
-    std::atomic<int> rampState { RampState::Idle };
+    std::atomic<int> rampState { RampState::Silent };  // Start silent — fade in only after attachClients()
 
     // Only touched by the audio thread (inside applyToBuffer) once a ramp
     // is in progress. Written by requestFadeIn/requestFadeOut on the message
     // thread *before* the state transition (release fence ensures visibility).
-    float rampGain = 1.0f;
+    float rampGain = 0.0f;  // Matches Silent default
     int rampSamplesRemaining = 0;
     static constexpr int rampLength = 256;  // ~5ms at 48kHz
 };

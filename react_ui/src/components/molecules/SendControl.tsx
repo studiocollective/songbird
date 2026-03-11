@@ -57,6 +57,7 @@ export function SendControl({ trackId, busIndex, value, color }: SendControlProp
   };
 
   const onDoubleClick = () => {
+    endSliderDrag();
     useMixerStore.getState().setSendLevel(trackId, busIndex, DEFAULT_SEND);
     setMixerParamRT(trackId, 'send' + busIndex, DEFAULT_SEND);
   };

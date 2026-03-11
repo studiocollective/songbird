@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { TrackColorDot, MuteSoloButtons, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
 import { subscribeRtBuffer } from '@/data/meters';
-import type { PluginSlot, Track, AudioSource } from '@/data/slices/mixer';
+import type { PluginSlot, Track, AudioSource, AudioMode } from '@/data/slices/mixer';
 
 interface MixerChannelProps {
   trackId: number;
@@ -19,15 +19,17 @@ interface MixerChannelProps {
   channelStrip: PluginSlot;
   isReturn?: boolean;
   isMaster?: boolean;
+  isFirstReturn?: boolean;
   sidechainTrackId?: number | null;
   trackList?: Track[];
   sidechainSensitivity?: number;
   audioSource?: AudioSource | null;
+  audioMode?: AudioMode;
   recordArmed?: boolean;
 }
 
 export function MixerChannel({
-  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false, sidechainTrackId, trackList, sidechainSensitivity, recordArmed
+  trackId, trackIndex, name, trackType, color, muted, solo, volume, pan, instrument, fx, channelStrip, isReturn = false, isMaster = false, isFirstReturn = false, sidechainTrackId, trackList, sidechainSensitivity, recordArmed, audioMode
 }: MixerChannelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -79,7 +81,7 @@ export function MixerChannel({
   }, [trackIndex, isMaster, muted, volume, color]);
 
   return (
-    <div className={cn(channel, isReturn && channelReturn)}>
+    <div className={cn(channel, isFirstReturn && 'border-l border-l-[hsl(var(--border))]')}>
 
       <div className={header}>
         <TrackColorDot color={color} size="md" />
@@ -92,7 +94,7 @@ export function MixerChannel({
         )}
       </div>
 
-      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} />
+      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} audioMode={audioMode} />
 
       <div className={msWrapper}>
         {!isMaster && <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />}
@@ -124,8 +126,6 @@ const channel = `
   relative w-28 shrink-0 border-r border-[hsl(var(--border))]/50
   flex flex-col items-center py-2
   hover:bg-[hsl(var(--mixer-channel-hover))] transition-colors`;
-
-const channelReturn = `w-20`;
 
 const header = `flex items-center gap-1 mb-1`;
 const trackName = `text-[10px] text-[hsl(var(--muted-foreground))] font-medium truncate max-w-[50px]`;

@@ -972,7 +972,7 @@ function MidiEditorPlayhead({
         if (Math.abs(gap) > 0.5) {
           visualPosRef.current = targetPos;
         } else {
-          visualPosRef.current += gap * 0.15;
+          visualPosRef.current += gap * 0.4;
         }
       } else {
         visualPosRef.current = targetPos;

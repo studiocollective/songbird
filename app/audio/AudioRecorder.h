@@ -37,7 +37,7 @@ public:
     void setProjectDir(const juce::File& dir) { projectDir = dir; }
 
     // Device enumeration
-    static juce::StringArray listAudioInputs();
+    static juce::StringArray listAudioInputs(juce::AudioDeviceManager& dm);
 
     // Track management
     /** Creates and returns a new audio track (ID = index). */

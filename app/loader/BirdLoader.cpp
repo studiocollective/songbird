@@ -444,6 +444,8 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
     std::vector<SectionDef> sectionDefs;
 
     bool inArrangement = false;
+    bool inChannelsBlock = false;
+    bool inSigBlock = false;
 
     // Flush current velocity/note layer into current channel
     auto flushLayer = [&](bool clearPattern = true) {
@@ -513,9 +515,49 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
 
         // --- Arrangement block ---
+        // --- Sig block (signature: bpm, scale, key) ---
+        if (tokens[0] == "sig") {
+            inSigBlock = true;
+            inArrangement = false;
+            inChannelsBlock = false;
+            continue;
+        }
+
+        // If we're inside a sig block, read indented entries
+        if (inSigBlock) {
+            if (rawLine.size() > 0 && (rawLine[0] == ' ' || rawLine[0] == '\t')) {
+                if (tokens[0] == "bpm" && tokens.size() > 1) {
+                    try { result.bpm = std::stoi(tokens[1]); } catch (...) {}
+                } else if (tokens[0] == "scale" && tokens.size() > 2) {
+                    result.scaleRoot = tokens[1];
+                    std::string mode = tokens[2];
+                    if (mode == "major") mode = "ionian";
+                    else if (mode == "minor") mode = "aeolian";
+                    result.scaleMode = mode;
+                } else if (tokens[0] == "key" && tokens.size() > 1) {
+                    std::string keyString = tokens[1];
+                    for (size_t i = 2; i < tokens.size(); ++i)
+                        keyString += " " + tokens[i];
+                    bool isMinor = false;
+                    int sharps = sharps_from_key_name(keyString, isMinor);
+                    if (sharps != -99) {
+                        result.keySharpsFlats = sharps;
+                        result.keyIsMinor = isMinor;
+                        result.keyName = keyString;
+                        result.hasKeySignature = true;
+                    }
+                }
+                continue;
+            } else {
+                inSigBlock = false;
+                // Fall through to process this line normally
+            }
+        }
+
         if (tokens[0] == "arr") {
             flushSection();
             inArrangement = true;
+            inChannelsBlock = false;
             continue;
         }
 
@@ -540,8 +582,38 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         // --- Section definition ---
         if (tokens[0] == "sec") {
             flushSection();
+            inChannelsBlock = false;
             currentSectionName = (tokens.size() > 1) ? tokens[1] : "unnamed";
             continue;
+        }
+
+        // --- Channels block ---
+        if (tokens[0] == "channels") {
+            flushChannel();
+            inChannelsBlock = true;
+            continue;
+        }
+
+        // If we're inside a channels block, read indented channel entries
+        if (inChannelsBlock) {
+            if (rawLine.size() > 0 && (rawLine[0] == ' ' || rawLine[0] == '\t')) {
+                // Check if this is a new channel definition (first token is a number)
+                bool isNumber = !tokens[0].empty() && std::all_of(tokens[0].begin(), tokens[0].end(), ::isdigit);
+                if (isNumber) {
+                    flushChannel();
+                    inChannel = true;
+                    try { currentUCh.channel = std::stoi(tokens[0]) - 1; } catch (...) {}
+                    currentUCh.name = (tokens.size() > 1) ? tokens[1] : ("Track " + std::to_string(currentUCh.channel + 1));
+                }
+                // Otherwise it's a property line (plugin, strip, type, etc.) — fall through
+                // to the normal property handlers below
+                if (isNumber) continue;
+            } else {
+                // Not indented — channels block is over
+                inChannelsBlock = false;
+                flushChannel();
+                // Fall through to process this line normally
+            }
         }
 
         // --- Global bars ---
@@ -589,7 +661,7 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
         }
 
-        // --- Channel ---
+        // --- Channel (backward compat: bare `ch` at top level) ---
         if (tokens[0] == "ch") {
             flushChannel();
             inChannel = true;
@@ -779,6 +851,13 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             result.channels[idx].name = name;
             result.channels[idx].channel = idx;
         }
+        // Apply trackType from global configs
+        for (auto& [chIdx, globalCh] : globalConfigs) {
+            auto orderIt = channelOrder.find(globalCh.name);
+            if (orderIt != channelOrder.end()) {
+                result.channels[orderIt->second].trackType = globalCh.trackType;
+            }
+        }
 
         // Phase tracking for 'cont' patterns across sections
         std::map<int, BirdLoader::PatternState> trackStates;
@@ -798,6 +877,8 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
                     if (mergedCh.plugin.empty()) mergedCh.plugin = globalCh.plugin;
                     if (mergedCh.fx.empty()) mergedCh.fx = globalCh.fx;
                     if (mergedCh.strip.empty()) mergedCh.strip = globalCh.strip;
+                    if (mergedCh.trackType == "midi" && globalCh.trackType != "midi")
+                        mergedCh.trackType = globalCh.trackType;
                     // If name is default "Track X", use global name
                     if (mergedCh.name == "Track " + std::to_string(uch.channel + 1) && !globalCh.name.empty()) {
                         mergedCh.name = globalCh.name;
@@ -820,13 +901,15 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
                 if (orderIt == channelOrder.end()) continue;
                 auto& targetCh = result.channels[orderIt->second];
 
-                // Copy plugin/fx/strip if not yet set
+                // Copy plugin/fx/strip/trackType if not yet set
                 if (targetCh.plugin.empty())
                     targetCh.plugin = resolved.plugin;
                 if (targetCh.fx.empty())
                     targetCh.fx = resolved.fx;
                 if (targetCh.strip.empty())
                     targetCh.strip = resolved.strip;
+                if (targetCh.trackType.empty() || (targetCh.trackType == "midi" && resolved.trackType != "midi"))
+                    targetCh.trackType = resolved.trackType;
 
                 // Offset all resolved notes by current beat position
                 for (auto note : resolved.notes) {

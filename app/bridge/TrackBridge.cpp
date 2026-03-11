@@ -11,8 +11,9 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
         // Audio Tracks
         // ====================================================================
 
-        .withNativeFunction("listAudioInputs", [](auto&, auto complete) {
-            auto names = AudioRecorder::listAudioInputs();
+        .withNativeFunction("listAudioInputs", [this](auto&, auto complete) {
+            auto& dm = engine.getDeviceManager().deviceManager;
+            auto names = AudioRecorder::listAudioInputs(dm);
             juce::Array<juce::var> arr;
             for (auto& n : names) arr.add(juce::var(n));
             complete(juce::JSON::toString(juce::var(arr)));
@@ -208,18 +209,42 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
 
         .withNativeFunction("addAudioTrack", [this](auto&, auto complete) {
             juce::MessageManager::callAsync([this, complete = std::move(complete)]() mutable {
-                if (!audioRecorder || !edit) { complete("{\"success\":false}"); return; }
+                if (!edit) { complete("{\"success\":false}"); return; }
+
                 int targetIndex = static_cast<int>(lastParseResult.channels.size());
-                int id = audioRecorder->addAudioTrack(targetIndex);
-                auto audioTracks = te::getAudioTracks(*edit);
-                auto* track = (id >= 0 && id < (int)audioTracks.size()) ? audioTracks[id] : nullptr;
-                juce::String name = track ? track->getName() : ("audio" + juce::String(id + 1));
-                int vol = track && track->getVolumePlugin()
+                auto allTracks = te::getAudioTracks(*edit);
+                te::Track* preceding = targetIndex > 0 && targetIndex <= (int)allTracks.size() ? allTracks[targetIndex - 1] : nullptr;
+                auto track = edit->insertNewAudioTrack(te::TrackInsertPoint(nullptr, preceding), nullptr);
+                if (!track) { complete("{\"success\":false}"); return; }
+
+                int id = targetIndex;
+                track->setName("audio" + juce::String(id + 1));
+
+                // Set default volume (0 dB) and pan (center)
+                if (auto vp = track->getVolumePlugin()) {
+                    vp->setVolumeDb(0.0f);
+                    vp->setPan(0.0f);
+                }
+
+                // Add 4 AuxSend plugins (for return bus sends) — matching populateEdit
+                for (int bus = 0; bus < 4; bus++) {
+                    if (auto plugin = edit->getPluginCache().createNewPlugin(te::AuxSendPlugin::xmlTypeName, {})) {
+                        track->pluginList.insertPlugin(*plugin, -1, nullptr);
+                        auto* sendPlugin = dynamic_cast<te::AuxSendPlugin*>(plugin.get());
+                        if (sendPlugin) {
+                            sendPlugin->busNumber = bus;
+                            sendPlugin->setGainDb(-100.0f); // Default to muted
+                        }
+                    }
+                }
+
+                int vol = track->getVolumePlugin()
                     ? static_cast<int>(std::round(juce::Decibels::decibelsToGain(track->getVolumePlugin()->getVolumeDb()) * 127.0))
                     : 80;
-                int pan = track && track->getVolumePlugin()
+                int pan = track->getVolumePlugin()
                     ? static_cast<int>(std::round(track->getVolumePlugin()->getPan() * 64.0f))
                     : 0;
+                juce::String name = track->getName();
                 juce::String trackJson = "{\"success\":true,\"trackId\":" + juce::String(id)
                     + ",\"name\":\"" + name.replace("\"", "\\\"") + "\""
                     + ",\"trackType\":\"audio\""
@@ -231,41 +256,58 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                 BirdChannel newCh;
                 newCh.channel = id;
                 newCh.name = name.toStdString();
+                newCh.trackType = "audio";
                 lastParseResult.channels.push_back(newCh);
 
                 if (lastParseResult.arrangement.size() > 0) {
-                    // Inject global channel definition into the raw .bird file
+                    // Inject channel into the channels block in the .bird file
                     if (currentBirdFile.existsAsFile()) {
                         auto birdText = currentBirdFile.loadFileAsString();
                         auto lines = juce::StringArray::fromLines(birdText);
-                        
-                        // Check if it already exists globally
-                        juce::String chMarker = "ch " + juce::String(id + 1) + " " + name;
-                        bool foundGlobal = false;
-                        int insertIdx = lines.size();
-                        
+
+                        // Find the channels block
+                        int channelsBlockStart = -1;
+                        int channelsBlockEnd = -1;
                         for (int i = 0; i < lines.size(); ++i) {
-                            auto trimmed = lines[i].trim();
-                            if (trimmed == chMarker || trimmed.startsWith(chMarker + " ")) {
-                                foundGlobal = true;
-                                break;
-                            }
-                            // Stop searching for a global def once we hit arr or sec
-                            if (trimmed == "arr" || trimmed.startsWith("sec ")) {
-                                insertIdx = i;
+                            if (lines[i].trim() == "channels") {
+                                channelsBlockStart = i;
+                                // Find end: next non-indented non-empty line
+                                for (int j = i + 1; j < lines.size(); ++j) {
+                                    auto t = lines[j].trim();
+                                    if (t.isEmpty()) continue;
+                                    if (!lines[j].startsWithChar(' ') && !lines[j].startsWithChar('\t')) {
+                                        channelsBlockEnd = j;
+                                        break;
+                                    }
+                                }
+                                if (channelsBlockEnd < 0) channelsBlockEnd = lines.size();
                                 break;
                             }
                         }
 
-                        if (!foundGlobal) {
-                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty()) {
-                                insertIdx--;
+                        if (channelsBlockStart >= 0) {
+                            // Insert at end of channels block
+                            lines.insert(channelsBlockEnd, "  " + juce::String(id + 1) + " " + name);
+                            lines.insert(channelsBlockEnd + 1, "    type audio");
+                            lines.insert(channelsBlockEnd + 2, "    strip console1");
+                        } else {
+                            // No channels block — create one before arr/sec
+                            int insertIdx = lines.size();
+                            for (int i = 0; i < lines.size(); ++i) {
+                                auto trimmed = lines[i].trim();
+                                if (trimmed == "arr" || trimmed.startsWith("sec ")) {
+                                    insertIdx = i;
+                                    break;
+                                }
                             }
-                            lines.insert(insertIdx, chMarker);
-                            lines.insert(insertIdx + 1, "  type audio");
-                            lines.insert(insertIdx + 2, "  strip console1");
-                            currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty())
+                                insertIdx--;
+                            lines.insert(insertIdx, "channels");
+                            lines.insert(insertIdx + 1, "  " + juce::String(id + 1) + " " + name);
+                            lines.insert(insertIdx + 2, "    type audio");
+                            lines.insert(insertIdx + 3, "    strip console1");
                         }
+                        currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
                     }
 
                     juce::String secNameArg = lastParseResult.arrangement[0].sectionName;
@@ -334,38 +376,51 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
                 lastParseResult.channels.push_back(newCh);
 
                 if (lastParseResult.arrangement.size() > 0) {
-                    // Inject global channel definition into the raw .bird file
+                    // Inject channel into the channels block in the .bird file
                     if (currentBirdFile.existsAsFile()) {
                         auto birdText = currentBirdFile.loadFileAsString();
                         auto lines = juce::StringArray::fromLines(birdText);
-                        
-                        // Check if it already exists globally
-                        juce::String chMarker = "ch " + juce::String(id + 1) + " " + track->getName();
-                        bool foundGlobal = false;
-                        int insertIdx = lines.size();
-                        
+
+                        // Find the channels block
+                        int channelsBlockStart = -1;
+                        int channelsBlockEnd = -1;
                         for (int i = 0; i < lines.size(); ++i) {
-                            auto trimmed = lines[i].trim();
-                            if (trimmed == chMarker || trimmed.startsWith(chMarker + " ")) {
-                                foundGlobal = true;
-                                break;
-                            }
-                            // Stop searching for a global def once we hit arr or sec
-                            if (trimmed == "arr" || trimmed.startsWith("sec ")) {
-                                insertIdx = i;
+                            if (lines[i].trim() == "channels") {
+                                channelsBlockStart = i;
+                                for (int j = i + 1; j < lines.size(); ++j) {
+                                    auto t = lines[j].trim();
+                                    if (t.isEmpty()) continue;
+                                    if (!lines[j].startsWithChar(' ') && !lines[j].startsWithChar('\t')) {
+                                        channelsBlockEnd = j;
+                                        break;
+                                    }
+                                }
+                                if (channelsBlockEnd < 0) channelsBlockEnd = lines.size();
                                 break;
                             }
                         }
 
-                        if (!foundGlobal) {
-                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty()) {
-                                insertIdx--;
+                        if (channelsBlockStart >= 0) {
+                            lines.insert(channelsBlockEnd, "  " + juce::String(id + 1) + " " + track->getName());
+                            lines.insert(channelsBlockEnd + 1, "    type midi");
+                            lines.insert(channelsBlockEnd + 2, "    strip console1");
+                        } else {
+                            int insertIdx = lines.size();
+                            for (int i = 0; i < lines.size(); ++i) {
+                                auto trimmed = lines[i].trim();
+                                if (trimmed == "arr" || trimmed.startsWith("sec ")) {
+                                    insertIdx = i;
+                                    break;
+                                }
                             }
-                            lines.insert(insertIdx, chMarker);
-                            lines.insert(insertIdx + 1, "  type midi");
-                            lines.insert(insertIdx + 2, "  strip console1");
-                            currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
+                            while (insertIdx > 0 && lines[insertIdx - 1].trim().isEmpty())
+                                insertIdx--;
+                            lines.insert(insertIdx, "channels");
+                            lines.insert(insertIdx + 1, "  " + juce::String(id + 1) + " " + track->getName());
+                            lines.insert(insertIdx + 2, "    type midi");
+                            lines.insert(insertIdx + 3, "    strip console1");
                         }
+                        currentBirdFile.replaceWithText(lines.joinIntoString("\n"));
                     }
 
                     juce::String secNameArg = lastParseResult.arrangement[0].sectionName;
@@ -381,13 +436,108 @@ void SongbirdEditor::registerTrackBridge(juce::WebBrowserComponent::Options& opt
             });
         })
 
-        .withNativeFunction("removeAudioTrack", [this](auto& args, auto complete) {
+        .withNativeFunction("removeTrack", [this](auto& args, auto complete) {
             int trackId = static_cast<int>(args[0]);
-            juce::MessageManager::callAsync([this, trackId]() {
-                audioRecorder->removeAudioTrack(trackId);
-                // No trackState emit — JS already filters the track from the store locally
+            juce::MessageManager::callAsync([this, trackId, complete = std::move(complete)]() mutable {
+                if (!edit) { complete("{\"success\":false}"); return; }
+                auto audioTracks = te::getAudioTracks(*edit);
+                if (trackId < 0 || trackId >= (int)audioTracks.size()) {
+                    complete("{\"success\":false}"); return;
+                }
+                auto* track = audioTracks[trackId];
+                if (!track) { complete("{\"success\":false}"); return; }
+
+                // Capture the track name before deletion for bird file cleanup
+                juce::String trackName = track->getName();
+
+                edit->deleteTrack(track);
+
+                // Remove from lastParseResult.channels
+                if (trackId < (int)lastParseResult.channels.size())
+                    lastParseResult.channels.erase(lastParseResult.channels.begin() + trackId);
+
+                // Remove from bird file (channels block + section entries)
+                if (currentBirdFile.existsAsFile()) {
+                    auto birdText = currentBirdFile.loadFileAsString();
+                    auto lines = juce::StringArray::fromLines(birdText);
+                    juce::StringArray newLines;
+
+                    bool skipping = false;
+                    int skipIndent = 0; // indentation level of the matched line
+
+                    for (int i = 0; i < lines.size(); ++i) {
+                        auto trimmed = lines[i].trim();
+
+                        // Compute indentation of this line
+                        int indent = 0;
+                        for (auto c : lines[i].toStdString()) {
+                            if (c == ' ') indent++;
+                            else if (c == '\t') indent += 2;
+                            else break;
+                        }
+
+                        // Match channel in channels block: "  N trackName"
+                        // Match channel in section: "  ch N trackName"
+                        bool isChannelMatch = false;
+                        if (!trimmed.isEmpty()) {
+                            auto tokens = juce::StringArray::fromTokens(trimmed, " ", "");
+                            if (tokens.size() >= 2) {
+                                // channels block format: "N name"
+                                bool firstIsDigit = tokens[0].containsOnly("0123456789");
+                                if (firstIsDigit && tokens[1] == trackName)
+                                    isChannelMatch = true;
+                                // section format: "ch N name"
+                                if (tokens[0] == "ch" && tokens.size() >= 3 && tokens[2] == trackName)
+                                    isChannelMatch = true;
+                                // backward compat: bare "ch N name" at top level
+                                if (tokens[0] == "ch" && tokens.size() >= 3 && tokens[2] == trackName && indent == 0)
+                                    isChannelMatch = true;
+                            }
+                        }
+
+                        if (isChannelMatch) {
+                            skipping = true;
+                            skipIndent = indent;
+                            continue;
+                        }
+
+                        if (skipping) {
+                            if (trimmed.isEmpty()) continue; // skip blank lines within block
+                            // Stop skipping when indentation is <= the matched line
+                            if (indent <= skipIndent) {
+                                skipping = false;
+                            } else {
+                                continue; // deeper indentation = part of the channel
+                            }
+                        }
+
+                        newLines.add(lines[i]);
+                    }
+
+                    currentBirdFile.replaceWithText(newLines.joinIntoString("\n"));
+                }
+
+                // Persist state + re-emit updated track list
+                saveEditState();
+                createTrackWatchers();
+
+                // Re-emit trackState so JS gets the updated track list
+                if (webView) {
+                    auto fullJsonStr = getTrackStateJSON();
+                    auto parsed = juce::JSON::parse(fullJsonStr);
+                    if (auto* tracks = parsed.getProperty("tracks", {}).getArray()) {
+                        for (auto& t : *tracks) {
+                            if (auto* obj = t.getDynamicObject())
+                                obj->setProperty("notes", juce::Array<juce::var>());
+                        }
+                    }
+                    webView->emitEventIfBrowserIsVisible("trackState", parsed);
+                }
+
+                saveStateCache();
+                commitAndNotify("Remove track '" + trackName + "'", ProjectState::User);
+                complete("{\"success\":true}");
             });
-            complete("{\"success\":true}");
         })
 
         .withNativeFunction("setAudioRecordSource", [this](auto& args, auto complete) {

@@ -11,12 +11,16 @@ You have tools to edit the project's .bird file and to directly control plugin p
 - Use \`validate_bird_file\` to sanity-check your work before saving if you're not confident.
 
 ## Bird Syntax Structure
-1. **Global Tracks**: Define channels, names, and plugins at the top of the file
-2. **Arrangement**: Define the sections and their lengths (in bars)
-3. **Sections**: Define the musical clips for each channel
+1. **Signature** (\`sig\` block): Define BPM and scale at the top of the file
+2. **Global Tracks**: Define channels, names, and plugins
+3. **Arrangement**: Define the sections and their lengths (in bars)
+4. **Sections**: Define the musical clips for each channel
 
 | Token | Meaning | Example |
 |-------|---------|---------| 
+| \`sig\` | Signature block (bpm, scale) | \`sig\` (block header) |
+| \`bpm\` | Tempo (inside sig) | \`  bpm 128\` |
+| \`scale\` | Scale root + mode (inside sig) | \`  scale F ionian\` |
 | \`ch\`  | Channel number + name | \`ch 1 kick\` |
 | \`plugin\` | Instrument | \`plugin kick\` |
 | \`fx\`  | Insert effect | \`fx delay\` |

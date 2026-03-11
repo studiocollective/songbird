@@ -81,6 +81,18 @@ void SongbirdEditor::loadStateCache()
         auto parsed = juce::JSON::parse(sessionFile);
         if (auto* obj = parsed.getDynamicObject())
         {
+            // Force transport to not auto-play on launch — always start stopped
+            if (obj->hasProperty("songbird-transport"))
+            {
+                auto transportVar = obj->getProperty("songbird-transport");
+                if (auto* transportObj = transportVar.getDynamicObject())
+                {
+                    auto stateVar = transportObj->getProperty("state");
+                    if (auto* stateObj = stateVar.getDynamicObject())
+                        stateObj->setProperty("playing", false);
+                }
+            }
+
             for (auto& prop : obj->getProperties())
                 stateCache[prop.name.toString()] = juce::JSON::toString(prop.value);
         }

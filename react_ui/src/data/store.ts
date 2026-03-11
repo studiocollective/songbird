@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import '@/data/meters';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { juceBridge, addStateListener, nativeFunction } from './bridge';
+import { isSliderDragging } from '@/data/sliderDrag';
 import type { TransportState, MixerState, ChatState, LyriaState, TrackType, NoteData } from '@/data/slices';
 import {
   useTransportSlice,
@@ -203,6 +204,10 @@ function processTrackNotes(data: string | object) {
       sends: t.sends ?? existing?.sends ?? [0, 0, 0, 0],
       sidechainTrackId: existing ? (existing.sidechainTrackId ?? null) : null,
       sidechainSensitivity: existing ? (existing.sidechainSensitivity ?? 0.6) : 0.6,
+      audioSource: t.audioSource ?? existing?.audioSource ?? null,
+      midiInput: t.midiInput ?? existing?.midiInput ?? null,
+      midiChannel: t.midiChannel ?? existing?.midiChannel ?? null,
+      inputMonitoring: existing?.inputMonitoring ?? false,
     };
   });
 
@@ -259,6 +264,10 @@ addStateListener('notesChanged', (data: unknown) => {
 
 // Per-track mixer updates from C++ (reactive ValueTree listeners)
 addStateListener('trackMixerUpdate', (data: unknown) => {
+  // During slider drags, the JS store is already up-to-date from onValueChange.
+  // Accepting C++ echoes here would make the store match the commit value early,
+  // causing onValueCommit's setPan/setVolume to be a no-op → no persist → no commit.
+  if (isSliderDragging()) return;
   try {
     const raw = typeof data === 'string' ? JSON.parse(data) : data;
     const { trackIndex, volume, pan, muted, solo } = raw as {

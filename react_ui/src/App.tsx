@@ -129,7 +129,7 @@ function App() {
         setEngineReady(true);
       } else {
         setLoadingMsg(payload.message);
-        setLoadingProgress(payload.progress);
+        setLoadingProgress((prev) => Math.max(prev, payload.progress));
       }
     });
 

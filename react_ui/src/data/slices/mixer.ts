@@ -10,6 +10,7 @@ export interface NoteData {
 }
 
 export type TrackType = 'midi' | 'audio';
+export type AudioMode = 'record' | 'generate';
 
 // MIDI input: 'all' = all devices, 'computer-keyboard' = keyboard as MIDI, or device name string
 export type MidiInput = 'all' | 'computer-keyboard' | string;
@@ -42,6 +43,7 @@ export interface AudioSource {
   type: 'hardware' | 'loopback';
   deviceName?: string;
   sourceTrackId?: number;
+  channels?: number[];  // selected channel indices (0-based), e.g. [0,1] for stereo pair 1-2
 }
 
 export interface AudioClip {
@@ -75,11 +77,13 @@ export interface Track {
   isMaster?: boolean;
   sidechainTrackId?: number | null;
   sidechainSensitivity?: number;
+  audioMode?: AudioMode;  // 'record' or 'generate' (audio tracks only)
   // Recording state
   recordArmed?: boolean;
   hasRecordedData?: boolean;
   audioSource?: AudioSource | null;
   midiInput?: MidiInput | null;
+  midiChannel?: number | null;  // 1-16 for specific channel, null = all (default)
   inputMonitoring?: boolean;
   // Audio clips (for audio tracks)
   audioClips?: AudioClip[];
@@ -136,11 +140,14 @@ export interface MixerState {
   setMidiRecordArm: (id: number, armed: boolean) => void;
   setAudioRecordArm: (id: number, armed: boolean) => void;
   setAudioSource: (id: number, source: AudioSource | null) => void;
+  setAudioInputChannels: (id: number, channels: number[]) => void;
+  setAudioMode: (id: number, mode: AudioMode) => void;
   setMidiInput: (id: number, input: MidiInput | null) => void;
+  setMidiChannel: (id: number, channel: number | null) => void;
   toggleInputMonitoring: (id: number) => void;
   addAudioTrack: () => Promise<number>;
   addMidiTrack: () => Promise<number>;
-  removeAudioTrack: (id: number) => void;
+  removeTrack: (id: number) => void;
   clearRecordedData: (id: number) => void;
   setSidechainSensitivity: (destId: number, value: number) => void;
 
@@ -364,11 +371,29 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     else if (source?.type === 'loopback')
       nativeFunction('setAudioRecordSource')(id, 'loopback', source.sourceTrackId ?? -1);
   },
+  setAudioInputChannels: (id, channels) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => {
+        if (t.id !== id || !t.audioSource) return t;
+        return { ...t, audioSource: { ...t.audioSource, channels } };
+      }),
+    }));
+  },
+  setAudioMode: (id, mode) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, audioMode: mode } : t)),
+    }));
+  },
   setMidiInput: (id, input) => {
     set((s) => ({
       tracks: s.tracks.map((t) => (t.id === id ? { ...t, midiInput: input } : t)),
     }));
     nativeFunction('setMidiInput')(id, input ?? '');
+  },
+  setMidiChannel: (id, channel) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === id ? { ...t, midiChannel: channel } : t)),
+    }));
   },
   toggleInputMonitoring: (id) => {
     const track = get().tracks.find((t) => t.id === id);
@@ -452,8 +477,8 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
 
     return id;
   },
-  removeAudioTrack: (id) => {
-    nativeFunction('removeAudioTrack')(id);
+  removeTrack: (id) => {
+    nativeFunction('removeTrack')(id);
     set((s) => ({ tracks: s.tracks.filter((t) => t.id !== id) }));
   },
   clearRecordedData: (id) => {
