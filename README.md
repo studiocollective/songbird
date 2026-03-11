@@ -85,5 +85,3 @@ npm run build
 ```
 
 The build produces `SongbirdPlayer.app` in `build/SongbirdPlayer_artefacts/`.
-
-See [`documentation/setup.md`](documentation/setup.md) for full setup instructions.
