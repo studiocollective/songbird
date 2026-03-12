@@ -1,0 +1,2 @@
+# Allow README.md files in subdirectories to be processed by Mintlify
+!**/README.md

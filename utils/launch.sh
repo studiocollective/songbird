@@ -101,3 +101,4 @@ echo ""
 # Keep script running; Ctrl+C kills both app and Vite
 trap "kill $APP_PID $VITE_PID 2>/dev/null; exit" INT TERM
 wait $APP_PID $VITE_PID
+
