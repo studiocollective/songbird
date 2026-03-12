@@ -21,6 +21,7 @@ A living document tracking planned features and future directions for Songbird.
 - **Quantization** — snap notes and audio to the grid
 - **Swing** — apply swing / groove templates to MIDI and audio
 - **Parameter automation** — draw and record automation curves for any parameter
+- **Automated comp'ing** — automatically select the best takes from multiple recordings
 
 ---
 

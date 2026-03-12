@@ -5,7 +5,7 @@ sidebarTitle: "Introduction"
 
 # Songbird
 
-Songbird is a DAW (Digital Audio Workstation) for electronic music production. It combines a **C++ audio engine** (JUCE + Tracktion Engine) with a **React-based UI** rendered in a native WebView, and an **AI copilot** powered by Gemini that can write music, tweak synths, and mix tracks through natural language.
+Songbird is a collaborative DAW (Digital Audio Workstation) for electronic music production. It combines a **C++ audio engine** (JUCE + Tracktion Engine) with a **React-based UI** rendered in a native WebView, **git-based collaboration**, and an **AI copilot** powered by Gemini that can write music, tweak synths, and mix tracks through natural language.
 
 ![screenshot](images/screenshot.png)
 
@@ -19,8 +19,10 @@ Songbird is a DAW (Digital Audio Workstation) for electronic music production. I
 - **MIDI Recording** — Record from hardware MIDI controllers with grid quantization. Recorded MIDI is serialized back to `.bird` notation.
 - **Audio Recording** — Record audio input to tracks with beat-aligned quantization.
 - **Export** — Render individual stems (per-track WAV), master bounce (stereo WAV), and sheet music.
+- **Easy DAW Export** — Export projects to other DAWs for seamless interoperability.
 - **AI Copilot** — Gemini-powered assistant that can create tracks, write patterns, set plugin parameters, adjust the mix, and generate audio via Lyria — all through chat or function calls.
 - **Git-Based Undo/Redo** — Every change is committed to an in-process git repo (libgit2). Full history panel with human-readable commit messages.
+- **Git-Based Collaboration** — Projects are plain text (`.bird` files) stored in git. Multiple people can work on the same project concurrently — branch, merge, and resolve conflicts like code, not like bouncing stems over email.
 - **`.bird` Notation** — A text-based music format ("Markdown for music") that defines tracks, instruments, patterns, notes, chords, swing, and automation in a human-readable syntax.
 
 ## Architecture
@@ -78,17 +80,16 @@ songbird-chirp/
 
 Each subdirectory contains a `README.md` with architecture details, design principles, and extension guidelines.
 
-## Build
+## Getting Started
 
 ```bash
-# Build the C++ desktop app
-cmake -B build -G Ninja
-cmake --build build
+# First time: initialize submodules and install dependencies
+./utils/install.sh
 
-# Build the React UI (served by JUCE WebView in production)
-cd react_ui
-npm install
-npm run build
+# Build and launch (builds C++, starts Vite dev server, opens the app)
+./utils/launch.sh
 ```
 
-The build produces `SongbirdPlayer.app` in `build/SongbirdPlayer_artefacts/`.
+Use `./utils/launch.sh --skip-build` to relaunch without rebuilding the C++ backend.
+
+The build produces `Songbird Player.app` in `build/SongbirdPlayer_artefacts/`.
