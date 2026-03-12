@@ -1,0 +1,52 @@
+---
+title: "Zustand Slices (`react_ui/src/data/slices/`)"
+---
+
+# Zustand Slices (`react_ui/src/data/slices/`)
+
+Each Zustand store is defined as a **slice** — a function that returns state + actions for one domain. Slices are composed into full stores in `store.ts`.
+
+## Files
+
+| Slice | Store ID | Persisted To | Purpose |
+|-------|----------|-------------|---------|
+| `transport.ts` | `songbird-transport` | `daw.session.json` | BPM, key signature, scale, loop state, playback position. Session-only (not in undo/redo). |
+| `mixer.ts` | `songbird-mixer` | `daw.state.json` | Track list, volumes, pans, mutes, solos, sends, plugins, notes, sections. **Git-tracked** — changes trigger commits. |
+| `chat.ts` | `songbird-chat` | `daw.session.json` | AI chat messages, threads, right panel visibility, active model. Session-only. |
+| `lyria.ts` | `songbird-lyria` | `daw.session.json` | AI music generation config per track (temperature, density, brightness, prompts). Session-only. |
+| `index.ts` | — | — | Barrel exports. |
+
+## Slice Pattern
+
+Each slice follows this pattern:
+
+```typescript
+export const TransportStateID = 'songbird-transport';
+
+export interface TransportState {
+  bpm: number;
+  // ... state fields
+  setBpm: (bpm: number) => void;
+  // ... actions
+}
+
+export const useTransportSlice: StateCreator<TransportState> = (set, get) => ({
+  bpm: 120,
+  setBpm: (bpm) => set({ bpm }),
+});
+```
+
+Slices are composed in `store.ts`:
+```typescript
+export const useTransportStore = create<TransportState>()(
+  persist((...a) => ({ ...useTransportSlice(...a) }), { name: TransportStateID, ... })
+);
+```
+
+## Design Principles
+
+- **One slice per domain** — Don't mix mixer state with transport state. Each slice owns one file and one `StateCreator`.
+- **Actions inside the slice** — State actions (setters, computed updates) live in the slice, not in components.
+- **Integer rounding for mixer** — `setVolume()` and `setPan()` round to integers. This is critical for echo prevention — float precision diffs would cause infinite commit loops.
+- **Partial merge for C++ updates** — When C++ pushes state via events, use `setState((prev) => ({ ...prev, ...partial }))` to avoid overwriting fields the C++ side doesn't know about.
+- **`partialize` for persistence** — Use the `partialize` option to exclude transient fields (like `initialized`) from persistence. Only persist what should survive a reload.

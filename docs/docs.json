@@ -39,20 +39,20 @@
           {
             "group": "Architecture",
             "pages": [
-              "app/index"
+              "app"
             ]
           },
           {
             "group": "Modules",
             "pages": [
-              "app/bridge/index",
-              "app/state/index",
-              "app/audio/index",
-              "app/loader/index",
-              "app/plugins/index",
-              "app/midi/index",
-              "app/ai/index",
-              "app/export/index"
+              "app/bridge",
+              "app/state",
+              "app/audio",
+              "app/loader",
+              "app/plugins",
+              "app/midi",
+              "app/ai",
+              "app/export"
             ]
           }
         ]
@@ -63,26 +63,26 @@
           {
             "group": "Architecture",
             "pages": [
-              "react_ui/index",
-              "react_ui/src/index"
+              "react_ui",
+              "react_ui/src"
             ]
           },
           {
             "group": "State & Data",
             "pages": [
-              "react_ui/src/data/index",
-              "react_ui/src/data/slices/index",
-              "react_ui/src/lib/index"
+              "react_ui/src/data",
+              "react_ui/src/data/slices",
+              "react_ui/src/lib"
             ]
           },
           {
             "group": "Components",
             "pages": [
-              "react_ui/src/components/index",
-              "react_ui/src/components/atoms/index",
-              "react_ui/src/components/molecules/index",
-              "react_ui/src/components/organisms/index",
-              "react_ui/src/components/panels/index"
+              "react_ui/src/components",
+              "react_ui/src/components/atoms",
+              "react_ui/src/components/molecules",
+              "react_ui/src/components/organisms",
+              "react_ui/src/components/panels"
             ]
           }
         ]
