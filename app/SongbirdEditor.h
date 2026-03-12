@@ -134,8 +134,8 @@ private:
     void setLyriaTrackPrompts(int trackId, const juce::var& prompts);
     void setLyriaQuantize(int trackId, int bars);
 
-    // Track for injecting live MIDI from keyboard
-    int midiRecordTrackId = -1;
+    // Tracks armed for live MIDI from keyboard
+    std::set<int> midiArmedTrackIds;
 
     // Audio recorder
     std::unique_ptr<AudioRecorder> audioRecorder;

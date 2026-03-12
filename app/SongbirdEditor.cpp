@@ -8,6 +8,9 @@
 
 SongbirdEditor::SongbirdEditor()
 {
+    // Initialize DeviceManager to scan for audio/MIDI hardware devices
+    engine.getDeviceManager().initialise();
+
     // Create the virtual MIDI input for computer keyboard injection
     if (auto res = engine.getDeviceManager().createVirtualMidiDevice("Computer Keyboard"); !res.wasOk())
         DBG("Failed to create Computer Keyboard virtual MIDI device: " + res.getErrorMessage());

@@ -9315,7 +9315,7 @@
           "type": "midi",
           "color": "#FFEAA7",
           "muted": false,
-          "solo": true,
+          "solo": false,
           "volume": 77,
           "pan": 0,
           "instrument": {
@@ -12437,7 +12437,8 @@
           "vendor": "",
           "category": "fx"
         }
-      ]
+      ],
+      "activeGenerationTrackId": null
     },
     "version": 1
   }

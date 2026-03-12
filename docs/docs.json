@@ -20,14 +20,15 @@
           {
             "group": "Getting Started",
             "pages": [
-              "docs/index"
+              "index",
+              "roadmap"
             ]
           },
           {
             "group": "Core Concepts",
             "pages": [
-              "docs/bird",
-              "docs/state-management"
+              "bird",
+              "state-management"
             ]
           }
         ]
@@ -38,20 +39,20 @@
           {
             "group": "Architecture",
             "pages": [
-              "docs/app/index"
+              "app/index"
             ]
           },
           {
             "group": "Modules",
             "pages": [
-              "docs/app/bridge/index",
-              "docs/app/state/index",
-              "docs/app/audio/index",
-              "docs/app/loader/index",
-              "docs/app/plugins/index",
-              "docs/app/midi/index",
-              "docs/app/ai/index",
-              "docs/app/export/index"
+              "app/bridge/index",
+              "app/state/index",
+              "app/audio/index",
+              "app/loader/index",
+              "app/plugins/index",
+              "app/midi/index",
+              "app/ai/index",
+              "app/export/index"
             ]
           }
         ]
@@ -62,26 +63,26 @@
           {
             "group": "Architecture",
             "pages": [
-              "docs/react_ui/index",
-              "docs/react_ui/src/index"
+              "react_ui/index",
+              "react_ui/src/index"
             ]
           },
           {
             "group": "State & Data",
             "pages": [
-              "docs/react_ui/src/data/index",
-              "docs/react_ui/src/data/slices/index",
-              "docs/react_ui/src/lib/index"
+              "react_ui/src/data/index",
+              "react_ui/src/data/slices/index",
+              "react_ui/src/lib/index"
             ]
           },
           {
             "group": "Components",
             "pages": [
-              "docs/react_ui/src/components/index",
-              "docs/react_ui/src/components/atoms/index",
-              "docs/react_ui/src/components/molecules/index",
-              "docs/react_ui/src/components/organisms/index",
-              "docs/react_ui/src/components/panels/index"
+              "react_ui/src/components/index",
+              "react_ui/src/components/atoms/index",
+              "react_ui/src/components/molecules/index",
+              "react_ui/src/components/organisms/index",
+              "react_ui/src/components/panels/index"
             ]
           }
         ]

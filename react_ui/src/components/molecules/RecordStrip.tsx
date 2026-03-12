@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useMixerStore } from '@/data/store';
 import type { Track, AudioSource, MidiInput } from '@/data/slices/mixer';
@@ -12,9 +13,88 @@ interface RecordStripCellProps {
   trackList: Track[];
 }
 
+/* ── Portal Helper ─────────────────────────────────────────────── */
+function PortaledDropdown({ open, onClose, triggerRef, className, children }: {
+  open: boolean;
+  onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const [coords, setCoords] = useState<{top: number | 'auto', bottom: number | 'auto', left: number, minWidth: number}>({ top: 0, bottom: 'auto', left: 0, minWidth: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 250) {
+        setCoords({
+          top: 'auto',
+          bottom: window.innerHeight - rect.top,
+          left: Math.min(rect.left + window.scrollX, window.innerWidth - 180),
+          minWidth: rect.width
+        });
+      } else {
+        setCoords({
+          top: rect.bottom + window.scrollY,
+          bottom: 'auto',
+          left: Math.min(rect.left + window.scrollX, window.innerWidth - 180),
+          minWidth: rect.width
+        });
+      }
+    }
+  }, [open, triggerRef]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleScroll = (e: Event) => {
+      // ignore scrolling inside the menu itself
+      if (menuRef.current?.contains(e.target as Node)) return;
+      onClose();
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        menuRef.current && !menuRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose, triggerRef]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div 
+      ref={menuRef}
+      className={className} 
+      style={{
+        position: 'absolute',
+        top: coords.top === 'auto' ? 'auto' : (coords.top as number) + 2,
+        bottom: coords.bottom === 'auto' ? 'auto' : (coords.bottom as number) + 2,
+        left: coords.left,
+        minWidth: Math.max(coords.minWidth, 120),
+        margin: 0,
+        zIndex: 9999
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 /* ── MIDI Channel Selector ─────────────────────────────────────── */
 function MidiChannelSelector({ track }: { track: Track }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const current = track.midiChannel; // null = All
 
   const select = (ch: number | null) => {
@@ -25,6 +105,7 @@ function MidiChannelSelector({ track }: { track: Track }) {
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         className={channelSelectBtn}
         onClick={() => setOpen(!open)}
         title="MIDI channel filter"
@@ -35,97 +116,124 @@ function MidiChannelSelector({ track }: { track: Track }) {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {open && (
-        <div className={channelDropdown}>
-          <div
-            className={cn(channelOption, !current && channelOptionActive)}
-            onClick={() => select(null)}
-          >
-            All
-          </div>
-          {Array.from({ length: 16 }, (_, i) => i + 1).map((ch) => (
-            <div
-              key={ch}
-              className={cn(channelOption, current === ch && channelOptionActive)}
-              onClick={() => select(ch)}
-            >
-              {ch}
-            </div>
-          ))}
+      <PortaledDropdown open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} className={channelDropdown}>
+        <div
+          className={cn(channelOption, !current && channelOptionActive)}
+          onClick={() => select(null)}
+        >
+          All
         </div>
-      )}
+        {Array.from({ length: 16 }, (_, i) => i + 1).map((ch) => (
+          <div
+            key={ch}
+            className={cn(channelOption, current === ch && channelOptionActive)}
+            onClick={() => select(ch)}
+          >
+            {ch}
+          </div>
+        ))}
+      </PortaledDropdown>
     </div>
   );
 }
 
+const getAudioDeviceInfo = isPlugin ? Juce.getNativeFunction('getAudioDeviceInfo') : null;
+
 /* ── Audio Channel Selector ────────────────────────────────────── */
 function AudioChannelSelector({ track }: { track: Track }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const channels = track.audioSource?.channels;
-  // Display label: show channel pair like "1-2", or "All" if not set
-  const label = channels && channels.length > 0
-    ? channels.map(c => c + 1).join('-')
-    : '1-2';
+
+  const [inputChannelNames, setInputChannelNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (open) {
+      if (getAudioDeviceInfo) {
+        getAudioDeviceInfo()
+          .then((raw: unknown) => {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (parsed && Array.isArray(parsed.inputChannels)) {
+              setInputChannelNames(parsed.inputChannels);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [open]);
+
+  // Display label: show channel pair like "1-2" (or real names if available), or "All" if not set
+  let label = '1-2';
+  if (channels && channels.length > 0) {
+    if (inputChannelNames.length > 0) {
+      label = channels.map(c => inputChannelNames[c] || `Ch ${c + 1}`).join(' + ');
+    } else {
+      label = channels.map(c => c + 1).join('-');
+    }
+  }
 
   const select = (chs: number[]) => {
     useMixerStore.getState().setAudioInputChannels(track.id, chs);
     setOpen(false);
   };
 
-  // Generate pairs: 1-2, 3-4, 5-6, ... up to 16
+  // Generate pairs and mono based on actual device channels (fallback to 16 if undetermined yet)
+  const numChans = inputChannelNames.length > 0 ? inputChannelNames.length : 16;
+  
   const pairs: { label: string; channels: number[] }[] = [];
-  for (let i = 0; i < 16; i += 2) {
-    pairs.push({ label: `${i + 1}-${i + 2}`, channels: [i, i + 1] });
+  for (let i = 0; i < numChans - 1; i += 2) {
+    const l1 = inputChannelNames[i] || `${i + 1}`;
+    const l2 = inputChannelNames[i + 1] || `${i + 2}`;
+    pairs.push({ label: `${l1} + ${l2}`, channels: [i, i + 1] });
   }
-  // Also individual mono channels
+
   const monos: { label: string; channels: number[] }[] = [];
-  for (let i = 0; i < 16; i++) {
-    monos.push({ label: `${i + 1}`, channels: [i] });
+  for (let i = 0; i < numChans; i++) {
+    monos.push({ label: inputChannelNames[i] || `${i + 1}`, channels: [i] });
   }
 
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         className={channelSelectBtn}
         onClick={() => setOpen(!open)}
         title="Audio input channels"
       >
         <span className="text-[7px] uppercase tracking-wider opacity-60">Ch</span>
-        <span className="flex-1 text-left">{label}</span>
-        <svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <span className="flex-1 text-left truncate">{label}</span>
+        <svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="shrink-0">
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {open && (
-        <div className={channelDropdown}>
-          <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1 pb-0.5">Stereo</div>
-          {pairs.map((p) => (
+      <PortaledDropdown open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} className={channelDropdown}>
+        <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1 pb-0.5">Stereo</div>
+        {pairs.map((p) => (
+          <div
+            key={p.label}
+            className={cn(channelOption,
+              channels && channels.length === 2 && channels[0] === p.channels[0] && channelOptionActive
+            )}
+            onClick={() => select(p.channels)}
+          >
+            {p.label}
+          </div>
+        ))}
+        <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1.5 pb-0.5 border-t border-[hsl(var(--border))]/30">Mono</div>
+        <div className="grid grid-cols-2 gap-0">
+          {monos.map((m) => (
             <div
-              key={p.label}
-              className={cn(channelOption,
-                channels && channels.length === 2 && channels[0] === p.channels[0] && channelOptionActive
+              key={m.label}
+              className={cn(channelOption, 'truncate',
+                channels && channels.length === 1 && channels[0] === m.channels[0] && channelOptionActive
               )}
-              onClick={() => select(p.channels)}
+              title={m.label}
+              onClick={() => select(m.channels)}
             >
-              {p.label}
+              {m.label}
             </div>
           ))}
-          <div className="text-[7px] uppercase tracking-wider text-[hsl(var(--muted-foreground))]/60 px-1.5 pt-1.5 pb-0.5 border-t border-[hsl(var(--border))]/30">Mono</div>
-          <div className="grid grid-cols-4 gap-0">
-            {monos.map((m) => (
-              <div
-                key={m.label}
-                className={cn(channelOption, 'text-center',
-                  channels && channels.length === 1 && channels[0] === m.channels[0] && channelOptionActive
-                )}
-                onClick={() => select(m.channels)}
-              >
-                {m.label}
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+      </PortaledDropdown>
     </div>
   );
 }
@@ -133,6 +241,7 @@ function AudioChannelSelector({ track }: { track: Track }) {
 /* ── MIDI Input Cell ───────────────────────────────────────────── */
 function MidiInputCell({ track }: RecordStripCellProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [devices, setDevices] = useState<string[]>([]);
 
   useEffect(() => {
@@ -163,6 +272,7 @@ function MidiInputCell({ track }: RecordStripCellProps) {
       {/* MIDI input selector */}
       <div className={inputRow}>
         <button
+          ref={triggerRef}
           className={inputSelectBtn}
           onClick={() => setOpen(!open)}
           title="Select MIDI input"
@@ -182,31 +292,29 @@ function MidiInputCell({ track }: RecordStripCellProps) {
       {/* MIDI channel selector */}
       <MidiChannelSelector track={track} />
 
-      {open && (
-        <div className={dropdownMenu}>
-          <div
-            className={cn(dropdownOption, (!currentInput || currentInput === 'all') && dropdownOptionActive)}
-            onClick={() => selectInput('all')}
-          >
-            All Inputs
-          </div>
-          <div
-            className={cn(dropdownOption, currentInput === 'computer-keyboard' && dropdownOptionActive)}
-            onClick={() => selectInput('computer-keyboard')}
-          >
-            ⌨️ Computer Keyboard
-          </div>
-          {devices.map((name) => (
-            <div
-              key={name}
-              className={cn(dropdownOption, currentInput === name && dropdownOptionActive)}
-              onClick={() => selectInput(name)}
-            >
-              🎹 {name}
-            </div>
-          ))}
+      <PortaledDropdown open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} className={dropdownMenu}>
+        <div
+          className={cn(dropdownOption, (!currentInput || currentInput === 'all') && dropdownOptionActive)}
+          onClick={() => selectInput('all')}
+        >
+          All Inputs
         </div>
-      )}
+        <div
+          className={cn(dropdownOption, currentInput === 'computer-keyboard' && dropdownOptionActive)}
+          onClick={() => selectInput('computer-keyboard')}
+        >
+          ⌨️ Computer Keyboard
+        </div>
+        {devices.map((name) => (
+          <div
+            key={name}
+            className={cn(dropdownOption, currentInput === name && dropdownOptionActive)}
+            onClick={() => selectInput(name)}
+          >
+            🎹 {name}
+          </div>
+        ))}
+      </PortaledDropdown>
 
       {/* Record & Monitor buttons */}
       <div className={btnRow}>
@@ -235,6 +343,7 @@ function MidiInputCell({ track }: RecordStripCellProps) {
 /* ── Audio Input Cell ──────────────────────────────────────────── */
 function AudioInputCell({ track, trackList }: RecordStripCellProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [availableInputs, setAvailableInputs] = useState<string[]>([]);
 
   useEffect(() => {
@@ -265,6 +374,7 @@ function AudioInputCell({ track, trackList }: RecordStripCellProps) {
       {/* Audio input selector */}
       <div className={inputRow}>
         <button
+          ref={triggerRef}
           className={inputSelectBtn}
           onClick={() => setOpen(!open)}
           title="Select audio input"
@@ -283,34 +393,32 @@ function AudioInputCell({ track, trackList }: RecordStripCellProps) {
       {/* Audio channel selector */}
       {audioSource && <AudioChannelSelector track={track} />}
 
-      {open && (
-        <div className={dropdownMenu}>
-          <div
-            className={cn(dropdownOption, !audioSource && dropdownOptionActive)}
-            onClick={() => selectSource(null)}
-          >
-            No Input
-          </div>
-          {availableInputs.map((name) => (
-            <div
-              key={name}
-              className={cn(dropdownOption, audioSource?.type === 'hardware' && audioSource.deviceName === name && dropdownOptionActive)}
-              onClick={() => selectSource({ type: 'hardware', deviceName: name })}
-            >
-              🎤 {name}
-            </div>
-          ))}
-          {trackList.filter(t => t.id !== track.id && !t.isReturn && !t.isMaster).map(t => (
-            <div
-              key={`lb-${t.id}`}
-              className={cn(dropdownOption, audioSource?.type === 'loopback' && audioSource.sourceTrackId === t.id && dropdownOptionActive)}
-              onClick={() => selectSource({ type: 'loopback', sourceTrackId: t.id })}
-            >
-              🔁 {t.name}
-            </div>
-          ))}
+      <PortaledDropdown open={open} onClose={() => setOpen(false)} triggerRef={triggerRef} className={dropdownMenu}>
+        <div
+          className={cn(dropdownOption, !audioSource && dropdownOptionActive)}
+          onClick={() => selectSource(null)}
+        >
+          No Input
         </div>
-      )}
+        {availableInputs.map((name) => (
+          <div
+            key={name}
+            className={cn(dropdownOption, audioSource?.type === 'hardware' && audioSource.deviceName === name && dropdownOptionActive)}
+            onClick={() => selectSource({ type: 'hardware', deviceName: name })}
+          >
+            🎤 {name}
+          </div>
+        ))}
+        {trackList.filter(t => t.id !== track.id && !t.isReturn && !t.isMaster).map(t => (
+          <div
+            key={`lb-${t.id}`}
+            className={cn(dropdownOption, audioSource?.type === 'loopback' && audioSource.sourceTrackId === t.id && dropdownOptionActive)}
+            onClick={() => selectSource({ type: 'loopback', sourceTrackId: t.id })}
+          >
+            🔁 {t.name}
+          </div>
+        ))}
+      </PortaledDropdown>
 
       {/* Record & Monitor buttons */}
       <div className={btnRow}>
@@ -381,9 +489,8 @@ const channelSelectBtn = `
   transition-colors cursor-pointer border border-[hsl(var(--border))]/20`;
 
 const channelDropdown = `
-  absolute right-0 top-full z-[60] mt-0.5
   bg-[hsl(var(--background))] border border-[hsl(var(--border))]
-  rounded-md shadow-xl max-h-48 overflow-y-auto min-w-[3rem]`;
+  rounded-md shadow-xl max-h-48 overflow-y-auto`;
 
 const channelOption = `
   px-1.5 py-1 text-[8px] cursor-pointer
@@ -410,7 +517,6 @@ const monBtn = `
 const monBtnActive = `text-amber-400`;
 
 const dropdownMenu = `
-  absolute left-0 right-0 top-full z-50 mt-0.5
   bg-[hsl(var(--background))] border border-[hsl(var(--border))]
   rounded-md shadow-xl max-h-40 overflow-y-auto`;
 

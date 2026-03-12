@@ -6,6 +6,7 @@ export interface TransportState {
   initialize: () => void;
 
   playing: boolean;
+  recording: boolean;
   bpm: number;
   currentBar: number;
   currentSection: string;
@@ -21,6 +22,7 @@ export interface TransportState {
   play: () => void;
   stop: () => void;
   togglePlaying: () => void;
+  toggleRecording: () => void;
   setBpm: (bpm: number) => void;
   setPosition: (position: number) => void;
   setCurrentBar: (bar: number) => void;
@@ -36,6 +38,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
   initialize: () => set({ initialized: true }),
 
   playing: false,
+  recording: false,
   bpm: 120,
   currentBar: 1,
   currentSection: 'verse',
@@ -58,7 +61,7 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
     if (typeof window !== 'undefined' && window.__JUCE__) {
       import('@/lib').then(({ Juce }) => Juce.getNativeFunction('transportStop')?.());
     }
-    set({ playing: false, position: 0, currentBar: 1, lastPositionUpdate: performance.now() });
+    set({ playing: false, recording: false, position: 0, currentBar: 1, lastPositionUpdate: performance.now() });
   },
   togglePlaying: () => {
     set((s) => {
@@ -70,6 +73,15 @@ export const useTransportSlice: StateCreator<TransportState> = (set) => ({
         });
       }
       return { playing: next, lastPositionUpdate: performance.now() };
+    });
+  },
+  toggleRecording: () => {
+    set((s) => {
+      const next = !s.recording;
+      if (typeof window !== 'undefined' && window.__JUCE__) {
+        import('@/lib').then(({ Juce }) => Juce.getNativeFunction('transportRecord')?.(next));
+      }
+      return { recording: next };
     });
   },
   setBpm: (bpm) => {

@@ -7,3 +7,4 @@ export * from './ChatMessageList';
 export * from './ChatInputBar';
 export * from './ExportProgressModal';
 export * from './LoadingScreen';
+export * from './GenerateModal';

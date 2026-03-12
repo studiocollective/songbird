@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { TrackColorDot, MuteSoloButtons, VolumeFader, PanControl, PluginSlots } from '@/components/molecules';
 import { subscribeRtBuffer } from '@/data/meters';
 import type { PluginSlot, Track, AudioSource, AudioMode } from '@/data/slices/mixer';
+import { useMixerStore } from '@/data/store';
 
 interface MixerChannelProps {
   trackId: number;
@@ -103,7 +104,29 @@ export function MixerChannel({
       <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} isReturn={isReturn} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} audioMode={audioMode} />
 
       <div className={msWrapper}>
-        {!isMaster && <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />}
+        {!isMaster && (
+          <>
+            <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />
+            <button
+              onClick={() => {
+                if (trackType === 'audio') {
+                  useMixerStore.getState().setAudioRecordArm(trackId, !recordArmed);
+                } else {
+                  useMixerStore.getState().setMidiRecordArm(trackId, !recordArmed);
+                }
+              }}
+              className={cn(
+                "rounded flex items-center justify-center transition-colors w-6 h-4 text-[10px]",
+                recordArmed
+                  ? "bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                  : "bg-[hsl(var(--card))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+              )}
+              title={recordArmed ? "Unarm Recording" : "Arm Recording"}
+            >
+              ●
+            </button>
+          </>
+        )}
       </div>
 
       <div className={faderArea}>
@@ -139,7 +162,7 @@ const badge = `text-[7px] uppercase tracking-wider px-1 rounded`;
 const badgeMidi = `bg-[hsl(var(--badge-midi-bg))]/20 text-[hsl(var(--badge-midi-bg))]`;
 const badgeAudio = `bg-[hsl(var(--badge-audio-bg))]/20 text-[hsl(var(--badge-audio-bg))]`;
 
-const msWrapper = `mb-1`;
+const msWrapper = `mb-1 flex gap-1 justify-center items-center w-full`;
 const faderArea = `flex-1 flex items-center gap-1.5`;
 const panWrapper = `mt-1`;
 const volumeReadout = `text-[9px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5`;

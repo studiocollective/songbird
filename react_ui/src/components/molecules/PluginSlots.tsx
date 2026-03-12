@@ -173,8 +173,7 @@ function AudioModeSelector({ trackId, mode }: AudioModeSelectorProps) {
         <button
           onClick={() => {
             if (!isRecord) {
-              // TODO: Open generation interface panel
-              console.log('[AudioMode] Open generation UI for track', trackId);
+              useMixerStore.getState().openGenerationUI(trackId);
             }
           }}
           className={cn(openPluginBtn, isRecord && 'invisible')}

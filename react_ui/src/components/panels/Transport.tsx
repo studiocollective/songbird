@@ -8,7 +8,7 @@ import { CpuMeter } from '@/components/molecules/CpuMeter';
 const setProjectScale = nativeFunction('setProjectScale');
 
 export function Transport({ onSettingsOpen }: { onSettingsOpen: () => void }) {
-  const { playing, togglePlaying, stop, bpm, setBpm, currentBar, looping, toggleLooping, keySignature, scale, setScale } = useTransportStore();
+  const { playing, togglePlaying, stop, recording, toggleRecording, bpm, setBpm, currentBar, looping, toggleLooping, keySignature, scale, setScale } = useTransportStore();
   const { toggleMixer, mixerOpen, keyboardMidiMode, toggleKeyboardMidiMode } = useMixerStore();
   const { rightPanel, setRightPanel } = useChatStore();
 
@@ -70,8 +70,12 @@ export function Transport({ onSettingsOpen }: { onSettingsOpen: () => void }) {
             </svg>
           )}
         </button>
-        <button className={controlBtn} title="Record">
-          <div className={recordDot} />
+        <button 
+          onClick={toggleRecording}
+          className={cn(controlBtn, recording && recordingBtn)} 
+          title={recording ? 'Stop Recording' : 'Record'}
+        >
+          <div className={cn(recordDot, recording && recordDotActive)} />
         </button>
         <button
           onClick={toggleLooping}
@@ -257,7 +261,9 @@ const controlBtn = `
   hover:text-[hsl(var(--foreground))] transition-colors`;
 const playingBtn = `bg-[hsl(var(--progress))] text-[hsl(var(--primary-foreground))]`;
 const loopingBtn = `bg-[hsl(var(--selection))] text-[hsl(var(--primary-foreground))]`;
+const recordingBtn = `bg-[hsl(var(--destructive))]/20 text-[hsl(var(--destructive))]`;
 const recordDot = `w-3 h-3 rounded-full bg-[hsl(var(--destructive))]`;
+const recordDotActive = `animate-pulse shadow-[0_0_8px_hsl(var(--destructive))]`;
 
 const divider = `w-px h-6 bg-[hsl(var(--border))]`;
 

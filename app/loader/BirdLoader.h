@@ -33,6 +33,16 @@ struct BirdNote {
     std::map<std::string, float> stepParams; 
 };
 
+// --- Resolved audio clip data from a .bird file ---
+struct BirdClip {
+    std::string filePath;
+    double beatPos;      // position in beats (0-based)
+    double duration;     // duration in beats
+    double offsetBeats = 0.0; // offset into the source file
+    double fadeInBeats = 0.0;
+    double fadeOutBeats = 0.0;
+};
+
 // --- A parsed channel from a .bird file ---
 struct BirdChannel {
     int channel;                 // MIDI channel (0-based)
@@ -42,6 +52,7 @@ struct BirdChannel {
     std::string fx;              // fx keyword (e.g. "delay", "reverb")
     std::string strip;           // channel strip keyword (e.g. "console1")
     std::vector<BirdNote> notes; // resolved notes
+    std::vector<BirdClip> clips; // resolved audio clips
     double patternBeats = 0;     // original pattern length in beats (before expansion)
     
     // Continuous automation curves attached to this channel (section-level)

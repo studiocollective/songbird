@@ -34,6 +34,15 @@ interface AudioDeviceInfo {
   outputChannels: string[];
 }
 
+type SettingsTab = 'audio' | 'midi' | 'mixer' | 'visual';
+
+const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'audio', label: 'Audio', icon: <AudioIcon /> },
+  { id: 'midi', label: 'MIDI', icon: <MidiIcon /> },
+  { id: 'mixer', label: 'Mixer', icon: <MixerIcon /> },
+  { id: 'visual', label: 'Visual', icon: <ThemeIcon /> },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
@@ -41,6 +50,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   const [theme, setTheme] = useState<Theme>(loadTheme());
   const [midiDevices, setMidiDevices] = useState<string[]>([]);
   const [audioInfo, setAudioInfo] = useState<AudioDeviceInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('audio');
   const backdropRef = useRef<HTMLDivElement>(null);
 
   /* Fetch data when opened */
@@ -64,11 +74,8 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
   useEffect(() => {
     if (open) {
-      // Wrapped in a microtask to avoid synchronous setState-in-effect lint
       const controller = new AbortController();
-      (async () => {
-        await fetchData();
-      })();
+      (async () => { await fetchData(); })();
       return () => controller.abort();
     }
   }, [open, fetchData]);
@@ -112,8 +119,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
     fetchData();
   };
 
-  /* Latency display — use JUCE's driver-reported values.
-     Better to over-report than under-report actual latency. */
+  /* Latency display */
   const hasInput = audioInfo?.inputDeviceName ? true : false;
   const latencySamples = audioInfo
     ? (hasInput ? audioInfo.inputLatency : 0) + audioInfo.outputLatency + audioInfo.bufferSize
@@ -128,172 +134,175 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <div ref={backdropRef} onClick={handleBackdrop} className={backdrop}>
       <div className={panel}>
-        {/* Header */}
-        <div className={header}>
-          <h2 className={headerTitle}>Settings</h2>
-          <button onClick={onClose} className={closeBtn} title="Close">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M1 1l12 12M13 1L1 13" />
-            </svg>
-          </button>
-        </div>
-
-        <div className={content}>
-          {/* ========== UI Theme ========== */}
-          <section className={section}>
-            <h3 className={sectionTitle}>
-              <ThemeIcon />
-              Appearance
-            </h3>
-            <div className={segmented}>
-              {(['system', 'dark', 'light'] as Theme[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => handleTheme(t)}
-                  className={cn(segmentBtn, theme === t && segmentBtnActive)}
-                >
-                  {t === 'system' ? 'Auto' : t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
+        {/* Body: sidebar tabs + content */}
+        <div className={body}>
+          {/* Left sidebar tabs */}
+          <nav className={sidebar}>
+            <div className={sidebarHeader}>
+              <h2 className={headerTitle}>Settings</h2>
             </div>
-          </section>
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={cn(sidebarBtn, activeTab === tab.id && sidebarBtnActive)}
+                onClick={() => setActiveTab(tab.id)}
+                title={tab.label}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
 
-          {/* ========== Audio Interface ========== */}
-          <section className={section}>
-            <h3 className={sectionTitle}>
-              <AudioIcon />
-              Audio Interface
-            </h3>
-            {audioInfo ? (
-              <div className={fieldGrid}>
-                {/* Output Device */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Output</span>
-                  {audioInfo.availableOutputDevices?.length > 1 ? (
-                    <select
-                      value={audioInfo.outputDeviceName}
-                      onChange={(e) => handleOutputDeviceChange(e.target.value)}
-                      className={selectInput}
-                    >
-                      {audioInfo.availableOutputDevices.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className={fieldValue}>{audioInfo.outputDeviceName || '—'}</span>
-                  )}
-                </div>
+          {/* Right content pane */}
+          <div className={content}>
+            {/* Close button */}
+            <button onClick={onClose} className={closeBtn} title="Close">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M1 1l12 12M13 1L1 13" />
+              </svg>
+            </button>
+            {/* ===== Audio ===== */}
+            {activeTab === 'audio' && (
+              <section className={section}>
+                <h3 className={sectionTitle}>Audio Interface</h3>
+                {audioInfo ? (
+                  <div className={fieldGrid}>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Output</span>
+                      {audioInfo.availableOutputDevices?.length > 1 ? (
+                        <select
+                          value={audioInfo.outputDeviceName}
+                          onChange={(e) => handleOutputDeviceChange(e.target.value)}
+                          className={selectInput}
+                        >
+                          {audioInfo.availableOutputDevices.map((name) => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={fieldValue}>{audioInfo.outputDeviceName || '—'}</span>
+                      )}
+                    </div>
 
-                {/* Input Device */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Input</span>
-                  <select
-                    value={audioInfo.inputDeviceName || ''}
-                    onChange={(e) => handleInputDeviceChange(e.target.value)}
-                    className={selectInput}
-                  >
-                    <option value="">None</option>
-                    {audioInfo.availableInputDevices?.map((name) => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Input</span>
+                      <select
+                        value={audioInfo.inputDeviceName || ''}
+                        onChange={(e) => handleInputDeviceChange(e.target.value)}
+                        className={selectInput}
+                      >
+                        <option value="">None</option>
+                        {audioInfo.availableInputDevices?.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                {/* Sample Rate */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Sample Rate</span>
-                  {audioInfo.availableSampleRates?.length > 1 ? (
-                    <select
-                      value={audioInfo.sampleRate}
-                      onChange={(e) => handleSampleRate(Number(e.target.value))}
-                      className={selectInput}
-                    >
-                      {audioInfo.availableSampleRates.map((sr) => (
-                        <option key={sr} value={sr}>{(sr / 1000).toFixed(1)} kHz</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className={fieldValue}>{audioInfo.sampleRate ? `${(audioInfo.sampleRate / 1000).toFixed(1)} kHz` : '—'}</span>
-                  )}
-                </div>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Sample Rate</span>
+                      {audioInfo.availableSampleRates?.length > 1 ? (
+                        <select
+                          value={audioInfo.sampleRate}
+                          onChange={(e) => handleSampleRate(Number(e.target.value))}
+                          className={selectInput}
+                        >
+                          {audioInfo.availableSampleRates.map((sr) => (
+                            <option key={sr} value={sr}>{(sr / 1000).toFixed(1)} kHz</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={fieldValue}>{audioInfo.sampleRate ? `${(audioInfo.sampleRate / 1000).toFixed(1)} kHz` : '—'}</span>
+                      )}
+                    </div>
 
-                {/* Buffer Size */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Buffer Size</span>
-                  <select
-                    value={audioInfo.bufferSize}
-                    onChange={(e) => handleBufferSize(Number(e.target.value))}
-                    className={selectInput}
-                  >
-                    {audioInfo.availableBufferSizes?.map((sz) => (
-                      <option key={sz} value={sz}>{sz} samples</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Buffer Size</span>
+                      <select
+                        value={audioInfo.bufferSize}
+                        onChange={(e) => handleBufferSize(Number(e.target.value))}
+                        className={selectInput}
+                      >
+                        {audioInfo.availableBufferSizes?.map((sz) => (
+                          <option key={sz} value={sz}>{sz} samples</option>
+                        ))}
+                      </select>
+                    </div>
 
-                {/* Input Channels */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Inputs</span>
-                  <span className={fieldValue}>
-                    {audioInfo.inputChannels?.length ?? 0} ch
-                  </span>
-                </div>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Inputs</span>
+                      <span className={fieldValue}>{audioInfo.inputChannels?.length ?? 0} ch</span>
+                    </div>
 
-                {/* Output Channels */}
-                <div className={fieldRow}>
-                  <span className={fieldLabel}>Outputs</span>
-                  <span className={fieldValue}>
-                    {audioInfo.outputChannels?.length ?? 0} ch
-                  </span>
-                </div>
+                    <div className={fieldRow}>
+                      <span className={fieldLabel}>Outputs</span>
+                      <span className={fieldValue}>{audioInfo.outputChannels?.length ?? 0} ch</span>
+                    </div>
 
-                {/* Latency */}
-                <div className={`${fieldRow} ${latencyRow}`}>
-                  <span className={fieldLabel}>{latencyLabel}</span>
-                  <span className={fieldValueAccent}>
-                    {latencyMs} ms
-                    <span className={fieldValueDim}> ({latencySamples} samples)</span>
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <p className={emptyText}>No audio device detected</p>
+                    <div className={`${fieldRow} ${latencyRow}`}>
+                      <span className={fieldLabel}>{latencyLabel}</span>
+                      <span className={fieldValueAccent}>
+                        {latencyMs} ms
+                        <span className={fieldValueDim}> ({latencySamples} samples)</span>
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={emptyText}>No audio device detected</p>
+                )}
+              </section>
             )}
-          </section>
 
-          {/* ========== MIDI Devices ========== */}
-          <section className={section}>
-            <h3 className={sectionTitle}>
-              <MidiIcon />
-              MIDI Devices
-            </h3>
-            {midiDevices.length > 0 ? (
-              <ul className={deviceList}>
-                {midiDevices.map((name, i) => (
-                  <li key={i} className={deviceItem}>
-                    <span className={deviceDot} />
-                    {name}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={emptyText}>No MIDI devices connected</p>
+            {/* ===== MIDI ===== */}
+            {activeTab === 'midi' && (
+              <section className={section}>
+                <h3 className={sectionTitle}>MIDI Devices</h3>
+                {midiDevices.length > 0 ? (
+                  <ul className={deviceList}>
+                    {midiDevices.map((name, i) => (
+                      <li key={i} className={deviceItem}>
+                        <span className={deviceDot} />
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={emptyText}>No MIDI devices connected</p>
+                )}
+              </section>
             )}
-          </section>
 
-          {/* ========== Mixer Defaults ========== */}
-          <section className={section}>
-            <h3 className={sectionTitle}>
-              <AudioIcon />
-              Mixer
-            </h3>
-            <div className={fieldGrid}>
-              <div className={fieldRow}>
-                <span className={fieldLabel}>Default Channel Strip</span>
-                <DefaultChannelStripSelector />
-              </div>
-            </div>
-          </section>
+            {/* ===== Mixer ===== */}
+            {activeTab === 'mixer' && (
+              <section className={section}>
+                <h3 className={sectionTitle}>Mixer</h3>
+                <div className={fieldGrid}>
+                  <div className={fieldRow}>
+                    <span className={fieldLabel}>Default Channel Strip</span>
+                    <DefaultChannelStripSelector />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ===== Visual ===== */}
+            {activeTab === 'visual' && (
+              <section className={section}>
+                <h3 className={sectionTitle}>Appearance</h3>
+                <div className={segmented}>
+                  {(['system', 'dark', 'light'] as Theme[]).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => handleTheme(t)}
+                      className={cn(segmentBtn, theme === t && segmentBtnActive)}
+                    >
+                      {t === 'system' ? 'Auto' : t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -331,7 +340,7 @@ function DefaultChannelStripSelector() {
 /* ------------------------------------------------------------------ */
 function ThemeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
       <circle cx="8" cy="8" r="3" />
       <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
     </svg>
@@ -340,7 +349,7 @@ function ThemeIcon() {
 
 function AudioIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
       <path d="M2 6v4M5 4v8M8 2v12M11 4v8M14 6v4" />
     </svg>
   );
@@ -348,11 +357,24 @@ function AudioIcon() {
 
 function MidiIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
       <circle cx="8" cy="8" r="6" />
       <circle cx="6" cy="7" r="1" fill="currentColor" stroke="none" />
       <circle cx="10" cy="7" r="1" fill="currentColor" stroke="none" />
       <circle cx="8" cy="10.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function MixerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0">
+      <line x1="4" y1="2" x2="4" y2="14" />
+      <line x1="8" y1="2" x2="8" y2="14" />
+      <line x1="12" y1="2" x2="12" y2="14" />
+      <circle cx="4" cy="10" r="1.5" fill="currentColor" />
+      <circle cx="8" cy="6" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="8" r="1.5" fill="currentColor" />
     </svg>
   );
 }
@@ -366,28 +388,46 @@ const backdrop = `
   animate-in fade-in duration-150`;
 
 const panel = `
-  w-[420px] max-h-[80vh] overflow-y-auto
+  w-[560px] h-[50vh] overflow-hidden
   bg-[hsl(var(--card))] border border-[hsl(var(--border))]
   rounded-xl shadow-2xl
-  animate-in zoom-in-95 duration-150`;
+  animate-in zoom-in-95 duration-150
+  flex flex-col`;
 
-const header = `
-  flex items-center justify-between px-5 py-4
-  border-b border-[hsl(var(--border))]`;
+const sidebarHeader = `
+  flex items-center px-3 pt-3 pb-2 mb-1`;
 
-const headerTitle = `text-base font-semibold text-[hsl(var(--foreground))]`;
+const headerTitle = `text-sm font-semibold text-[hsl(var(--foreground))]`;
 
 const closeBtn = `
-  w-7 h-7 rounded-md flex items-center justify-center
+  absolute top-3 right-3
+  w-6 h-6 rounded-md flex items-center justify-center
   text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]
   hover:bg-[hsl(var(--muted))] transition-colors`;
 
-const content = `p-5 flex flex-col gap-5`;
+const body = `flex flex-1 min-h-0`;
+
+const sidebar = `
+  w-[130px] shrink-0 flex flex-col gap-0.5 p-2
+  border-r border-[hsl(var(--border))]
+  bg-[hsl(var(--muted))]/10`;
+
+const sidebarBtn = `
+  flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium
+  text-[hsl(var(--muted-foreground))] transition-colors
+  hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/50
+  cursor-pointer`;
+
+const sidebarBtnActive = `
+  bg-[hsl(var(--background))] text-[hsl(var(--foreground))] shadow-sm
+  border border-[hsl(var(--border))]
+  hover:bg-[hsl(var(--background))]`;
+
+const content = `relative flex-1 p-5 overflow-y-auto flex flex-col gap-5`;
 
 const section = `flex flex-col gap-3`;
 
 const sectionTitle = `
-  flex items-center gap-2
   text-xs font-semibold uppercase tracking-wider
   text-[hsl(var(--muted-foreground))]`;
 

@@ -1,4 +1,5 @@
 import { ChatMessage, TypingIndicator, ChatSuggestion } from '@/components/molecules';
+import songbirdIcon from '@/assets/songbird.svg';
 
 interface ChatMessageListProps {
   messages: { role: 'user' | 'assistant'; content: string }[];
@@ -17,7 +18,7 @@ export function ChatMessageList({ messages, isTyping, onSuggestionClick }: ChatM
     <div className={container}>
       {messages.length === 0 && (
         <div className={welcomeWrapper}>
-          <div className={emoji}>🐦</div>
+          <div className={emoji}><img src={songbirdIcon} alt="Songbird" width={32} height={32} /></div>
           <p className={welcomeText}>
             Describe the music you want to create.
             <br />

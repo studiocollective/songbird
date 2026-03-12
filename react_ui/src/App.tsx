@@ -13,6 +13,7 @@ import {
 } from '@/components/panels';
 import { ExportProgressModal } from '@/components/organisms/ExportProgressModal';
 import { LoadingScreen } from '@/components/organisms/LoadingScreen';
+import { GenerateModal } from '@/components/organisms/GenerateModal';
 import { Juce, isPlugin } from '@/lib';
 import { addStateListener } from '@/data/bridge';
 import { useChatStore, useMixerStore, useTransportStore } from '@/data/store';
@@ -105,6 +106,13 @@ function App() {
         zoomRef.current = newZoom;
         setZoom?.(newZoom);
       }
+
+      // --- Prevent macOS error beep for unhandled keys outside inputs ---
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable;
+      if (!isInput && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -161,6 +169,7 @@ function App() {
       {sampleEditorOpen && <SampleEditor />}
       <MixerPanel />
       <DebugPanel />
+      <GenerateModal />
       <ExportProgressModal />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

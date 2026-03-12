@@ -7,15 +7,13 @@
 void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options& options)
 {
     options = std::move(options)
-        .withNativeFunction("listMidiInputs", [this](auto&, auto complete) {
+        .withNativeFunction("listMidiInputs", [this](auto& args, auto complete) {
             juce::Array<juce::var> arr;
-            // Always list the virtual computer keyboard first
-            arr.add(juce::var("Computer Keyboard"));
             
-            for (auto& d : engine.getDeviceManager().getMidiInDevices())
+            for (auto& d : juce::MidiInput::getAvailableDevices())
             {
-                if (d->getName() != "Computer Keyboard")
-                    arr.add(juce::var(d->getName()));
+                if (d.name != "Computer Keyboard")
+                    arr.add(juce::var(d.name));
             }
             complete(juce::JSON::toString(juce::var(arr)));
         })
@@ -39,10 +37,6 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
                 if (trackId < 0 || trackId >= (int)audioTracks.size()) return;
                 auto* track = audioTracks[trackId];
 
-                // Clear existing assignments for this track
-                auto& editDevices = edit->getEditInputDevices();
-                editDevices.clearAllInputs(*track, nullptr);
-
                 juce::String targetDeviceName;
                 if (inputType == "computer-keyboard") {
                     targetDeviceName = "Computer Keyboard";
@@ -50,39 +44,37 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
                     targetDeviceName = inputType;
                 }
 
-                if (targetDeviceName.isNotEmpty()) {
+                if (targetDeviceName.isNotEmpty() || inputType == "all") {
+                    // Enable devices FIRST
                     for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                        if (d->getName() == targetDeviceName) {
-                            if (auto* instance = editDevices.getInstanceStateForInputDevice(*d).isValid() 
-                                                 ? nullptr /* already assigned somewhere else? Tracktion handles this */ 
-                                                 : editDevices.getInputInstance(*track, 0)) // Fallback if needed, but setTarget works directly
-                            {
-                                // In Tracktion, we get the instance for the device and assign it to the track
-                                // But `EditInputDevices` manages instances. The robust way is to find the instance and `setTarget`.
-                            }
-                            // simpler approach: enable it globally, then aim it
+                        if (inputType == "all" || d->getName() == targetDeviceName) {
                             d->setEnabled(true);
-                            if (auto* instance = d->createInstance(edit->getTransport().getCurrentPlaybackContext() ? *edit->getTransport().getCurrentPlaybackContext() : *edit->getCurrentPlaybackContext())) {
-                                // We actually use the helper function below since Tracktion's EditInputDevices handles this gracefully.
-                                break;
+                            d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                        }
+                    }
+                }
+                
+                edit->getTransport().freePlaybackContext();
+                edit->getTransport().ensureContextAllocated();
+
+                // Clear existing MIDI assignments for this track
+                for (auto* inst : edit->getAllInputDevices()) {
+                    if (inst->getInputDevice().isMidi()) {
+                        inst->removeTarget(track->itemID, nullptr);
+                    }
+                }
+
+                if (targetDeviceName.isNotEmpty() || inputType == "all") {
+                    // Assign instances using the newly allocated context
+                    for (auto* inst : edit->getAllInputDevices()) {
+                        if (inst->getInputDevice().isMidi()) {
+                            if (inputType == "all" || inst->getInputDevice().getName() == targetDeviceName) {
+                                inst->setTarget(track->itemID, true, nullptr);
                             }
                         }
                     }
                 }
                 
-                // Tracktion's robust way: find the device, get or create its instance, call setTarget
-                if (targetDeviceName.isNotEmpty() || inputType == "all") {
-                    for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                        if (inputType == "all" || d->getName() == targetDeviceName) {
-                            d->setEnabled(true);
-                            
-                            // To attach an input to a track in Tracktion:
-                            // We need to look through the Edit's InputDeviceInstances.
-                            // However, we can simply ensure the device is enabled. 
-                            // When record enabled, Tracktion will create the instance.
-                        }
-                    }
-                }
                 DBG("setMidiInput: Track " + juce::String(trackId) + " -> " + inputType);
             });
             complete("{\"success\":true}");
@@ -108,24 +100,13 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
                 : juce::MidiMessage::noteOff(1, note);
 
             juce::MessageManager::callAsync([this, note, velocity, msg]() {
-                // Find target track for live playing (monitoring)
                 auto audioTracks = te::getAudioTracks(*edit);
-                te::AudioTrack* targetTrack = nullptr;
-                if (midiRecordTrackId >= 0 && midiRecordTrackId < (int)audioTracks.size())
-                    targetTrack = audioTracks[midiRecordTrackId];
-                if (!targetTrack) {
-                    for (auto* track : audioTracks) {
-                        for (auto* plugin : track->pluginList) {
-                            if (dynamic_cast<te::ExternalPlugin*>(plugin)) { 
-                                targetTrack = track; break; 
-                            }
-                        }
-                        if (targetTrack) break;
+                
+                // Only send to armed tracks
+                for (int tid : midiArmedTrackIds) {
+                    if (tid >= 0 && tid < (int)audioTracks.size()) {
+                        audioTracks[tid]->injectLiveMidiMessage(msg, {});
                     }
-                }
-
-                if (targetTrack) {
-                    targetTrack->injectLiveMidiMessage(msg, {});
                 }
 
                 // Inject into Tracktion's virtual MIDI devices for recording
@@ -146,55 +127,70 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
             int  trackId = static_cast<int>(args[0]);
             bool armed   = static_cast<bool>(args[1]);
             
-            juce::MessageManager::callAsync([this, trackId, armed, complete = std::move(complete)]() mutable {
+            juce::MessageManager::callAsync([this, trackId, armed]() {
                 auto audioTracks = te::getAudioTracks(*edit);
-                if (trackId < 0 || trackId >= (int)audioTracks.size()) { complete("{\"success\":false}"); return; }
+                if (trackId < 0 || trackId >= (int)audioTracks.size()) { return; }
                 auto* track = audioTracks[trackId];
                 
-                auto& editDevices = edit->getEditInputDevices();
-                
+                bool recreateContext = false;
                 if (armed) {
-                    midiRecordTrackId = trackId;
+                    midiArmedTrackIds.insert(trackId);
                     
-                    // In Tracktion Engine, you arm recording on an InputDeviceInstance.
-                    // We must find the instance assigned to this track and call setRecordingEnabled(track->itemID, true).
-                    // If no instance is assigned, we assign the Computer Keyboard by default.
-                    
-                    auto instances = editDevices.getDevicesForTargetTrack(*track);
+                    auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
                     if (instances.isEmpty()) {
-                        // Assign computer keyboard by default
+                        // Enable Computer Keyboard + All MIDI Inputs virtual devices
                         for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                            if (d->getName() == "Computer Keyboard") {
+                            if (d->getName() == "Computer Keyboard" || d->getName() == "All MIDI Inputs") {
                                 d->setEnabled(true);
-                                // The proper way to assign in TE is via state manipulation or EditInputDevices methods.
-                                // But tracktion engine creates instances automatically when a device is enabled, 
-                                // we just need to find the instance and call setTarget
-                                // For simplicity, we can fallback to track->getEditInputDevices() if needed.
-                                
-                                // A common Tracktion pattern:
-                                if (editDevices.getInstanceStateForInputDevice(*d).isValid()) {} 
-                                
-                                // To do it safely: find the instance in the edit
-                                // (If this fails at runtime, we will write a tiny helper)
+                                d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                                recreateContext = true;
+                            }
+                        }
+                        // Also enable any physical MIDI devices so they can drive this track
+                        for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
+                            if (d->getDeviceType() == te::InputDevice::physicalMidiDevice) {
+                                d->setEnabled(true);
+                                d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                                recreateContext = true;
                             }
                         }
                     }
+                }
+                
+                if (recreateContext) {
+                    edit->getTransport().freePlaybackContext();
+                    edit->getTransport().ensureContextAllocated();
+                } else {
+                    edit->getTransport().ensureContextAllocated();
+                }
+                
+                if (armed) {
+                    auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
+                    if (instances.isEmpty()) {
+                        // Assign all available MIDI input devices to this track
+                        for (auto* inst : edit->getAllInputDevices()) {
+                            if (inst->getInputDevice().isMidi()) {
+                                inst->setTarget(track->itemID, true, nullptr);
+                            }
+                        }
+                        
+                        // Re-query instances
+                        instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
+                    }
                     
-                    // Re-query instances
-                    instances = editDevices.getDevicesForTargetTrack(*track);
                     for (auto* inst : instances) {
                         inst->setRecordingEnabled(track->itemID, true);
                     }
                 } else {
-                    midiRecordTrackId = -1;
-                    auto instances = editDevices.getDevicesForTargetTrack(*track);
+                    midiArmedTrackIds.erase(trackId);
+                    auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
                     for (auto* inst : instances) {
                         inst->setRecordingEnabled(track->itemID, false);
                     }
                 }
                 
-                complete("{\"success\":true}");
             });
+            complete("{\"success\":true}");
         })
 
         .withNativeFunction("clearRecordedMidi", [this](auto& args, auto complete) {

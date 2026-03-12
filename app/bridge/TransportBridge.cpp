@@ -59,6 +59,24 @@ void SongbirdEditor::registerTransportBridge(juce::WebBrowserComponent::Options&
             });
             complete("ok");
         })
+        .withNativeFunction("transportRecord", [this](auto& args, auto complete) {
+            juce::MessageManager::callAsync([this, args]() {
+                if (edit) {
+                    bool shouldRecord = !edit->getTransport().isRecording();
+                    if (args.size() > 0) shouldRecord = static_cast<bool>(args[0]);
+
+                    if (shouldRecord && !edit->getTransport().isRecording()) {
+                        if (auto* analyzer = getAnalyzerPlugin())
+                            analyzer->requestFadeIn();
+                        edit->getTransport().record(false);
+                    } else if (!shouldRecord && edit->getTransport().isRecording()) {
+                        edit->getTransport().play(false);
+                    }
+                    DBG("Transport: Record " + juce::String(shouldRecord ? "ON" : "OFF") + " (Native)");
+                }
+            });
+            complete("ok");
+        })
         .withNativeFunction("transportSeek", [this](auto& args, auto complete) {
             if (args.size() > 0) {
                 double pos = static_cast<double>(args[0]);

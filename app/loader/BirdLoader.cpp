@@ -91,8 +91,9 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
         flushLayer(true);
         if (inChannel) {
             bool hasLayers = !currentUCh.layers.empty();
+            bool hasClips = !currentUCh.clips.empty();
             bool hasConfig = !currentUCh.plugin.empty() || !currentUCh.fx.empty() || !currentUCh.strip.empty() || !currentUCh.automation.empty();
-            if (hasLayers || hasConfig) {
+            if (hasLayers || hasClips || hasConfig) {
                 if (currentSectionName.empty())
                     topLevelChannels.push_back(currentUCh);
                 else
@@ -372,6 +373,29 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
             continue;
         }
 
+        // --- Audio Clip ---
+        // Syntax: clip <filePath> <beatPos> <duration> [offsetBeats] [fadeInBeats] [fadeOutBeats]
+        if (tokens[0] == "clip" && tokens.size() >= 4) {
+            UnresolvedClip clip;
+            // Trim quotes if present
+            std::string path = tokens[1];
+            if (path.length() >= 2 && path.front() == '"' && path.back() == '"') {
+                path = path.substr(1, path.length() - 2);
+            }
+            clip.filePath = path;
+            try {
+                clip.beatPos = std::stod(tokens[2]);
+                clip.duration = std::stod(tokens[3]);
+                if (tokens.size() > 4) clip.offsetBeats = std::stod(tokens[4]);
+                if (tokens.size() > 5) clip.fadeInBeats = std::stod(tokens[5]);
+                if (tokens.size() > 6) clip.fadeOutBeats = std::stod(tokens[6]);
+            } catch (...) {
+                DBG("BirdLoader: Failed to parse numeric clip parameters");
+            }
+            currentUCh.clips.push_back(clip);
+            continue;
+        }
+
         // --- Handle Semantic Macros & Automation ---
         // If a keyword isn't matched by the core structural syntax above,
         // it is assumed to be an automation macro targeting a plugin parameter.
@@ -533,6 +557,22 @@ BirdParseResult BirdLoader::parse(const std::string& filePath) {
                 for (auto note : resolved.notes) {
                     note.beatPos += beatOffset;
                     targetCh.notes.push_back(note);
+                }
+
+                // Add clips with their respective beat offset
+                for (auto clip : uch.clips) {
+                    clip.beatPos += beatOffset;
+                    
+                    // Convert to resolved BirdClip
+                    BirdClip bc;
+                    bc.filePath = clip.filePath;
+                    bc.beatPos = clip.beatPos;
+                    bc.duration = clip.duration;
+                    bc.offsetBeats = clip.offsetBeats;
+                    bc.fadeInBeats = clip.fadeInBeats;
+                    bc.fadeOutBeats = clip.fadeOutBeats;
+                    
+                    targetCh.clips.push_back(bc);
                 }
             }
 

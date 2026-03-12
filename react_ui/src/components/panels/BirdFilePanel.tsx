@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Juce, isPlugin } from '@/lib';
+import { BirdIcon } from '@/components/atoms/BirdIcon';
 
 export function BirdFilePanel() {
   // `content` = last saved/loaded version; `editedContent` = live textarea value
@@ -99,7 +100,7 @@ export function BirdFilePanel() {
     <div className={panel}>
       <div className={panelInner}>
         <div className={header}>
-          <span className="text-[10px]">🐦</span>
+          <BirdIcon size={12} className="text-[hsl(var(--muted-foreground))]" />
           <span className="text-xs font-medium text-[hsl(var(--foreground))]">
             Bird File
             {isDirty && <span className={dirtyDot} title="Unsaved changes">●</span>}

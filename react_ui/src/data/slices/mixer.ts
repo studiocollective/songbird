@@ -164,6 +164,11 @@ export interface MixerState {
   toggleChannelStripBypass: (id: number) => void;
   openPlugin: (trackId: number, slotType: 'instrument' | 'fx' | 'channelStrip') => void;
 
+  // Generation Modal
+  activeGenerationTrackId: number | null;
+  openGenerationUI: (trackId: number) => void;
+  closeGenerationUI: () => void;
+
   // Dynamic Plugin List
   availableInstruments: { id: string; name: string; vendor: string; category: string }[];
   availableChannelStrips: { id: string; name: string; vendor: string; category: string }[];
@@ -349,6 +354,11 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
       nativeFunction('openPlugin')(trackId, slotType, slot.pluginId);
     }
   },
+
+  activeGenerationTrackId: null,
+  openGenerationUI: (trackId) => set({ activeGenerationTrackId: trackId }),
+  closeGenerationUI: () => set({ activeGenerationTrackId: null }),
+
   setTracks: (tracks) => set({ tracks }),
   setTrackNotes: (trackId, notes) =>
     set((s) => ({

@@ -247,6 +247,100 @@ void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& eng
             DBG("BirdLoader: Track '" + juce::String(ch.name) + "' MIDI unchanged, skipping refill");
         }
 
+        // --- Handle Audio Clips ---
+        if (ch.trackType == "audio") {
+            // Get all audio clips
+            std::vector<te::WaveAudioClip*> audioClips;
+            for (auto* clip : track->getClips()) {
+                if (auto* ac = dynamic_cast<te::WaveAudioClip*>(clip)) {
+                    audioClips.push_back(ac);
+                }
+            }
+            
+            // Delete existing audio clips if counts don't match (for now, simple rebuild strategy)
+            if (audioClips.size() != ch.clips.size()) {
+                for (auto* clip : audioClips) {
+                    clip->removeFromParent();
+                }
+                audioClips.clear();
+            }
+            
+            if (audioClips.empty() && !ch.clips.empty()) {
+                for (size_t c = 0; c < ch.clips.size(); ++c) {
+                    const auto& bClip = ch.clips[c];
+                    
+                    // Resolve file path (relative to the Project directory ideally, but for now absolute or relative to CWD)
+                    juce::File audioFile(bClip.filePath);
+                    if (!juce::File::isAbsolutePath(bClip.filePath)) {
+                        // Assuming currentBirdFile directory is the project directory, but BirdLoader runs statically without knowing currentBirdFile.
+                        // We might need to pass the project directory to populateEdit, but Tracktion handles this via Project.
+                        // For a quick fix, let's assume the edit's directory or the CWD.
+                        // Tracktion 9 te::Edit has an `editFile`.
+                        if (edit.editFileRetriever) {
+                            audioFile = edit.editFileRetriever().getSiblingFile(bClip.filePath);
+                        } else {
+                            audioFile = juce::File::getCurrentWorkingDirectory().getChildFile(bClip.filePath);
+                        }
+                    }
+                    
+                    if (!audioFile.existsAsFile()) {
+                        DBG("BirdLoader: Audio file not found: " + audioFile.getFullPathName());
+                        continue;
+                    }
+                    
+                    auto timePos = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos));
+                    auto duration = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos + bClip.duration)) - timePos;
+                    auto offset = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.offsetBeats)) - edit.tempoSequence.toTime(te::BeatPosition());
+                    
+                    te::TimeRange clipRange(timePos, timePos + duration);
+                    
+                    if (auto newClip = track->insertWaveClip(audioFile.getFileName(), audioFile,
+                                                            {clipRange, offset}, false)) {
+                        newClip->setStart(timePos, false, true);
+                        newClip->setLength(duration, true);
+                        newClip->setOffset(offset);
+                        
+                        // Fades
+                        if (bClip.fadeInBeats > 0) {
+                            auto fadeDur = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos + bClip.fadeInBeats)) - timePos;
+                            newClip->setFadeIn(fadeDur);
+                        }
+                        if (bClip.fadeOutBeats > 0) {
+                            auto endBeat = bClip.beatPos + bClip.duration;
+                            auto fadeDur = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(endBeat)) - edit.tempoSequence.toTime(te::BeatPosition::fromBeats(endBeat - bClip.fadeOutBeats));
+                            newClip->setFadeOut(fadeDur);
+                        }
+                        
+                        DBG("BirdLoader: Added audio clip " + juce::String(bClip.filePath) + " at beat " + juce::String(bClip.beatPos));
+                    }
+                }
+            } else if (!ch.clips.empty()) {
+                // Same count - update existing clips (simple property update)
+                for (size_t c = 0; c < ch.clips.size(); ++c) {
+                    auto* existing = audioClips[c];
+                    const auto& bClip = ch.clips[c];
+                    
+                    auto timePos = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos));
+                    auto duration = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos + bClip.duration)) - timePos;
+                    auto offset = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.offsetBeats)) - edit.tempoSequence.toTime(te::BeatPosition());
+                    
+                    existing->setStart(timePos, false, true);
+                    existing->setLength(duration, true);
+                    existing->setOffset(offset);
+                    
+                    if (bClip.fadeInBeats > 0) {
+                        auto fadeDur = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(bClip.beatPos + bClip.fadeInBeats)) - timePos;
+                        existing->setFadeIn(fadeDur);
+                    }
+                    if (bClip.fadeOutBeats > 0) {
+                        auto endBeat = bClip.beatPos + bClip.duration;
+                        auto fadeDur = edit.tempoSequence.toTime(te::BeatPosition::fromBeats(endBeat)) - edit.tempoSequence.toTime(te::BeatPosition::fromBeats(endBeat - bClip.fadeOutBeats));
+                        existing->setFadeOut(fadeDur);
+                    }
+                }
+            }
+        }
+
         // --- Add Sends (Regular Tracks) ---
         for (int bus = 0; bus < 4; bus++) {
             bool found = false;

@@ -6,6 +6,7 @@ import { GeminiService } from '@/lib/ai/gemini';
 import { Juce } from '@/lib';
 import { MarkdownRenderer } from '../molecules/MarkdownRenderer';
 import { validateBirdSyntax } from '@/lib/ai/validator';
+import songbirdIcon from '@/assets/songbird.svg';
 
 export function ChatPanel() {
   const {
@@ -415,7 +416,7 @@ export function ChatPanel() {
         <div className={messagesScroll}>
           {chatMessages.length === 0 && !isThinking && (
             <div className={welcomeWrapper}>
-              <div className={welcomeEmoji}>🐦</div>
+              <div className={welcomeEmoji}><img src={songbirdIcon} alt="Songbird" width={32} height={32} /></div>
               <p className={welcomeText}>
                 Describe the music you want to create.
                 <br />

@@ -28,6 +28,15 @@ struct UnresolvedLayer {
     int humanizeTicks = 0;           // random ±ticks jitter
 };
 
+struct UnresolvedClip {
+    std::string filePath;
+    double beatPos = 0.0;
+    double duration = 0.0;
+    double offsetBeats = 0.0;
+    double fadeInBeats = 0.0;
+    double fadeOutBeats = 0.0;
+};
+
 struct UnresolvedChannel {
     int channel = 0;
     std::string name;
@@ -37,6 +46,7 @@ struct UnresolvedChannel {
     std::string strip;
     bool cont = false;
     std::vector<UnresolvedLayer> layers;
+    std::vector<UnresolvedClip> clips;
     std::map<std::string, BirdAutomationCurve> automation;
 };
 
