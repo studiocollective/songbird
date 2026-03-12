@@ -1,1 +1,0 @@
-../../react_ui/src/components/molecules/README.md

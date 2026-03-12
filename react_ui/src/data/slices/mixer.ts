@@ -136,6 +136,10 @@ export interface MixerState {
   setTrackName: (id: number, name: string) => void;
   setSidechainSource: (destId: number, sourceId: number | null) => void;
 
+  // Default channel strip for new tracks
+  defaultChannelStrip: { id: string; name: string } | null;
+  setDefaultChannelStrip: (strip: { id: string; name: string } | null) => void;
+
   // Recording actions
   setMidiRecordArm: (id: number, armed: boolean) => void;
   setAudioRecordArm: (id: number, armed: boolean) => void;
@@ -213,6 +217,9 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
     sampleEditorOpen: false,
     selectedAudioClip: null,
   }),
+
+  defaultChannelStrip: null,
+  setDefaultChannelStrip: (strip) => set({ defaultChannelStrip: strip }),
 
   availableInstruments: [],
   availableChannelStrips: [],
@@ -431,11 +438,14 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
 
     set({ tracks: [...existing, newTrack] });
     
-    // Auto-assign default channel strip (Console 1)
+    // Auto-assign default channel strip
     const availableEffects = get().availableChannelStrips;
+    const defaultStrip = get().defaultChannelStrip;
     if (availableEffects.length > 0) {
-      const console1 = availableEffects.find(fx => fx.name.includes('Console 1')) || availableEffects[0];
-      setTimeout(() => get().setChannelStrip(id, console1.id, console1.name), 50);
+      const strip = defaultStrip
+        ? availableEffects.find(fx => fx.id === defaultStrip.id) ?? availableEffects[0]
+        : availableEffects[0];
+      setTimeout(() => get().setChannelStrip(id, strip.id, strip.name), 50);
     }
     
     return id;
@@ -468,11 +478,14 @@ export const useMixerSlice: StateCreator<MixerState> = (set, get) => ({
 
     set({ tracks: [...existing, newTrack] });
 
-    // Auto-assign default channel strip (Console 1)
+    // Auto-assign default channel strip
     const availableEffects = get().availableChannelStrips;
+    const defaultStrip = get().defaultChannelStrip;
     if (availableEffects.length > 0) {
-      const console1 = availableEffects.find(fx => fx.name.includes('Console 1')) || availableEffects[0];
-      setTimeout(() => get().setChannelStrip(id, console1.id, console1.name), 50);
+      const strip = defaultStrip
+        ? availableEffects.find(fx => fx.id === defaultStrip.id) ?? availableEffects[0]
+        : availableEffects[0];
+      setTimeout(() => get().setChannelStrip(id, strip.id, strip.name), 50);
     }
 
     return id;

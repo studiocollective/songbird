@@ -173,6 +173,18 @@ Engine ValueTree change → TrackStateWatcher (100ms debounce + delta threshold)
 
 ---
 
+## Real-Time Events (Engine → React)
+
+High-frequency telemetry data (audio levels, transport position, stereo analysis, CPU stats) bypasses the standard JSON state sync to minimize IPC and React overhead.
+
+1. **Batched C++ to JS**: All real-time telemetry is grouped into a single JSON payload and emitted at ~30Hz under the `rtFrame` event.
+2. **Direct-DOM Buffer (`rtBuffer`)**: Data is written directly to a shared mutable object (`getRtBuffer()`). This avoids React re-renders completely.
+3. **Ballistic Smoothing**: A single `requestAnimationFrame` loop handles smoothing (e.g. meter decay) and notifies direct subscribers (canvas, plain DOM nodes).
+4. **Zustand Throttling**: The full Zustand store (`useMeterStore`) is only updated every N frames (e.g. ~20Hz) for React components that need reactive bindings, avoiding main-thread blocking.
+5. **Transport Sync**: Playhead position is synced at 60Hz into `useTransportStore` non-reactively via `.setState()`.
+
+---
+
 ## Loading Sequence
 
 ```
@@ -302,8 +314,10 @@ Multiple mechanisms prevent feedback loops:
 | `SongbirdEditor.h` | Flag declarations, method signatures |
 | `ProjectState.cpp` | Git operations: commit, undo, redo, history |
 | `ProjectState.h` | Public API for git state management |
+| `SessionState.cpp` | Ephemeral session state management |
 | `WebViewBridge.cpp` | Native functions exposed to React (getHistory, reactReady, etc.) |
 | `TrackStateWatcher.h` | Engine → React volume/pan/mute/solo sync |
 | `react_ui/src/data/store.ts` | Zustand stores, hydration tracking, event listeners |
+| `react_ui/src/data/meters.ts` | Real-time batched event store, RT Buffer, Ballistic smoothing |
 | `react_ui/src/data/slices/mixer.ts` | Mixer state actions (setVolume, setPan with rounding) |
 | `react_ui/src/components/HistoryPanel.tsx` | Git log UI |

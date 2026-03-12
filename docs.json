@@ -16,14 +16,14 @@
           {
             "group": "Getting Started",
             "pages": [
-              "index"
+              "README"
             ]
           },
           {
             "group": "Core Concepts",
             "pages": [
-              "bird",
-              "state-management"
+              "docs/bird",
+              "docs/state-management"
             ]
           }
         ]
@@ -34,20 +34,20 @@
           {
             "group": "Architecture",
             "pages": [
-              "app/index"
+              "app/README"
             ]
           },
           {
             "group": "Modules",
             "pages": [
-              "app/bridge",
-              "app/state",
-              "app/audio",
-              "app/loader",
-              "app/plugins",
-              "app/midi",
-              "app/ai",
-              "app/export"
+              "app/bridge/README",
+              "app/state/README",
+              "app/audio/README",
+              "app/loader/README",
+              "app/plugins/README",
+              "app/midi/README",
+              "app/ai/README",
+              "app/export/README"
             ]
           }
         ]
@@ -58,26 +58,26 @@
           {
             "group": "Architecture",
             "pages": [
-              "react-ui/index",
-              "react-ui/src"
+              "react_ui/README",
+              "react_ui/src/README"
             ]
           },
           {
             "group": "State & Data",
             "pages": [
-              "react-ui/data",
-              "react-ui/slices",
-              "react-ui/lib"
+              "react_ui/src/data/README",
+              "react_ui/src/data/slices/README",
+              "react_ui/src/lib/README"
             ]
           },
           {
             "group": "Components",
             "pages": [
-              "react-ui/components",
-              "react-ui/atoms",
-              "react-ui/molecules",
-              "react-ui/organisms",
-              "react-ui/panels"
+              "react_ui/src/components/README",
+              "react_ui/src/components/atoms/README",
+              "react_ui/src/components/molecules/README",
+              "react_ui/src/components/organisms/README",
+              "react_ui/src/components/panels/README"
             ]
           }
         ]
@@ -88,16 +88,16 @@
           {
             "group": "Development",
             "pages": [
-              "support/utils",
-              "support/tools",
-              "support/eval"
+              "utils/README",
+              "tools/README",
+              "eval/README"
             ]
           },
           {
             "group": "Resources",
             "pages": [
-              "support/files",
-              "support/embedded"
+              "files/README",
+              "embedded/README"
             ]
           }
         ]

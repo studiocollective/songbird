@@ -86,15 +86,21 @@ export function MixerChannel({
       <div className={header}>
         <TrackColorDot color={color} size="md" />
         <span className={trackName}>{name}</span>
-        <span className={cn(badge, (isReturn || trackType === 'audio') ? badgeAudio : badgeMidi, isMaster && 'bg-emerald-500/20 text-emerald-300')}>
+        {/* Badge: hidden for return/master tracks (uncomment to restore) */}
+        {!isReturn && !isMaster && (
+          <span className={cn(badge, trackType === 'audio' ? badgeAudio : badgeMidi)}>
+            {trackType}
+          </span>
+        )}
+        {/* <span className={cn(badge, (isReturn || trackType === 'audio') ? badgeAudio : badgeMidi, isMaster && 'bg-emerald-500/20 text-emerald-300')}>
           {isMaster ? 'master' : (isReturn ? 'return' : trackType)}
-        </span>
+        </span> */}
         {recordArmed && (
           <span className="text-[7px] text-red-500 animate-pulse ml-0.5">●</span>
         )}
       </div>
 
-      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} audioMode={audioMode} />
+      <PluginSlots trackId={trackId} trackType={(isReturn || isMaster) ? 'audio' : trackType} instrument={(isReturn || isMaster) ? { pluginId: '', pluginName: '', bypassed: false } : instrument} fx={fx} channelStrip={channelStrip} isMaster={isMaster} isReturn={isReturn} sidechainTrackId={sidechainTrackId} sidechainSensitivity={sidechainSensitivity} trackList={trackList} audioMode={audioMode} />
 
       <div className={msWrapper}>
         {!isMaster && <MuteSoloButtons trackId={trackId} muted={muted} solo={solo} size="md" />}

@@ -26,7 +26,7 @@ juce::String getTrackStateJSON(te::Edit& edit, const BirdParseResult* parseResul
         trackCount++;
 
         // For return/master tracks: read the actual ExternalPlugins from the plugin list directly
-        bool isReturn = !isMaster && (track->getName() == "Hall" || track->getName() == "Plate" || track->getName() == "Delay" || track->getName() == "Saturation");
+        bool isReturn = !isMaster && (track->getName() == "Hall" || track->getName() == "Plate" || track->getName() == "Delay" || track->getName() == "Color");
 
         // Look up plugin info from parse result (regular tracks only)
         juce::String pluginField;

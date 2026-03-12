@@ -147,8 +147,6 @@ export function Transport({ onSettingsOpen }: { onSettingsOpen: () => void }) {
 
       <div className="flex-1" />
       <CpuMeter />
-      <div className={`${divider}`} />
-      <span className={title}>🐦 Songbird Player</span>
       <div className="flex-1" />
 
       {/* Panel toggles */}
@@ -276,9 +274,6 @@ const positionGroup = `flex items-center gap-3`;
 const positionText = `text-sm font-mono text-[hsl(var(--foreground))]`;
 const dimText = `text-[hsl(var(--muted-foreground))]`;
 const accentText = `text-[hsl(var(--progress))]`;
-
-
-const title = `text-sm font-medium text-[hsl(var(--muted-foreground))] tracking-wide`;
 
 const panelBtn = `px-3 h-7 rounded text-xs font-medium transition-colors`;
 const panelBtnActive = `bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]`;

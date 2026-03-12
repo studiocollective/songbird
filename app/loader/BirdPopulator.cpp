@@ -344,7 +344,7 @@ void populateEdit(te::Edit& edit, const BirdParseResult& result, te::Engine& eng
     }
 
     // --- Create/Configure 4 Return Tracks ---
-    const juce::String returnNames[] = { "Hall", "Plate", "Delay", "Saturation" };
+    const juce::String returnNames[] = { "Hall", "Plate", "Delay", "Color" };
     int numRegularTracks = static_cast<int>(result.channels.size());
     for (int r = 0; r < 4; r++) {
         int trackIdx = numRegularTracks + r;

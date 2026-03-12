@@ -84,7 +84,7 @@ export function SendControl({ trackId, busIndex, value, color }: SendControlProp
         />
       </div>
       <span className="text-[7px] font-mono text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">
-        {(['Hall', 'Plate', 'Del', 'Sat'])[busIndex] ?? `S${busIndex + 1}`}
+        {(['Hall', 'Plate', 'Delay', 'Color'])[busIndex] ?? `S${busIndex + 1}`}
       </span>
     </div>
   );

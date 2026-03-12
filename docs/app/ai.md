@@ -1,1 +1,0 @@
-../../app/ai/README.md

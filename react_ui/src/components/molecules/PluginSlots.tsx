@@ -109,6 +109,8 @@ function SidechainSelector({ trackId, sidechainTrackId, sidechainSensitivity, tr
       >
         {active ? (sourceTrack?.name ?? '?') : '—'}
       </button>
+      {/* Invisible placeholder to match expand button width in other slots */}
+      <span className="w-4 shrink-0" />
 
       {open && (
         <div className={dropdown}>
@@ -209,13 +211,14 @@ interface PluginSlotsProps {
   fx: PluginSlot;
   channelStrip: PluginSlot;
   isMaster?: boolean;
+  isReturn?: boolean;
   sidechainTrackId?: number | null;
   sidechainSensitivity?: number;
   trackList?: Track[];
   audioMode?: AudioMode;
 }
 
-export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster, sidechainTrackId, sidechainSensitivity, trackList, audioMode }: PluginSlotsProps) {
+export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, isMaster, isReturn, sidechainTrackId, sidechainSensitivity, trackList, audioMode }: PluginSlotsProps) {
   const emptySlot: PluginSlot = { pluginId: null, pluginName: null, bypassed: false };
   const inst = instrument ?? emptySlot;
   const fxSlot = fx ?? emptySlot;
@@ -242,6 +245,8 @@ export function PluginSlots({ trackId, trackType, instrument, fx, channelStrip, 
             useMixerStore.getState().openPlugin(trackId, 'instrument')
           }
         />
+      ) : (isReturn || isMaster) ? (
+        <div className="h-4" />
       ) : (
         <AudioModeSelector trackId={trackId} mode={audioMode ?? 'record'} />
       )}

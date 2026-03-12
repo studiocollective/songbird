@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Juce, isPlugin } from '@/lib';
 import { loadTheme, applyTheme, type Theme } from '@/lib/theme';
+import { useMixerStore } from '@/data/store';
 
 /* ------------------------------------------------------------------ */
 /*  Native function helpers                                           */
@@ -279,9 +280,49 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
               <p className={emptyText}>No MIDI devices connected</p>
             )}
           </section>
+
+          {/* ========== Mixer Defaults ========== */}
+          <section className={section}>
+            <h3 className={sectionTitle}>
+              <AudioIcon />
+              Mixer
+            </h3>
+            <div className={fieldGrid}>
+              <div className={fieldRow}>
+                <span className={fieldLabel}>Default Channel Strip</span>
+                <DefaultChannelStripSelector />
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Default Channel Strip Selector                                    */
+/* ------------------------------------------------------------------ */
+function DefaultChannelStripSelector() {
+  const availableStrips = useMixerStore((s) => s.availableChannelStrips);
+  const defaultStrip = useMixerStore((s) => s.defaultChannelStrip);
+
+  return (
+    <select
+      value={defaultStrip?.id ?? ''}
+      onChange={(e) => {
+        const selected = availableStrips.find(s => s.id === e.target.value);
+        useMixerStore.getState().setDefaultChannelStrip(
+          selected ? { id: selected.id, name: selected.name } : null
+        );
+      }}
+      className={selectInput}
+    >
+      <option value="">First Available</option>
+      {availableStrips.map((s) => (
+        <option key={s.id} value={s.id}>{s.name}</option>
+      ))}
+    </select>
   );
 }
 

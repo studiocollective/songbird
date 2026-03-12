@@ -56,6 +56,8 @@ juce_add_gui_app(SongbirdPlayer
     MICROPHONE_PERMISSION_ENABLED TRUE
     MICROPHONE_PERMISSION_TEXT "Audio output"
     PLUGINHOST_AU TRUE
+    ICON_BIG "images/icon/songbird@2x.png"
+    ICON_SMALL "images/icon/songbird.png"
     PLIST_TO_MERGE "<dict><key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoads</key><true/></dict></dict>")
 
 juce_generate_juce_header(SongbirdPlayer)

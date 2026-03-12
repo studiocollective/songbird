@@ -183,7 +183,9 @@ function processTrackNotes(data: string | object) {
         if (raw === 'gen-audio') return 'audio' as TrackType;
         return raw as TrackType;
       })(),
-      color: existing ? existing.color : TRACK_COLORS[i % TRACK_COLORS.length],
+      color: (t.isReturn || t.isMaster)
+        ? '#8B8B8B'
+        : (existing ? existing.color : TRACK_COLORS[i % TRACK_COLORS.length]),
       muted: t.muted ?? existing?.muted ?? false,
       solo: t.solo ?? existing?.solo ?? false,
       volume: t.volume ?? existing?.volume ?? 80,
