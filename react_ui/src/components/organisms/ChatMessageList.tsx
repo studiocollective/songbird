@@ -18,7 +18,7 @@ export function ChatMessageList({ messages, isTyping, onSuggestionClick }: ChatM
     <div className={container}>
       {messages.length === 0 && (
         <div className={welcomeWrapper}>
-          <div className={emoji}><img src={songbirdIcon} alt="Songbird" width={32} height={32} /></div>
+          <div className={emoji}><img src={songbirdIcon} alt="Songbird" width={64} height={64} /></div>
           <p className={welcomeText}>
             Describe the music you want to create.
             <br />
@@ -47,6 +47,6 @@ export function ChatMessageList({ messages, isTyping, onSuggestionClick }: ChatM
 
 const container = `flex-1 overflow-y-auto p-3 space-y-3`;
 const welcomeWrapper = `text-center py-8`;
-const emoji = `text-2xl mb-2`;
+const emoji = `flex justify-center mb-3`;
 const welcomeText = `text-xs text-[hsl(var(--muted-foreground))] leading-relaxed`;
 const suggestionsWrapper = `mt-4 space-y-1.5`;

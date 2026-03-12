@@ -416,7 +416,7 @@ export function ChatPanel() {
         <div className={messagesScroll}>
           {chatMessages.length === 0 && !isThinking && (
             <div className={welcomeWrapper}>
-              <div className={welcomeEmoji}><img src={songbirdIcon} alt="Songbird" width={32} height={32} /></div>
+              <div className={welcomeEmoji}><img src={songbirdIcon} alt="Songbird" width={64} height={64} /></div>
               <p className={welcomeText}>
                 Describe the music you want to create.
                 <br />
@@ -597,7 +597,7 @@ const threadDeleteBtn = `
 const messagesScroll = `flex-1 overflow-y-auto p-3 space-y-3`;
 
 const welcomeWrapper = `text-center py-8`;
-const welcomeEmoji = `text-2xl mb-2`;
+const welcomeEmoji = `flex justify-center mb-3`;
 const welcomeText = `text-xs text-[hsl(var(--muted-foreground))] leading-relaxed`;
 const suggestionsWrapper = `mt-4 space-y-1.5`;
 const suggestionBtn = `

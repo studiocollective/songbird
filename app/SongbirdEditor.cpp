@@ -14,6 +14,23 @@ SongbirdEditor::SongbirdEditor()
     // Create the virtual MIDI input for computer keyboard injection
     if (auto res = engine.getDeviceManager().createVirtualMidiDevice("Computer Keyboard"); !res.wasOk())
         DBG("Failed to create Computer Keyboard virtual MIDI device: " + res.getErrorMessage());
+    
+    // After the DeviceManager's async scan timer fires (~5ms), cache the virtual device
+    // and enable it so the first playback context includes it (no context recreation on arm)
+    juce::Timer::callAfterDelay(200, [this]() {
+        auto devices = engine.getDeviceManager().getMidiInDevices();
+        DBG("MIDI startup: DeviceManager has " + juce::String(devices.size()) + " devices");
+        for (auto& d : devices) {
+            if (d->getDeviceType() == te::InputDevice::virtualMidiDevice) {
+                cachedVirtualMidiDevice = dynamic_cast<te::VirtualMidiInputDevice*>(d.get());
+                if (cachedVirtualMidiDevice) {
+                    cachedVirtualMidiDevice->setEnabled(true);
+                    cachedVirtualMidiDevice->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                    DBG("MIDI startup: Cached and enabled virtual device: " + d->getName());
+                }
+            }
+        }
+    });
     // Check command line arguments for a sketch name
     auto args = juce::JUCEApplicationBase::getCommandLineParameterArray();
     juce::String sketchName;
@@ -439,3 +456,98 @@ void SongbirdEditor::timerCallback()
     });
 }
 
+//==============================================================================
+// Direct physical MIDI input (bypasses Tracktion DeviceManager)
+//==============================================================================
+
+void SongbirdEditor::openAllPhysicalMidiInputs()
+{
+    closeAllPhysicalMidiInputs();
+    
+    auto devices = juce::MidiInput::getAvailableDevices();
+    for (auto& info : devices) {
+        auto device = juce::MidiInput::openDevice(info.identifier, this);
+        if (device) {
+            DBG("MIDI: Opened physical device: " + info.name);
+            device->start();
+            openMidiInputs.push_back(std::move(device));
+        } else {
+            DBG("MIDI: FAILED to open device: " + info.name);
+        }
+    }
+    DBG("MIDI: " + juce::String(openMidiInputs.size()) + " physical MIDI inputs opened");
+}
+
+void SongbirdEditor::closeAllPhysicalMidiInputs()
+{
+    for (auto& d : openMidiInputs) {
+        if (d) d->stop();
+    }
+    openMidiInputs.clear();
+}
+
+void SongbirdEditor::handleIncomingMidiMessage(juce::MidiInput* /*source*/, const juce::MidiMessage& msg)
+{
+    // AudioTrack::injectLiveMidiMessage asserts message thread (TRACKTION_ASSERT_MESSAGE_THREAD)
+    // Must bounce from MIDI thread to message thread
+    auto msgCopy = msg;
+    juce::MessageManager::callAsync([this, msgCopy]() {
+        if (!edit || midiArmedTrackIds.empty()) return;
+        
+        auto audioTracks = te::getAudioTracks(*edit);
+        for (int tid : midiArmedTrackIds) {
+            if (tid >= 0 && tid < (int)audioTracks.size()) {
+                audioTracks[tid]->injectLiveMidiMessage(msgCopy, {});
+            }
+        }
+        
+        // Also inject into virtual MIDI device for Tracktion recording
+        if (cachedVirtualMidiDevice) {
+            cachedVirtualMidiDevice->handleIncomingMidiMessage(nullptr, msgCopy);
+        }
+    });
+}
+
+void SongbirdEditor::setupTracktionRecording(int trackId)
+{
+    if (!edit) return;
+    auto audioTracks = te::getAudioTracks(*edit);
+    if (trackId < 0 || trackId >= (int)audioTracks.size()) return;
+    auto* track = audioTracks[trackId];
+    
+    // Try to find and cache the virtual MIDI device if not already cached
+    if (!cachedVirtualMidiDevice) {
+        auto devices = engine.getDeviceManager().getMidiInDevices();
+        DBG("setupTracktionRecording: DeviceManager has " + juce::String(devices.size()) + " devices");
+        for (auto& d : devices) {
+            if (d->getDeviceType() == te::InputDevice::virtualMidiDevice) {
+                cachedVirtualMidiDevice = dynamic_cast<te::VirtualMidiInputDevice*>(d.get());
+                if (cachedVirtualMidiDevice) {
+                    cachedVirtualMidiDevice->setEnabled(true);
+                    cachedVirtualMidiDevice->setMonitorMode(te::InputDevice::MonitorMode::automatic);
+                    DBG("  -> Cached virtual MIDI device: " + d->getName());
+                }
+            }
+        }
+    }
+    
+    if (!cachedVirtualMidiDevice) {
+        DBG("setupTracktionRecording: No virtual MIDI device found, recording won't work");
+        return;
+    }
+    
+    // Ensure context exists (no-op if already allocated, no audio hiccup)
+    edit->getTransport().ensureContextAllocated();
+    
+    // Assign the virtual MIDI device instance to this track for recording
+    int assigned = 0;
+    for (auto* inst : edit->getAllInputDevices()) {
+        if (inst->getInputDevice().isMidi()) {
+            inst->setTarget(track->itemID, true, nullptr);
+            inst->setRecordingEnabled(track->itemID, true);
+            assigned++;
+            DBG("  Recording: assigned " + inst->getInputDevice().getName() + " -> track " + juce::String(trackId));
+        }
+    }
+    DBG("setupTracktionRecording: " + juce::String(assigned) + " MIDI inputs assigned for recording on track " + juce::String(trackId));
+}

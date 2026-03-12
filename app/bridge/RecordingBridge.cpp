@@ -32,51 +32,9 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
             int trackId = static_cast<int>(args[0]);
             juce::String inputType = args[1].toString();
             
-            juce::MessageManager::callAsync([this, trackId, inputType]() {
-                auto audioTracks = te::getAudioTracks(*edit);
-                if (trackId < 0 || trackId >= (int)audioTracks.size()) return;
-                auto* track = audioTracks[trackId];
-
-                juce::String targetDeviceName;
-                if (inputType == "computer-keyboard") {
-                    targetDeviceName = "Computer Keyboard";
-                } else if (!inputType.isEmpty() && inputType != "all") {
-                    targetDeviceName = inputType;
-                }
-
-                if (targetDeviceName.isNotEmpty() || inputType == "all") {
-                    // Enable devices FIRST
-                    for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                        if (inputType == "all" || d->getName() == targetDeviceName) {
-                            d->setEnabled(true);
-                            d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
-                        }
-                    }
-                }
-                
-                edit->getTransport().freePlaybackContext();
-                edit->getTransport().ensureContextAllocated();
-
-                // Clear existing MIDI assignments for this track
-                for (auto* inst : edit->getAllInputDevices()) {
-                    if (inst->getInputDevice().isMidi()) {
-                        inst->removeTarget(track->itemID, nullptr);
-                    }
-                }
-
-                if (targetDeviceName.isNotEmpty() || inputType == "all") {
-                    // Assign instances using the newly allocated context
-                    for (auto* inst : edit->getAllInputDevices()) {
-                        if (inst->getInputDevice().isMidi()) {
-                            if (inputType == "all" || inst->getInputDevice().getName() == targetDeviceName) {
-                                inst->setTarget(track->itemID, true, nullptr);
-                            }
-                        }
-                    }
-                }
-                
-                DBG("setMidiInput: Track " + juce::String(trackId) + " -> " + inputType);
-            });
+            // MIDI routing is handled directly via JUCE MidiInput callbacks
+            // (see handleIncomingMidiMessage). Just log the selection here.
+            DBG("setMidiInput: Track " + juce::String(trackId) + " -> " + inputType);
             complete("{\"success\":true}");
         })
 
@@ -102,21 +60,16 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
             juce::MessageManager::callAsync([this, note, velocity, msg]() {
                 auto audioTracks = te::getAudioTracks(*edit);
                 
-                // Only send to armed tracks
+                // Only send to armed tracks for live monitoring
                 for (int tid : midiArmedTrackIds) {
                     if (tid >= 0 && tid < (int)audioTracks.size()) {
                         audioTracks[tid]->injectLiveMidiMessage(msg, {});
                     }
                 }
 
-                // Inject into Tracktion's virtual MIDI devices for recording
-                auto& dm = engine.getDeviceManager();
-                for (auto& d : dm.getMidiInDevices()) {
-                    if (d->getDeviceType() == te::InputDevice::virtualMidiDevice) {
-                        if (auto* virt = dynamic_cast<te::VirtualMidiInputDevice*>(d.get())) {
-                            virt->handleIncomingMidiMessage(nullptr, msg);
-                        }
-                    }
+                // Also inject into cached virtual MIDI device for recording
+                if (cachedVirtualMidiDevice) {
+                    cachedVirtualMidiDevice->handleIncomingMidiMessage(nullptr, msg);
                 }
             });
             complete("{\"success\":true}");
@@ -130,65 +83,46 @@ void SongbirdEditor::registerRecordingBridge(juce::WebBrowserComponent::Options&
             juce::MessageManager::callAsync([this, trackId, armed]() {
                 auto audioTracks = te::getAudioTracks(*edit);
                 if (trackId < 0 || trackId >= (int)audioTracks.size()) { return; }
-                auto* track = audioTracks[trackId];
                 
-                bool recreateContext = false;
+                DBG("setMidiRecordArm: track " + juce::String(trackId) + " armed=" + (armed ? "true" : "false"));
+                
                 if (armed) {
                     midiArmedTrackIds.insert(trackId);
                     
-                    auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
-                    if (instances.isEmpty()) {
-                        // Enable Computer Keyboard + All MIDI Inputs virtual devices
-                        for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                            if (d->getName() == "Computer Keyboard" || d->getName() == "All MIDI Inputs") {
-                                d->setEnabled(true);
-                                d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
-                                recreateContext = true;
-                            }
-                        }
-                        // Also enable any physical MIDI devices so they can drive this track
-                        for (auto& d : engine.getDeviceManager().getMidiInDevices()) {
-                            if (d->getDeviceType() == te::InputDevice::physicalMidiDevice) {
-                                d->setEnabled(true);
-                                d->setMonitorMode(te::InputDevice::MonitorMode::automatic);
-                                recreateContext = true;
-                            }
-                        }
-                    }
-                }
-                
-                if (recreateContext) {
-                    edit->getTransport().freePlaybackContext();
-                    edit->getTransport().ensureContextAllocated();
-                } else {
-                    edit->getTransport().ensureContextAllocated();
-                }
-                
-                if (armed) {
-                    auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
-                    if (instances.isEmpty()) {
-                        // Assign all available MIDI input devices to this track
-                        for (auto* inst : edit->getAllInputDevices()) {
-                            if (inst->getInputDevice().isMidi()) {
-                                inst->setTarget(track->itemID, true, nullptr);
-                            }
-                        }
-                        
-                        // Re-query instances
-                        instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
+                    // 1) Open physical MIDI devices via JUCE for live monitoring
+                    if (openMidiInputs.empty()) {
+                        openAllPhysicalMidiInputs();
                     }
                     
-                    for (auto* inst : instances) {
-                        inst->setRecordingEnabled(track->itemID, true);
-                    }
+                    // 2) Force Tracktion to rescan MIDI devices for recording
+                    engine.getDeviceManager().rescanMidiDeviceList();
+                    
+                    // 3) Delay to let the 5ms timer fire, then set up Tracktion recording
+                    juce::Timer::callAfterDelay(100, [this, trackId]() {
+                        setupTracktionRecording(trackId);
+                    });
+                    
+                    DBG("  Armed tracks: " + juce::String((int)midiArmedTrackIds.size()) 
+                        + ", Open MIDI inputs: " + juce::String((int)openMidiInputs.size()));
+                    
                 } else {
                     midiArmedTrackIds.erase(trackId);
+                    
+                    // Disable recording on this track
+                    auto* track = audioTracks[trackId];
                     auto instances = edit->getEditInputDevices().getDevicesForTargetTrack(*track);
                     for (auto* inst : instances) {
                         inst->setRecordingEnabled(track->itemID, false);
                     }
+                    
+                    DBG("  Disarmed track " + juce::String(trackId) 
+                        + ", remaining armed: " + juce::String((int)midiArmedTrackIds.size()));
+                    
+                    // Close physical MIDI devices when no tracks are armed
+                    if (midiArmedTrackIds.empty()) {
+                        closeAllPhysicalMidiInputs();
+                    }
                 }
-                
             });
             complete("{\"success\":true}");
         })

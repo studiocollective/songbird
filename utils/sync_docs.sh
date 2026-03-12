@@ -102,4 +102,11 @@ if [ -f "README.md" ]; then
     echo "  Copied README.md -> docs/index.mdx"
 fi
 
+# Copy images/ into docs/ so relative image paths resolve in Mintlify
+if [ -d "images" ]; then
+    rm -rf "docs/images"
+    cp -r "images" "docs/images"
+    echo "  Copied images/ -> docs/images/"
+fi
+
 echo "Sync complete!"

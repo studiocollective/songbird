@@ -57,10 +57,10 @@ function App() {
       if (useMixerStore.getState().keyboardMidiMode) {
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+        e.preventDefault(); // Suppress macOS error beep for ALL keys in MIDI mode
         if (e.repeat) return; // Don't retrigger on held keys
         const note = KEYBOARD_NOTE_MAP[e.key.toLowerCase()];
         if (note !== undefined) {
-          e.preventDefault();
           sendKeyboardMidi?.(note, 100); // note-on
         }
         return; // Don't process any shortcuts

@@ -11,7 +11,7 @@
           "muted": false,
           "solo": false,
           "volume": 90,
-          "pan": 63,
+          "pan": 6,
           "instrument": {
             "pluginId": "sonicacademy.kick-3",
             "pluginName": "Kick 3",
@@ -9355,9 +9355,9 @@
           "name": "chords",
           "type": "midi",
           "color": "#DDA0DD",
-          "muted": false,
+          "muted": true,
           "solo": false,
-          "volume": 127,
+          "volume": 91,
           "pan": -2,
           "instrument": {
             "pluginId": "arturia.prophet-v",

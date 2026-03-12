@@ -28,6 +28,7 @@ public:
 namespace te = tracktion;
 
 class SongbirdEditor : public juce::Component, 
+                       public juce::MidiInputCallback,
                        private juce::Timer,
                        private juce::AudioProcessorListener
 {
@@ -136,6 +137,16 @@ private:
 
     // Tracks armed for live MIDI from keyboard
     std::set<int> midiArmedTrackIds;
+    
+    // Direct physical MIDI input handling (bypasses Tracktion DeviceManager)
+    std::vector<std::unique_ptr<juce::MidiInput>> openMidiInputs;
+    void handleIncomingMidiMessage(juce::MidiInput* source, const juce::MidiMessage& msg) override;
+    void openAllPhysicalMidiInputs();
+    void closeAllPhysicalMidiInputs();
+    
+    // Cached virtual MIDI device for recording (found after forced rescan)
+    te::VirtualMidiInputDevice* cachedVirtualMidiDevice = nullptr;
+    void setupTracktionRecording(int trackId);
 
     // Audio recorder
     std::unique_ptr<AudioRecorder> audioRecorder;
