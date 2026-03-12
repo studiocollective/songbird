@@ -9,8 +9,8 @@
   },
   "favicon": "/favicon.svg",
   "fonts": {
-    "body": "Inter",
-    "heading": "Inter"
+    "body": { "family": "Inter" },
+    "heading": { "family": "Inter" }
   },
   "navigation": {
     "tabs": [
