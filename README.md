@@ -2,6 +2,8 @@
 
 Songbird is a DAW (Digital Audio Workstation) for electronic music production. It combines a **C++ audio engine** (JUCE + Tracktion Engine) with a **React-based UI** rendered in a native WebView, and an **AI copilot** powered by Gemini that can write music, tweak synths, and mix tracks through natural language.
 
+![screenshot](images/screenshot.png)
+
 ## DAW Features
 
 - **Arrangement View** — Timeline with track lanes, section markers, scroll/zoom, and click-to-seek. Sections are defined in `.bird` files and rendered as colored regions.
