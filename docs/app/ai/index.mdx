@@ -1,0 +1,41 @@
+# AI Integration (`app/ai/`)
+
+AI-powered music generation features using Google's Lyria/Magenta model.
+
+## Architecture
+
+Lyria generates raw audio tracks that are injected into the Tracktion Engine as audio clips. The AI tracks are distinct from MIDI tracks — they bypass the `.bird` notation system entirely.
+
+```
+React ChatPanel                LyriaBridge.cpp               LyriaManager.cpp
+─────────────                  ───────────────               ────────────────
+User: "add drums"              addGeneratedTrack()           addGeneratedTrack()
+  → Gemini tool call             → creates audio track         → creates LyriaPlugin
+  → set_lyria_track_config       → instantiates plugin         → WebSocket → Magenta server
+  → set_lyria_track_prompts    setLyriaTrackConfig()         handleLyriaState()
+                                 → forwards config              → applies config to plugin
+                               setLyriaTrackPrompts()        setLyriaTrackPrompts()
+                                 → forwards prompts             → sends prompts to server
+                               setLyriaQuantize()            setLyriaQuantize()
+                                 → sets bar quantization        → aligns output to bar grid
+```
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `LyriaManager.cpp` | Manages Lyria-generated tracks: configuration, prompts, quantization, WebView updates. All methods are called from `SongbirdEditor` and operate on the message thread. |
+
+## Design Principles
+
+- **Audio tracks only** — Lyria generates audio, not MIDI. Use `type audio` in `.bird` or `addGeneratedTrack()`.
+- **Message thread** — All Lyria management runs on the JUCE message thread. The actual audio DSP happens inside the `LyriaPlugin` on the audio thread (see `libraries/magenta/`).
+- **Track context map** — `SongbirdEditor` maintains a `std::map<int, LyriaTrackContext>` that maps track indices to their Lyria plugin and quantize settings.
+- **Config via Gemini tools** — The AI copilot uses `set_lyria_track_config` and `set_lyria_track_prompts` function calls to control generation parameters (temperature, density, brightness, BPM, prompt text).
+
+## Extending
+
+To add a new Lyria control:
+1. Add the parameter to `SET_LYRIA_TRACK_CONFIG_TOOL` in `react_ui/src/lib/ai/gemini.ts`
+2. Handle it in `setLyriaTrackConfig()` in `LyriaManager.cpp`
+3. Forward to the `LyriaPlugin` API in `libraries/magenta/LyriaPlugin.h`

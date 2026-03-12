@@ -1,0 +1,33 @@
+# Files (`files/`)
+
+Sample project files, MIDI files, and plugin configuration data.
+
+## Contents
+
+### Project Files (`.bird`)
+
+| File | Description |
+|------|-------------|
+| `grooves.bird` | Example project with groove/drum patterns. |
+| `full.bird` | Full-featured example project demonstrating all `.bird` capabilities. |
+| `live.bird` | Live performance project configuration. |
+
+### MIDI Files
+
+| File | Description |
+|------|-------------|
+| `ableton.mid` / `ableton2.mid` | MIDI files exported from Ableton for testing import. |
+
+### Plugin Data
+
+| Directory | Description |
+|-----------|-------------|
+| `plugin_lookups/` | Cached plugin name → identifier mappings used by the bird loader's keyword resolution. |
+| `plugin_params/` | Scanned plugin parameter dumps (output from `tools/scan_plugin_params.cpp`). Used as reference for macro mapping development. |
+| `sketches/` | UI/UX design sketches and visual prototypes. |
+
+### Test Files
+
+| File | Description |
+|------|-------------|
+| `test.json` / `test.txt` | Miscellaneous test data files. |

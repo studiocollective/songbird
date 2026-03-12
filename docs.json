@@ -3,11 +3,15 @@
   "theme": "mint",
   "name": "Songbird",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4F46E5"
+    "primary": "#000000",
+    "light": "#FFFFFF",
+    "dark": "#000000"
   },
   "favicon": "/favicon.svg",
+  "fonts": {
+    "body": "Inter",
+    "heading": "Inter"
+  },
   "navigation": {
     "tabs": [
       {
@@ -16,7 +20,7 @@
           {
             "group": "Getting Started",
             "pages": [
-              "README"
+              "docs/index"
             ]
           },
           {
@@ -34,20 +38,20 @@
           {
             "group": "Architecture",
             "pages": [
-              "app/README"
+              "docs/app/index"
             ]
           },
           {
             "group": "Modules",
             "pages": [
-              "app/bridge/README",
-              "app/state/README",
-              "app/audio/README",
-              "app/loader/README",
-              "app/plugins/README",
-              "app/midi/README",
-              "app/ai/README",
-              "app/export/README"
+              "docs/app/bridge/index",
+              "docs/app/state/index",
+              "docs/app/audio/index",
+              "docs/app/loader/index",
+              "docs/app/plugins/index",
+              "docs/app/midi/index",
+              "docs/app/ai/index",
+              "docs/app/export/index"
             ]
           }
         ]
@@ -58,49 +62,30 @@
           {
             "group": "Architecture",
             "pages": [
-              "react_ui/README",
-              "react_ui/src/README"
+              "docs/react_ui/index",
+              "docs/react_ui/src/index"
             ]
           },
           {
             "group": "State & Data",
             "pages": [
-              "react_ui/src/data/README",
-              "react_ui/src/data/slices/README",
-              "react_ui/src/lib/README"
+              "docs/react_ui/src/data/index",
+              "docs/react_ui/src/data/slices/index",
+              "docs/react_ui/src/lib/index"
             ]
           },
           {
             "group": "Components",
             "pages": [
-              "react_ui/src/components/README",
-              "react_ui/src/components/atoms/README",
-              "react_ui/src/components/molecules/README",
-              "react_ui/src/components/organisms/README",
-              "react_ui/src/components/panels/README"
+              "docs/react_ui/src/components/index",
+              "docs/react_ui/src/components/atoms/index",
+              "docs/react_ui/src/components/molecules/index",
+              "docs/react_ui/src/components/organisms/index",
+              "docs/react_ui/src/components/panels/index"
             ]
           }
         ]
-      },
-      {
-        "tab": "Tools & Support",
-        "groups": [
-          {
-            "group": "Development",
-            "pages": [
-              "utils/README",
-              "tools/README",
-              "eval/README"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "files/README",
-              "embedded/README"
-            ]
-          }
-        ]
+
       }
     ]
   }

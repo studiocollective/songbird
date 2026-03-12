@@ -58,7 +58,8 @@ if [ -f "app/Entitlements.plist" ]; then
     echo "  ✓ App signed with microphone entitlements"
 fi
 
-# Step 4: Start Vite dev server in background
+
+# Step 5: Start Vite dev server in background
 echo -e "${GREEN}Starting React UI dev server...${NC}"
 # Kill any lingering Songbird Player and Vite servers from previous runs
 pkill -f "Songbird Player" 2>/dev/null || true

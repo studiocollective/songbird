@@ -1,0 +1,38 @@
+# Tools (`tools/`)
+
+Developer utilities for plugin parameter discovery and mapping.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `scan_plugin_params.cpp` | JUCE console app that loads a VST3/AU plugin and dumps all its parameter names, indices, and ranges to stdout. Used to discover parameter names for `MacroMapper`. |
+| `process_plugin_params.py` | Python script that processes scanned parameter output — filters, formats, and generates mapping tables for use in `MacroMapper.cpp`. |
+
+## Usage
+
+### Scan Plugin Parameters
+
+```bash
+# Build the scanner (separate CMake target)
+cmake --build build --target ScanPluginParams
+
+# Run against a plugin
+./build/ScanPluginParams_artefacts/ScanPluginParams "/Library/Audio/Plug-Ins/VST3/Console 1.vst3"
+```
+
+This outputs all parameter names and IDs, which you then use to create macro mappings in `app/plugins/MacroMapper.cpp`.
+
+### Process Scanned Parameters
+
+```bash
+python3 tools/process_plugin_params.py < scan_output.txt
+```
+
+## Workflow: Adding Macro Support for a New Plugin
+
+1. **Scan** the plugin with `ScanPluginParams` to get all parameter names
+2. **Process** with `process_plugin_params.py` to filter relevant parameters
+3. **Map** the semantic macro names (e.g., `brightness` → `Filter Cutoff`) in `MacroMapper.cpp`
+4. **Add** the plugin keyword to the lookup table in `BirdLoader.cpp`
+5. **Document** the keyword in `documentation/bird.md`
