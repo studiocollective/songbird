@@ -13,8 +13,7 @@ Songbird is a collaborative DAW (Digital Audio Workstation) for electronic music
 - **VST3/AU Plugin Hosting** — Load any VST3 or Audio Unit plugin. Plugin editor windows, parameter scanning, and macro mapping for programmatic control.
 - **MIDI Recording** — Record from hardware MIDI controllers with grid quantization. Recorded MIDI is serialized back to `.bird` notation.
 - **Audio Recording** — Record audio input to tracks with beat-aligned quantization.
-- **Export** — Render individual stems (per-track WAV), master bounce (stereo WAV), and sheet music.
-- **Easy DAW Export** — Export projects to other DAWs for seamless interoperability.
+- **Easy Stem Export** — Fast workflow to render individual stems (per-track WAV), master bounce (stereo WAV), and sheet music. Options to auto-name files with bpm/key for reuse.
 - **AI Copilot** — Gemini-powered assistant that can create tracks, write patterns, set plugin parameters, adjust the mix, and generate audio via Lyria — all through chat or function calls.
 - **Git-Based Undo/Redo** — Every change is committed to an in-process git repo (libgit2). Full history panel with human-readable commit messages.
 - **Git-Based Collaboration** — Projects include `.bird` files, state files, and samples — all tracked in git (with LFS for audio). Multiple people can work on the same project concurrently — branch, merge, and resolve conflicts like code, not like bouncing stems over email.
